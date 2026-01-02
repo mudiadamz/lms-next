@@ -1,5 +1,5 @@
 import { Quiz, QuizSubmission } from '../types';
-import { apiClient } from './api';
+// import { apiClient } from './api';
 
 export const quizService = {
   async getQuizzes(_classId?: string): Promise<Quiz[]> {

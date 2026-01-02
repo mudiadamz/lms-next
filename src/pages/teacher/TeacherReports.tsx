@@ -192,54 +192,72 @@ export const TeacherReports = () => {
     return 'danger';
   };
 
+  type ReportCardWithStudent = ReportCard & { studentName: string; studentNumber: string };
+
   const columns = [
     {
       key: 'student',
       header: 'Siswa',
-      render: (item: typeof mockReportCards[0]) => (
-        <div>
-          <strong>{item.studentName}</strong>
-          <div style={{ fontSize: '0.875rem', color: 'var(--ios-gray)' }}>
-            NIS: {item.studentNumber}
+      render: (item: Record<string, unknown>) => {
+        const report = item as ReportCardWithStudent;
+        return (
+          <div>
+            <strong>{report.studentName}</strong>
+            <div style={{ fontSize: '0.875rem', color: 'var(--ios-gray)' }}>
+              NIS: {report.studentNumber}
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: 'class',
       header: 'Kelas',
-      render: (item: typeof mockReportCards[0]) => getClassName(item.classId),
+      render: (item: Record<string, unknown>) => {
+        const report = item as ReportCardWithStudent;
+        return getClassName(report.classId);
+      },
     },
     {
       key: 'averageScore',
       header: 'Rata-rata Nilai',
-      render: (item: typeof mockReportCards[0]) => (
-        <Badge variant={getScoreColor(item.averageScore)}>
-          {item.averageScore.toFixed(1)}
-        </Badge>
-      ),
+      render: (item: Record<string, unknown>) => {
+        const report = item as ReportCardWithStudent;
+        return (
+          <Badge variant={getScoreColor(report.averageScore)}>
+            {report.averageScore.toFixed(1)}
+          </Badge>
+        );
+      },
     },
     {
       key: 'rank',
       header: 'Ranking',
-      render: (item: typeof mockReportCards[0]) => (
-        <span style={{ fontWeight: 600 }}>#{item.rank || '-'}</span>
-      ),
+      render: (item: Record<string, unknown>) => {
+        const report = item as ReportCardWithStudent;
+        return <span style={{ fontWeight: 600 }}>#{report.rank || '-'}</span>;
+      },
     },
     {
       key: 'semester',
       header: 'Semester',
-      render: (item: typeof mockReportCards[0]) => `Semester ${item.semester}`,
+      render: (item: Record<string, unknown>) => {
+        const report = item as ReportCardWithStudent;
+        return `Semester ${report.semester}`;
+      },
     },
     {
       key: 'actions',
       header: 'Aksi',
-      render: (item: typeof mockReportCards[0]) => (
-        <Button variant="outline" size="small" onClick={() => handleViewReport(item.id)}>
-          <Icon name="eye" size={16} style={{ marginRight: '0.25rem' }} />
-          Lihat Rapor
-        </Button>
-      ),
+      render: (item: Record<string, unknown>) => {
+        const report = item as ReportCardWithStudent;
+        return (
+          <Button variant="outline" size="small" onClick={() => handleViewReport(report.id)}>
+            <Icon name="eye" size={16} style={{ marginRight: '0.25rem' }} />
+            Lihat Rapor
+          </Button>
+        );
+      },
     },
   ];
 
@@ -330,7 +348,7 @@ export const TeacherReports = () => {
                 title={`Daftar Rapor - ${getClassName(selectedClass)} - Semester ${selectedSemester}`}
                 variant="elevated"
               >
-                <Table columns={columns} data={paginatedReports} />
+                <Table columns={columns} data={paginatedReports as Record<string, unknown>[]} />
                 {totalPages > 1 && (
                   <Pagination
                     currentPage={currentPage}

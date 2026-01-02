@@ -54,6 +54,7 @@ export const TeacherSchedule = () => {
         <div className="schedule-header">
           <h1>Jadwal Mengajar</h1>
           <FormSelect
+            label="Pilih Minggu"
             value={selectedWeek}
             onChange={(e) => setSelectedWeek(e.target.value)}
             options={[

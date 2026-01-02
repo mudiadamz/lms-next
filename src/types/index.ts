@@ -8,6 +8,7 @@ export interface User {
   teacherNumber?: string; // Nomor Induk Pengajar (NIP)
   adminNumber?: string; // Nomor Induk Admin
   fullName: string;
+  email?: string;
   role: UserRole;
   schoolLevel?: SchoolLevel;
   classId?: string;

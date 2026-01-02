@@ -1,5 +1,5 @@
 import { User } from '../types';
-import { apiClient } from './api';
+// import { apiClient } from './api';
 
 export interface LoginCredentials {
   username: string;
@@ -18,7 +18,7 @@ export const authService = {
     const mockUsers: Record<string, User> = {
       student: {
         id: '1',
-        username: 'student',
+        studentNumber: '2024001',
         email: 'student@example.com',
         fullName: 'Budi Santoso',
         role: 'student',
@@ -29,7 +29,7 @@ export const authService = {
       },
       teacher: {
         id: '2',
-        username: 'teacher',
+        teacherNumber: '1985001',
         email: 'teacher@example.com',
         fullName: 'Ibu Siti',
         role: 'teacher',
@@ -39,7 +39,7 @@ export const authService = {
       },
       admin: {
         id: '3',
-        username: 'admin',
+        adminNumber: 'ADM001',
         email: 'admin@example.com',
         fullName: 'Admin Sekolah',
         role: 'admin',
@@ -49,7 +49,7 @@ export const authService = {
       },
       parent: {
         id: '4',
-        username: 'parent',
+        studentNumber: '2024001',
         email: 'parent@example.com',
         fullName: 'Bapak Santoso',
         role: 'parent',
