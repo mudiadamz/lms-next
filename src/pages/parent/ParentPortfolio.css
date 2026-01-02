@@ -18,6 +18,46 @@
 
 .stat-card {
   padding: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .parent-portfolio h1 {
+    font-size: 1.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
+  .portfolio-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .parent-portfolio h1 {
+    font-size: 1.25rem;
+  }
+
+  .page-header {
+    margin-bottom: 0.75rem;
+  }
+
+  .portfolio-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .stat-card {
+    padding: 0.75rem;
+  }
   text-align: center;
 }
 

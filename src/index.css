@@ -126,3 +126,49 @@ button {
   width: 0px;
   background: transparent;
 }
+
+/* Global mobile optimizations */
+@media (max-width: 768px) {
+  /* Reduce default spacing for mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ensure containers don't overflow */
+  .container,
+  .page-container,
+  .content-container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    box-sizing: border-box;
+  }
+
+  /* Common page header spacing */
+  .page-header {
+    margin-bottom: 1rem !important;
+  }
+
+  /* Common section spacing */
+  section {
+    margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .container,
+  .page-container,
+  .content-container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .page-header {
+    margin-bottom: 0.75rem !important;
+  }
+
+  section {
+    margin-bottom: 0.75rem;
+  }
+}
