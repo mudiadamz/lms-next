@@ -1,21 +1,135 @@
-# React + TypeScript + Vite
+# Learning Management System (LMS)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Sistem Manajemen Pembelajaran untuk semua jenis sekolah (SD, SMP, SMA) dengan fitur lengkap untuk siswa, guru, admin, dan orang tua.
 
-While this project uses React, Vite supports many popular JS frameworks. [See all the supported frameworks](https://vitejs.dev/guide/#scaffolding-your-first-vite-project).
+## Tech Stack
 
-## Deploy Your Own
+- **React 18+** dengan TypeScript
+- **Vite** sebagai build tool
+- **React Router DOM** untuk routing
+- **CSS** untuk styling
 
-Deploy your own Vite project with Vercel.
+## Fitur Utama
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/framework-boilerplates/vite-react&template=vite-react)
+### 👨‍🎓 Siswa
+- Dashboard dengan ringkasan aktivitas
+- Materi pembelajaran, tugas, dan kuis
+- Nilai dan rapor digital
+- Jadwal pelajaran dan absensi
+- Forum diskusi dan pesan
+- Portofolio tugas
 
-_Live Example: https://vite-react-example.vercel.app_
+### 👨‍🏫 Guru
+- Dashboard dengan statistik kelas
+- Manajemen kelas dan materi
+- Buat dan kelola tugas & kuis
+- Penilaian dan input absensi
+- Analitik performa siswa
+- Bank soal
 
-### Deploying From Your Terminal
+### 👨‍💼 Admin
+- Dashboard dengan statistik sekolah
+- Manajemen user, kelas, dan mata pelajaran
+- Manajemen jadwal dan tahun ajaran
+- Laporan sekolah
+- Pengaturan sistem
+- Audit log
 
-You can deploy your new Vite project with a single command from your terminal using [Vercel CLI](https://vercel.com/download):
+### 👨‍👩‍👧 Orang Tua
+- Dashboard dengan ringkasan anak
+- Monitoring nilai dan absensi
+- Lihat tugas dan deadline
+- Progress belajar anak
+- Komunikasi dengan guru
 
-```shell
-$ vercel
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+ dan npm
+
+### Installation
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
 ```
+
+### Login Credentials (Demo)
+
+- **Siswa**: username: `student`, password: `password`
+- **Guru**: username: `teacher`, password: `password`
+- **Admin**: username: `admin`, password: `password`
+- **Orang Tua**: username: `parent`, password: `password`
+
+## Struktur Proyek
+
+```
+src/
+├── components/          # Reusable components
+│   ├── common/         # Button, Input, Card, Form components
+│   └── layout/         # Header, Sidebar, DashboardLayout
+├── pages/              # Page components
+│   ├── auth/           # Login
+│   ├── student/        # 12 halaman siswa
+│   ├── teacher/        # 14 halaman guru
+│   ├── admin/          # 11 halaman admin
+│   └── parent/         # 11 halaman orang tua
+├── services/           # API services
+├── hooks/              # Custom React hooks
+├── utils/              # Utility functions
+├── types/               # TypeScript types
+├── contexts/            # React contexts
+├── routes/              # Route definitions
+└── constants/           # Constants
+```
+
+## Development
+
+### Services
+
+Semua API services tersedia di `src/services/`:
+- `authService` - Authentication
+- `assignmentService` - Tugas
+- `quizService` - Kuis
+- `materialService` - Materi pembelajaran
+- `gradeService` - Nilai
+- `attendanceService` - Absensi
+- `userService` - User management
+- `classService` - Kelas management
+
+### Utilities
+
+Utility functions di `src/utils/`:
+- `dateUtils` - Format tanggal Indonesia
+- `validation` - Validasi form
+
+### Hooks
+
+Custom hooks di `src/hooks/`:
+- `useLocalStorage` - LocalStorage dengan React state
+- `useDebounce` - Debounce values
+- `useAsync` - Handle async operations
+
+## Next Steps
+
+- [ ] Implementasi API integration (ganti mock data)
+- [ ] File upload/download functionality
+- [ ] Form handling untuk create/edit
+- [ ] Data visualization (charts)
+- [ ] Real-time notifications
+- [ ] Unit tests
+- [ ] E2E tests
+
+## License
+
+MIT

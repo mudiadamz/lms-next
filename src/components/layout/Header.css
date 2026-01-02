@@ -1,0 +1,260 @@
+.header {
+  background-color: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  color: #000000;
+  padding: 0;
+  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  border-bottom: 0.5px solid var(--ios-separator);
+  width: 100%;
+  margin: 0;
+}
+
+.header-content {
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 56px;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+@media (min-width: 769px) {
+  .header-content {
+    padding: 0 1.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .header-content {
+    padding: 0 2rem;
+  }
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.header-menu-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--ios-blue);
+  cursor: pointer;
+  padding: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.header-menu-button:active {
+  background-color: rgba(0, 122, 255, 0.1);
+  opacity: 0.8;
+}
+
+.header-logo {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.header-logo h1 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #000000;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.header-user {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0.375rem 0.5rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  border-radius: 8px;
+  min-height: 44px;
+}
+
+.header-user:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.header-user-name {
+  font-weight: 500;
+  font-size: 15px;
+  color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.header-user-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: transparent;
+}
+
+.header-user-menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  background-color: var(--ios-background);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  min-width: 180px;
+  border: 0.5px solid var(--ios-separator);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  z-index: 1001;
+  animation: slideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.header-user-menu-item {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: 17px;
+  color: #ff3b30;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+}
+
+.header-user-menu-item:active {
+  background-color: rgba(255, 59, 48, 0.1);
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 0;
+    margin: 0;
+    left: 0;
+    right: 0;
+    width: 100vw;
+    position: fixed;
+    top: 0;
+  }
+
+  .header-content {
+    padding: 0 0.75rem;
+    min-height: 56px;
+    width: 100%;
+    margin: 0;
+  }
+
+  .header-left {
+    gap: 0.375rem;
+  }
+
+  .header-menu-button {
+    padding: 0.375rem;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  .header-logo h1 {
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  .header-user {
+    padding: 0.25rem 0.375rem;
+  }
+
+  .header-user-name {
+    font-size: 14px;
+    max-width: 100px;
+    display: none; /* Hide name on very small screens */
+  }
+
+  .header-user-menu {
+    min-width: 160px;
+    right: -0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    width: 100vw;
+  }
+
+  .header-content {
+    padding: 0 0.5rem;
+  }
+
+  .header-left {
+    gap: 0.25rem;
+  }
+
+  .header-menu-button {
+    padding: 0.25rem;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .header-logo h1 {
+    font-size: 15px;
+  }
+
+  .header-user {
+    padding: 0.25rem;
+  }
+
+  .header-user-name {
+    display: none; /* Completely hide on very small screens */
+  }
+
+  .header-nav {
+    gap: 0.25rem;
+  }
+}
+

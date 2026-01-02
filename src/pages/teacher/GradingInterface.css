@@ -1,0 +1,73 @@
+.grading-interface {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.grading-header {
+  margin-bottom: 1rem;
+}
+
+.submission-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-row {
+  padding: 0.5rem 0;
+}
+
+.submission-content {
+  padding: 1rem 0;
+}
+
+.submission-content p {
+  margin: 0 0 1rem 0;
+  line-height: 1.6;
+  color: #374151;
+}
+
+.submission-attachments {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.submission-attachments h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.submission-attachments ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.submission-attachments li {
+  margin-bottom: 0.5rem;
+}
+
+.submission-attachments a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.submission-attachments a:hover {
+  text-decoration: underline;
+}
+
+.grading-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+

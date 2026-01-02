@@ -1,0 +1,82 @@
+.assignment-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detail-header {
+  margin-bottom: 1rem;
+}
+
+.assignment-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.info-item {
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+}
+
+.assignment-description,
+.assignment-attachments {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.assignment-description h3,
+.assignment-attachments h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.125rem;
+  color: #1f2937;
+}
+
+.assignment-description p {
+  margin: 0;
+  color: #374151;
+  line-height: 1.6;
+}
+
+.assignment-attachments ul {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.assignment-attachments li {
+  margin-bottom: 0.5rem;
+}
+
+.assignment-attachments a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.assignment-attachments a:hover {
+  text-decoration: underline;
+}
+
+.submission-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.submission-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.submission-info p {
+  margin: 0;
+}
+

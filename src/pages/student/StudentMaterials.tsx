@@ -1,0 +1,88 @@
+import { Link } from 'react-router-dom';
+import { DashboardLayout } from '../../components/layout/DashboardLayout';
+import { Card } from '../../components/common/Card';
+import { Badge, SearchBar, Button, EmptyState } from '../../components/common';
+import { ROUTES } from '../../constants';
+import { formatDate } from '../../utils';
+import './StudentMaterials.css';
+
+const mockMaterials = [
+  {
+    id: '1',
+    title: 'Pengenalan Aljabar',
+    type: 'document',
+    subject: 'Matematika',
+    teacher: 'Ibu Siti',
+    createdAt: new Date('2024-01-15'),
+    description: 'Materi pengenalan dasar aljabar untuk kelas X',
+  },
+  {
+    id: '2',
+    title: 'Video Pembelajaran: Persamaan Linear',
+    type: 'video',
+    subject: 'Matematika',
+    teacher: 'Ibu Siti',
+    createdAt: new Date('2024-01-16'),
+    description: 'Video penjelasan tentang persamaan linear',
+  },
+];
+
+const getTypeLabel = (type: string) => {
+  const labels: Record<string, string> = {
+    document: '📄 Dokumen',
+    video: '🎥 Video',
+    presentation: '📊 Presentasi',
+    link: '🔗 Link',
+  };
+  return labels[type] || '📎 File';
+};
+
+export const StudentMaterials = () => {
+  return (
+    <DashboardLayout>
+      <div className="student-materials">
+        <h1>Materi Pembelajaran</h1>
+
+        <div className="page-filters">
+          <SearchBar placeholder="Cari materi..." />
+        </div>
+
+        {mockMaterials.length === 0 ? (
+          <EmptyState
+            icon="📚"
+            title="Tidak Ada Materi"
+            message="Belum ada materi pembelajaran yang tersedia."
+          />
+        ) : (
+          <div className="materials-grid">
+            {mockMaterials.map((material) => (
+              <Card key={material.id} title={material.title} variant="elevated">
+                <div className="material-info">
+                  <Badge variant="primary">{getTypeLabel(material.type)}</Badge>
+                  <p>
+                    <strong>Mata Pelajaran:</strong> {material.subject}
+                  </p>
+                  <p>
+                    <strong>Guru:</strong> {material.teacher}
+                  </p>
+                  <p>
+                    <strong>Tanggal:</strong> {formatDate(material.createdAt)}
+                  </p>
+                  {material.description && (
+                    <p className="material-description">{material.description}</p>
+                  )}
+                </div>
+                <Link to={`${ROUTES.STUDENT_MATERIALS}/${material.id}`}>
+                  <Button variant="primary" className="material-action-button">
+                    Lihat Materi
+                  </Button>
+                </Link>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+

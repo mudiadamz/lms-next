@@ -1,0 +1,36 @@
+.teacher-materials h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.page-filters {
+  margin-bottom: 1.5rem;
+}
+
+.materials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.material-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.material-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+

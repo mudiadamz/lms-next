@@ -1,0 +1,59 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.badge--small {
+  padding: 0.125rem 0.5rem;
+  font-size: 11px;
+  border-radius: 10px;
+}
+
+.badge--medium {
+  padding: 0.25rem 0.625rem;
+  font-size: 13px;
+  border-radius: 12px;
+}
+
+.badge--large {
+  padding: 0.375rem 0.875rem;
+  font-size: 15px;
+  border-radius: 14px;
+}
+
+.badge--primary {
+  background-color: rgba(0, 122, 255, 0.15);
+  color: var(--ios-blue);
+}
+
+.badge--secondary {
+  background-color: rgba(142, 142, 147, 0.15);
+  color: var(--ios-gray);
+}
+
+.badge--success {
+  background-color: rgba(52, 199, 89, 0.15);
+  color: #34c759;
+}
+
+.badge--warning {
+  background-color: rgba(255, 204, 0, 0.15);
+  color: #ffcc00;
+}
+
+.badge--danger {
+  background-color: rgba(255, 59, 48, 0.15);
+  color: #ff3b30;
+}
+
+.badge--info {
+  background-color: rgba(0, 122, 255, 0.15);
+  color: var(--ios-blue);
+}
+

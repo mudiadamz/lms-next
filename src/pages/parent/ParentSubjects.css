@@ -1,0 +1,17 @@
+.parent-subjects h1 {
+  margin: 0 0 2rem 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.subjects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.subjects-grid p {
+  margin: 0.5rem 0;
+  color: #374151;
+}
+

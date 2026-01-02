@@ -1,0 +1,40 @@
+.parent-materials h1 {
+  margin: 0 0 2rem 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.page-filters {
+  margin-bottom: 1.5rem;
+}
+
+.materials-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.material-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.material-info p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.material-description {
+  margin-top: 0.5rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.material-action-button {
+  width: 100%;
+  margin-top: 1rem;
+}
+

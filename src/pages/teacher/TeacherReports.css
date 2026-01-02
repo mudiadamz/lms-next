@@ -1,0 +1,282 @@
+.teacher-reports h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.report-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.page-filters {
+  margin-bottom: 1.5rem;
+}
+
+/* Report Detail Styles */
+.report-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.report-header-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.report-header-left {
+  flex: 1;
+}
+
+.report-header h1 {
+  margin: 0 0 1.5rem 0;
+  font-size: 2rem;
+  color: white;
+}
+
+.report-student-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.info-item {
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.info-item strong {
+  display: inline-block;
+  min-width: 120px;
+  margin-right: 0.5rem;
+}
+
+.report-header-right {
+  display: flex;
+  align-items: flex-start;
+}
+
+.report-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 200px;
+}
+
+.summary-item {
+  text-align: center;
+}
+
+.summary-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+  margin-bottom: 0.5rem;
+}
+
+.summary-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: white;
+}
+
+.summary-value--success {
+  color: #34c759;
+}
+
+.summary-value--primary {
+  color: #007aff;
+}
+
+.summary-value--warning {
+  color: #ff9500;
+}
+
+.summary-value--danger {
+  color: #ff3b30;
+}
+
+.grades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.grade-item {
+  padding: 1rem;
+  background-color: var(--ios-secondary-background);
+  border-radius: 10px;
+  border: 0.5px solid var(--ios-separator);
+}
+
+.grade-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.grade-type {
+  display: flex;
+  align-items: center;
+}
+
+.grade-date {
+  font-size: 0.85rem;
+  color: var(--ios-gray);
+}
+
+.grade-score {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.score-value {
+  font-size: 1.1rem;
+}
+
+.score-percentage {
+  font-size: 0.9rem;
+  color: var(--ios-gray);
+  font-weight: 500;
+}
+
+.grade-notes {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 0.5px solid var(--ios-separator);
+  font-size: 0.9rem;
+  color: var(--ios-gray);
+}
+
+.subject-average-summary {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--ios-separator);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1rem;
+}
+
+.teacher-notes {
+  padding: 1rem;
+  background-color: var(--ios-secondary-background);
+  border-radius: 10px;
+  border-left: 4px solid var(--ios-blue);
+}
+
+.teacher-notes p {
+  margin: 0;
+  line-height: 1.8;
+  color: #000000;
+  white-space: pre-wrap;
+}
+
+.report-footer {
+  margin-top: 1rem;
+}
+
+.report-footer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.report-signature {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.signature-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.signature-line {
+  width: 200px;
+  height: 1px;
+  background-color: var(--ios-separator);
+  margin-bottom: 2rem;
+}
+
+.signature-item div:last-child {
+  font-weight: 500;
+  color: var(--ios-gray);
+}
+
+@media (max-width: 768px) {
+  .report-header {
+    flex-direction: column;
+  }
+
+  .report-student-info {
+    grid-template-columns: 1fr;
+  }
+
+  .report-summary {
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  .summary-value {
+    font-size: 2rem;
+  }
+
+  .detail-header {
+    flex-direction: column;
+  }
+
+  .detail-header button {
+    width: 100%;
+  }
+
+  .report-signature {
+    grid-template-columns: 1fr;
+  }
+
+  .signature-line {
+    width: 100%;
+  }
+}

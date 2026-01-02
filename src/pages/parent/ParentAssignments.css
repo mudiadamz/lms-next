@@ -1,0 +1,39 @@
+.parent-assignments h1 {
+  margin: 0 0 2rem 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.page-filters {
+  margin-bottom: 1.5rem;
+}
+
+.assignments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.assignment-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.assignment-card-info p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.assignment-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.assignment-action-button {
+  width: 100%;
+  margin-top: 1rem;
+}

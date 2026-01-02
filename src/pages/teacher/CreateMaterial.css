@@ -1,0 +1,25 @@
+.create-material h1 {
+  margin: 0 0 2rem 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.material-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+

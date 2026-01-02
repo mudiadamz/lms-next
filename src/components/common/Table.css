@@ -1,0 +1,100 @@
+.table-wrapper {
+  overflow-x: auto;
+  border: 0.5px solid var(--ios-separator);
+  border-radius: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--ios-background);
+  font-size: 15px;
+}
+
+.table thead {
+  background-color: var(--ios-secondary-background);
+}
+
+.table th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  border-bottom: 0.5px solid var(--ios-separator);
+}
+
+.table-header--sortable {
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+}
+
+.table-header--sortable:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 0.5px solid var(--ios-separator);
+  color: #000000;
+}
+
+.table tbody tr:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.table-row--clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.table-row--clickable:active {
+  background-color: rgba(0, 122, 255, 0.1);
+}
+
+.table-empty {
+  padding: 3rem;
+  text-align: center;
+  color: #6b7280;
+}
+
+.table-empty p {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .table th {
+    padding: 0.625rem 0.75rem;
+    font-size: 12px;
+  }
+
+  .table td {
+    padding: 0.625rem 0.75rem;
+    font-size: 14px;
+  }
+
+  .table-empty {
+    padding: 2rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .table th {
+    padding: 0.5rem 0.5rem;
+    font-size: 11px;
+  }
+
+  .table td {
+    padding: 0.5rem 0.5rem;
+    font-size: 13px;
+  }
+
+  .table-empty {
+    padding: 1.5rem 0.75rem;
+  }
+}
+

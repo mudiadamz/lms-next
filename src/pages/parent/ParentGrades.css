@@ -1,0 +1,24 @@
+.parent-grades h1 {
+  margin: 0 0 2rem 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.grades-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.grades-table th,
+.grades-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.grades-table th {
+  font-weight: 600;
+  color: #374151;
+  background-color: #f9fafb;
+}
+

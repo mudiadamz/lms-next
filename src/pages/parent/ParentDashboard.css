@@ -1,0 +1,105 @@
+.dashboard-header {
+  margin-bottom: 2rem;
+}
+
+.parent-dashboard h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.welcome-message {
+  color: #6b7280;
+  margin: 0;
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #3b82f6;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.empty-text {
+  color: #6b7280;
+  margin: 0;
+  font-style: italic;
+}
+
+.urgent-assignments,
+.recent-grades,
+.announcements {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.urgent-item,
+.grade-item,
+.announcement-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+}
+
+.item-meta {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.view-all-button {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+.today-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.schedule-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  border-radius: 0.375rem;
+}
+
+.schedule-time {
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.schedule-subject {
+  font-weight: 500;
+  color: #1f2937;
+}
