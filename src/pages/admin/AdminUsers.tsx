@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Table, SearchBar, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FileUpload } from '../../components/common';
@@ -42,10 +42,16 @@ const mockUsers = [
 
 export const AdminUsers = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState<string>('all');
   const [selectedSubMenu, setSelectedSubMenu] = useState<string>('admin');
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Read role from URL query parameter
+  useEffect(() => {
+    const role = searchParams.get('role') || 'admin';
+    setSelectedSubMenu(role);
+  }, [searchParams]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<typeof mockUsers[0] | null>(null);
@@ -61,9 +67,8 @@ export const AdminUsers = () => {
       (user.studentNumber && user.studentNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.teacherNumber && user.teacherNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.adminNumber && user.adminNumber.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole;
     const matchesSubMenu = user.role === selectedSubMenu;
-    return matchesSearch && matchesRole && matchesSubMenu;
+    return matchesSearch && matchesSubMenu;
   });
 
   const paginatedUsers = filteredUsers.slice(
@@ -92,7 +97,20 @@ export const AdminUsers = () => {
       case 'teacher':
         return 'Tambah Guru';
       default:
-        return 'Tambah User';
+        return 'Tambah Pengguna';
+    }
+  };
+
+  const getPageTitle = () => {
+    switch (selectedSubMenu) {
+      case 'admin':
+        return 'Manajemen Admin';
+      case 'student':
+        return 'Manajemen Murid';
+      case 'teacher':
+        return 'Manajemen Guru';
+      default:
+        return 'Manajemen Pengguna';
     }
   };
 
@@ -283,38 +301,9 @@ export const AdminUsers = () => {
     <DashboardLayout>
       <div className="admin-users">
         <div className="page-header">
-          <h1>Manajemen User</h1>
+          <h1>{getPageTitle()}</h1>
         </div>
 
-        <div className="user-submenu">
-          <button
-            className={`submenu-item ${selectedSubMenu === 'admin' ? 'submenu-item--active' : ''}`}
-            onClick={() => {
-              setSelectedSubMenu('admin');
-              setCurrentPage(1);
-            }}
-          >
-            Admin
-          </button>
-          <button
-            className={`submenu-item ${selectedSubMenu === 'student' ? 'submenu-item--active' : ''}`}
-            onClick={() => {
-              setSelectedSubMenu('student');
-              setCurrentPage(1);
-            }}
-          >
-            Murid
-          </button>
-          <button
-            className={`submenu-item ${selectedSubMenu === 'teacher' ? 'submenu-item--active' : ''}`}
-            onClick={() => {
-              setSelectedSubMenu('teacher');
-              setCurrentPage(1);
-            }}
-          >
-            Guru
-          </button>
-        </div>
 
         <div className="page-filters">
           <SearchBar
@@ -325,26 +314,10 @@ export const AdminUsers = () => {
               setCurrentPage(1);
             }}
           />
-          <div className="filter-group">
-            <select
-              value={selectedRole}
-              onChange={(e) => {
-                setSelectedRole(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="filter-select"
-            >
-              <option value="all">Semua Role</option>
-              <option value="student">Siswa</option>
-              <option value="teacher">Guru</option>
-              <option value="admin">Admin</option>
-              <option value="parent">Orang Tua</option>
-            </select>
-          </div>
         </div>
 
         <Card 
-          title={`Daftar User (${filteredUsers.length})`} 
+          title={`Daftar Pengguna (${filteredUsers.length})`} 
           variant="elevated"
           headerAction={
             <div className="card-header-actions">
@@ -388,7 +361,7 @@ export const AdminUsers = () => {
             setImportFile(null);
             setImportPreview([]);
           }}
-          title="Import User dari Excel"
+          title="Import Pengguna dari Excel"
           size="large"
         >
           <div className="import-modal-content">
@@ -404,7 +377,7 @@ export const AdminUsers = () => {
                 <li><strong>Tingkat Sekolah</strong> - sd, smp, atau sma (opsional)</li>
               </ul>
               <p style={{ marginTop: '0.75rem', fontSize: '13px', color: '#6b7280' }}>
-                <strong>Catatan:</strong> Password default untuk user baru adalah nomor induk mereka. User dapat mengubah password setelah login pertama kali.
+                <strong>Catatan:</strong> Password default untuk pengguna baru adalah nomor induk mereka. Pengguna dapat mengubah password setelah login pertama kali.
               </p>
             </div>
 
@@ -476,7 +449,7 @@ export const AdminUsers = () => {
                 isLoading={isImporting}
                 disabled={!importFile || importPreview.length === 0}
               >
-                Import {importPreview.length > 0 ? `${importPreview.length} ` : ''}User
+                Import {importPreview.length > 0 ? `${importPreview.length} ` : ''}Pengguna
               </Button>
             </div>
           </div>
@@ -490,8 +463,8 @@ export const AdminUsers = () => {
             setSelectedUser(null);
           }}
           onConfirm={confirmDelete}
-          title="Hapus User"
-          message={`Apakah Anda yakin ingin menghapus user "${selectedUser?.fullName}"? Tindakan ini tidak dapat dibatalkan.`}
+          title="Hapus Pengguna"
+          message={`Apakah Anda yakin ingin menghapus pengguna "${selectedUser?.fullName}"? Tindakan ini tidak dapat dibatalkan.`}
           confirmLabel="Hapus"
           variant="danger"
         />

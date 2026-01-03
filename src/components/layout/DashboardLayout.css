@@ -9,6 +9,10 @@
   padding: 0;
 }
 
+.dark-mode .dashboard-layout {
+  background: linear-gradient(180deg, #000000 0%, #1c1c1e 50%, #000000 100%);
+}
+
 .dashboard-content {
   display: flex;
   flex: 1;
@@ -21,7 +25,7 @@
 
 .dashboard-main {
   flex: 1;
-  padding: 1rem;
+  padding: 0.75rem;
   background: transparent;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -40,33 +44,31 @@
   }
 
   .dashboard-main {
-    padding: 0.75rem;
-    padding-top: 0.75rem;
+    padding: 0.5rem;
   }
 }
 
 @media (max-width: 480px) {
   .dashboard-main {
     padding: 0.5rem;
-    padding-top: 0.5rem;
   }
 }
 
 @media (min-width: 769px) {
   .dashboard-main {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 }
 
 @media (min-width: 1200px) {
   .dashboard-main {
-    padding: 2rem;
+    padding: 1.25rem;
   }
 }
 
 @media (min-width: 1440px) {
   .dashboard-main {
-    padding: 2.5rem;
+    padding: 1.5rem;
   }
 }
 

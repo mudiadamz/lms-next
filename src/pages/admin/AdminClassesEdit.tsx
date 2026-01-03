@@ -112,9 +112,6 @@ export const AdminClassesEdit = () => {
     <DashboardLayout>
       <div className="admin-classes-create">
         <div className="page-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.ADMIN_CLASSES)}>
-            <Icon name="chevronLeft" size={20} /> Kembali
-          </Button>
           <h1>Edit Kelas</h1>
         </div>
 

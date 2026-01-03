@@ -23,6 +23,7 @@ export const ROUTES = {
   STUDENT_PORTFOLIO: '/student/portfolio',
   STUDENT_CALENDAR: '/student/calendar',
   STUDENT_PROFILE: '/student/profile',
+  STUDENT_PAYMENT: '/student/payment',
   
   // Teacher Routes
   TEACHER_DASHBOARD: '/teacher/dashboard',
@@ -72,6 +73,7 @@ export const ROUTES = {
   ADMIN_CURRICULUM: '/admin/curriculum',
   ADMIN_AUDIT_LOG: '/admin/audit-log',
   ADMIN_PROFILE: '/admin/profile',
+  ADMIN_PAYMENT: '/admin/payment',
   
   // Parent Routes
   PARENT_DASHBOARD: '/parent/dashboard',

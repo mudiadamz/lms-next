@@ -65,9 +65,6 @@ export const TeacherClassDetail = () => {
     <DashboardLayout>
       <div className="teacher-class-detail">
         <div className="page-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.TEACHER_CLASSES)}>
-            <Icon name="chevronLeft" size={20} /> Kembali
-          </Button>
           <h1>Detail Kelas - {classData.name}</h1>
         </div>
 

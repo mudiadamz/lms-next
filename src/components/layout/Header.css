@@ -15,6 +15,12 @@
   margin: 0;
 }
 
+.dark-mode .header {
+  background: linear-gradient(135deg, rgba(28, 28, 30, 0.95) 0%, rgba(0, 0, 0, 0.95) 100%);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(10, 132, 255, 0.1);
+}
+
 .header-content {
   max-width: 100%;
   margin: 0 auto;
@@ -88,6 +94,13 @@
   text-overflow: ellipsis;
 }
 
+.dark-mode .header-logo h1 {
+  background: linear-gradient(135deg, #ffffff 0%, rgba(10, 132, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 .header-nav {
   display: flex;
   align-items: center;
@@ -118,6 +131,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 120px;
+}
+
+.dark-mode .header-user-name {
+  color: #ffffff;
 }
 
 .header-user-menu-overlay {
@@ -179,6 +196,31 @@
 
 .header-user-menu-item--profile:active {
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .header-user-menu-item--profile {
+  color: #ffffff;
+}
+
+.dark-mode .header-user-menu-item--profile:active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-user-menu-item--settings {
+  color: #000000;
+  border-bottom: 0.5px solid var(--ios-separator);
+}
+
+.header-user-menu-item--settings:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .header-user-menu-item--settings {
+  color: #ffffff;
+}
+
+.dark-mode .header-user-menu-item--settings:active {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .header-user-menu-item:active {

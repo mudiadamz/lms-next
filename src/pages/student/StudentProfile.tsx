@@ -73,7 +73,7 @@ export const StudentProfile = () => {
               <span>{user?.classId || '-'}</span>
             </div>
             <div className="info-item">
-              <strong>ID User:</strong> 
+              <strong>ID Pengguna:</strong> 
               <span>{user?.id || '-'}</span>
             </div>
           </div>

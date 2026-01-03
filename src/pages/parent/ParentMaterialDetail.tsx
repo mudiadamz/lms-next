@@ -36,11 +36,6 @@ export const ParentMaterialDetail = () => {
   return (
     <DashboardLayout>
       <div className="parent-material-detail">
-        <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.PARENT_MATERIALS)}>
-            ← Kembali
-          </Button>
-        </div>
 
         <Card>
           <div className="material-header">

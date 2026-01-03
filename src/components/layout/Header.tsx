@@ -13,7 +13,7 @@ interface HeaderProps {
 
 export const Header = ({ onMenuClick }: HeaderProps) => {
   const { user, logout } = useAuth();
-  const { settings } = useSettings();
+  const { settings, toggleDarkMode } = useSettings();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -68,6 +68,10 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                       <button onClick={handleProfileClick} className="header-user-menu-item header-user-menu-item--profile">
                         <Icon name="user" size={18} style={{ marginRight: '0.5rem' }} />
                         Profile
+                      </button>
+                      <button onClick={toggleDarkMode} className="header-user-menu-item header-user-menu-item--settings">
+                        <Icon name={settings.darkMode ? 'sun' : 'moon'} size={18} style={{ marginRight: '0.5rem' }} />
+                        {settings.darkMode ? 'Mode Terang' : 'Mode Gelap'}
                       </button>
                       <button onClick={logout} className="header-user-menu-item">
                         <Icon name="logout" size={18} style={{ marginRight: '0.5rem' }} />

@@ -90,9 +90,6 @@ export const StudentMessagesChat = () => {
     <DashboardLayout>
       <div className="messages-chat">
         <div className="chat-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.STUDENT_MESSAGES)}>
-            ← Kembali
-          </Button>
           <div className="chat-info">
             <h2>Ibu Siti</h2>
             <Badge variant="primary">Guru</Badge>
@@ -135,4 +132,3 @@ export const StudentMessagesChat = () => {
     </DashboardLayout>
   );
 };
-

@@ -60,9 +60,6 @@ export const ParentQuizDetail = () => {
     <DashboardLayout>
       <div className="parent-quiz-detail">
         <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.PARENT_QUIZZES)}>
-            ← Kembali
-          </Button>
         </div>
 
         <Card>

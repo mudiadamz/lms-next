@@ -42,9 +42,6 @@ export const ParentForumDetail = () => {
     <DashboardLayout>
       <div className="parent-forum-detail">
         <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.PARENT_FORUM)}>
-            ← Kembali ke Forum
-          </Button>
         </div>
 
         <Card>
@@ -89,4 +86,3 @@ export const ParentForumDetail = () => {
     </DashboardLayout>
   );
 };
-

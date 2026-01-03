@@ -94,9 +94,6 @@ export const AssignmentDetail = () => {
     <DashboardLayout>
       <div className="assignment-detail">
         <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.TEACHER_ASSIGNMENTS)}>
-            ← Kembali
-          </Button>
           <div className="detail-actions">
             <Link to={`${ROUTES.TEACHER_ASSIGNMENTS}/${id}/edit`}>
               <Button variant="outline">Edit</Button>

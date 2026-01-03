@@ -36,11 +36,6 @@ export const StudentMaterialDetail = () => {
   return (
     <DashboardLayout>
       <div className="material-detail">
-        <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.STUDENT_MATERIALS)}>
-            ← Kembali
-          </Button>
-        </div>
 
         <Card>
           <div className="material-header">

@@ -58,9 +58,6 @@ export const ParentMessagesChat = () => {
     <DashboardLayout>
       <div className="parent-messages-chat">
         <div className="chat-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.PARENT_MESSAGES)}>
-            ← Kembali
-          </Button>
           <div className="chat-info">
             <h2>Ibu Siti</h2>
             <Badge variant="primary">Guru</Badge>

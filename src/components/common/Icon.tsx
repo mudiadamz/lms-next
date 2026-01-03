@@ -53,6 +53,8 @@ import {
   HiHeart,
   HiThumbUp,
   HiThumbDown,
+  HiMoon,
+  HiSun,
 } from 'react-icons/hi';
 
 // Icon mapping untuk iOS-style icons
@@ -125,6 +127,8 @@ export const ICONS = {
   heart: HiHeart,
   like: HiThumbUp,
   dislike: HiThumbDown,
+  moon: HiMoon,
+  sun: HiSun,
 } as const;
 
 export type IconName = keyof typeof ICONS;

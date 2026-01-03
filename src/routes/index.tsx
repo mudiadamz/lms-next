@@ -25,6 +25,7 @@ import { StudentMessagesChat } from '../pages/student/MessagesChat';
 import { StudentPortfolio } from '../pages/student/StudentPortfolio';
 import { StudentCalendar } from '../pages/student/StudentCalendar';
 import { StudentProfile } from '../pages/student/StudentProfile';
+import { StudentPayment } from '../pages/student/StudentPayment';
 
 // Teacher Pages
 import { TeacherDashboard } from '../pages/teacher/TeacherDashboard';
@@ -74,6 +75,7 @@ import { AdminSettings } from '../pages/admin/AdminSettings';
 import { AdminCurriculum } from '../pages/admin/AdminCurriculum';
 import { AdminAuditLog } from '../pages/admin/AdminAuditLog';
 import { AdminProfile } from '../pages/admin/AdminProfile';
+import { AdminPayment } from '../pages/admin/AdminPayment';
 
 // Parent Pages
 import { ParentDashboard } from '../pages/parent/ParentDashboard';
@@ -249,6 +251,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <StudentProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.STUDENT_PAYMENT}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <StudentPayment />
           </ProtectedRoute>
         }
       />
@@ -613,6 +623,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['admin']}>
             <AdminProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.ADMIN_PAYMENT}
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminPayment />
           </ProtectedRoute>
         }
       />

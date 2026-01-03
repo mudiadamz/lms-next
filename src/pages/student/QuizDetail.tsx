@@ -91,7 +91,6 @@ export const StudentQuizDetail = () => {
           <div className="quiz-not-available">
             <h2>Kuis Belum Dimulai</h2>
             <p>Kuis akan dimulai pada: {formatDateTime(mockQuiz.startDate)}</p>
-            <Button onClick={() => navigate(ROUTES.STUDENT_QUIZZES)}>Kembali</Button>
           </div>
         </Card>
       </DashboardLayout>
@@ -171,7 +170,7 @@ export const StudentQuizDetail = () => {
 
           <div className="quiz-actions">
             <Button variant="outline" onClick={() => setShowConfirmModal(true)}>
-              Kembali
+              Tutup
             </Button>
             <Button
               onClick={() => setShowConfirmModal(true)}

@@ -39,6 +39,35 @@
   --border-accent-purple: rgba(88, 86, 214, 0.2);
 }
 
+/* Dark Mode */
+.dark-mode {
+  color-scheme: dark;
+  color: #ffffff;
+  background-color: #000000;
+  
+  --ios-blue: #0a84ff;
+  --ios-gray: #8e8e93;
+  --ios-light-gray: #1c1c1e;
+  --ios-separator: #38383a;
+  --ios-background: #1c1c1e;
+  --ios-secondary-background: #000000;
+  --ios-tertiary-background: #2c2c2e;
+}
+
+.dark-mode body {
+  background-color: var(--ios-secondary-background);
+  color: #ffffff;
+}
+
+.dark-mode h1,
+.dark-mode h2,
+.dark-mode h3,
+.dark-mode h4,
+.dark-mode h5,
+.dark-mode h6 {
+  color: #ffffff;
+}
+
 body {
   margin: 0;
   padding: 0;

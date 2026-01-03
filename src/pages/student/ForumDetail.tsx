@@ -72,11 +72,6 @@ export const StudentForumDetail = () => {
   return (
     <DashboardLayout>
       <div className="forum-detail">
-        <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.STUDENT_FORUM)}>
-            ← Kembali ke Forum
-          </Button>
-        </div>
 
         <Card>
           <div className="post-header">

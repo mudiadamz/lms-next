@@ -181,10 +181,6 @@ export const TeacherMessagesChat = () => {
     <DashboardLayout>
       <div className="messages-chat">
         <div className="chat-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.TEACHER_MESSAGES)}>
-            <Icon name="chevronLeft" size={20} style={{ marginRight: '0.5rem' }} />
-            Kembali
-          </Button>
           <div className="chat-info">
             <div>
               <h2>{conversation.participantName}</h2>
