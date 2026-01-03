@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, SearchBar, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FormInput, FormSelect } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FormInput, FormSelect } from '../../components/common';
 import { formatDate } from '../../utils/dateUtils';
 import './AdminPayment.css';
 
@@ -155,14 +155,11 @@ export const AdminPayment = () => {
   });
 
   const filteredPayments = payments.filter((payment) => {
-    const matchesSearch =
-      payment.className.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.receiptNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === 'all' || payment.status === selectedStatus;
     const matchesClass = selectedClass === 'all' || payment.classId === selectedClass;
     const matchesMonth = selectedMonth === 'all' || payment.month === selectedMonth;
     const matchesYear = payment.year.toString() === selectedYear;
-    return matchesSearch && matchesStatus && matchesClass && matchesMonth && matchesYear;
+    return matchesStatus && matchesClass && matchesMonth && matchesYear;
   });
 
   const paginatedPayments = filteredPayments.slice(
@@ -441,14 +438,6 @@ export const AdminPayment = () => {
         {/* Filters */}
         <Card variant="elevated">
           <div className="filters">
-            <SearchBar
-              placeholder="Cari kelas atau no. kwitansi..."
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
             <div className="filter-group">
               <FormSelect
                 label="Status"

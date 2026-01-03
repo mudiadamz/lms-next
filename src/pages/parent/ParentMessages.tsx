@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, EmptyState, Badge } from '../../components/common';
+import { Button, EmptyState, Badge } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
 import './ParentMessages.css';
@@ -33,10 +33,6 @@ export const ParentMessages = () => {
       <div className="parent-messages">
         <div className="page-header">
           <h1>Pesan</h1>
-        </div>
-
-        <div className="page-filters">
-          <SearchBar placeholder="Cari pesan..." />
         </div>
 
         {mockMessages.length === 0 ? (

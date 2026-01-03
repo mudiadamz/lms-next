@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Table, Badge, Dropdown, Modal, FormInput, FormSelect, ConfirmDialog, Icon, EmptyState } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormSelect, ConfirmDialog, Icon, EmptyState } from '../../components/common';
 import { ROUTES, SCHOOL_LEVELS, DAYS_OF_WEEK } from '../../constants';
 import { Schedule } from '../../types';
 import './AdminSchedule.css';
@@ -157,18 +157,10 @@ export const AdminSchedule = () => {
   });
 
   const filteredSchedules = schedules.filter((schedule) => {
-    const className = getClassName(schedule.classId).toLowerCase();
-    const subjectName = getSubjectName(schedule.subjectId).toLowerCase();
-    const teacherName = getTeacherName(schedule.teacherId).toLowerCase();
-    const matchesSearch =
-      className.includes(searchTerm.toLowerCase()) ||
-      subjectName.includes(searchTerm.toLowerCase()) ||
-      teacherName.includes(searchTerm.toLowerCase()) ||
-      schedule.room?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClass = selectedClass === 'all' || schedule.classId === selectedClass;
     const matchesDay = selectedDay === 'all' || schedule.dayOfWeek.toString() === selectedDay;
     const matchesYear = schedule.academicYear === selectedYear;
-    return matchesSearch && matchesClass && matchesDay && matchesYear;
+    return matchesClass && matchesDay && matchesYear;
   });
 
   // Group schedules by day for better display
@@ -355,11 +347,6 @@ export const AdminSchedule = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari jadwal..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
           <div className="filter-group">
             <select
               value={selectedClass}
@@ -407,7 +394,7 @@ export const AdminSchedule = () => {
           <EmptyState
             icon="calendar"
             title="Tidak Ada Jadwal"
-            message={searchTerm || selectedClass !== 'all' || selectedDay !== 'all'
+            message={selectedClass !== 'all' || selectedDay !== 'all'
               ? 'Tidak ada jadwal yang sesuai dengan filter yang dipilih.'
               : 'Belum ada jadwal yang terdaftar.'}
             action={{

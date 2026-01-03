@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, EmptyState } from '../../components/common';
+import { Button, Badge, FormSelect, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, isPast } from '../../utils';
 import './StudentQuizzes.css';
@@ -31,9 +32,44 @@ const mockQuizzes = [
     status: 'completed',
     score: 85,
   },
+  {
+    id: '3',
+    title: 'Kuis Fisika - Mekanika',
+    subject: 'Fisika',
+    teacher: 'Bapak Andi',
+    timeLimit: 25,
+    questions: 8,
+    startDate: new Date('2024-01-22T08:00:00'),
+    endDate: new Date('2024-01-29T23:59:59'),
+    status: 'available',
+    score: null,
+  },
 ];
 
-export const StudentQuizzes = () => {
+// Get unique subjects from quizzes
+const getUniqueSubjects = () => {
+  const subjects = new Set(mockQuizzes.map((q) => q.subject));
+  return Array.from(subjects).sort();
+};
+
+interface StudentQuizzesProps {
+  readOnly?: boolean;
+}
+
+export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps = {} as StudentQuizzesProps) => {
+  const [selectedSubject, setSelectedSubject] = useState<string>('all');
+
+  const uniqueSubjects = getUniqueSubjects();
+  const subjectOptions = [
+    { value: 'all', label: 'Semua Mata Pelajaran' },
+    ...uniqueSubjects.map((subject) => ({ value: subject, label: subject })),
+  ];
+
+  const filteredQuizzes =
+    selectedSubject === 'all'
+      ? mockQuizzes
+      : mockQuizzes.filter((quiz) => quiz.subject === selectedSubject);
+
   const getStatusBadge = (quiz: typeof mockQuizzes[0]) => {
     const now = new Date();
     if (quiz.score !== null) {
@@ -59,18 +95,26 @@ export const StudentQuizzes = () => {
         <h1>Kuis</h1>
 
         <div className="page-filters">
-          <SearchBar placeholder="Cari kuis..." />
+          <FormSelect
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+            options={subjectOptions}
+          />
         </div>
 
-        {mockQuizzes.length === 0 ? (
+        {filteredQuizzes.length === 0 ? (
           <EmptyState
             icon="📝"
             title="Tidak Ada Kuis"
-            message="Belum ada kuis yang tersedia untuk Anda saat ini."
+            message={
+              selectedSubject !== 'all'
+                ? `Tidak ada kuis untuk mata pelajaran ${selectedSubject}.`
+                : 'Belum ada kuis yang tersedia untuk Anda saat ini.'
+            }
           />
         ) : (
           <div className="quizzes-grid">
-            {mockQuizzes.map((quiz) => (
+            {filteredQuizzes.map((quiz) => (
               <Card key={quiz.id} title={quiz.title} variant="elevated">
                 <div className="quiz-card-info">
                   <p>
@@ -92,7 +136,13 @@ export const StudentQuizzes = () => {
                     <strong>Status:</strong> {getStatusBadge(quiz)}
                   </div>
                 </div>
-                {canTakeQuiz(quiz) ? (
+                {readOnly ? (
+                  <Link to={`${ROUTES.PARENT_QUIZZES}/${quiz.id}`}>
+                    <Button variant="outline" className="quiz-action-button">
+                      Lihat Detail
+                    </Button>
+                  </Link>
+                ) : canTakeQuiz(quiz) ? (
                   <Link to={`${ROUTES.STUDENT_QUIZZES}/${quiz.id}`}>
                     <Button variant="primary" className="quiz-action-button">
                       Mulai Kuis
@@ -117,4 +167,3 @@ export const StudentQuizzes = () => {
     </DashboardLayout>
   );
 };
-

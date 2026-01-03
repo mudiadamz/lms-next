@@ -84,21 +84,17 @@ const getMenuItems = (role: string): MenuItem[] => {
     case 'parent':
       return [
         { label: 'Dashboard', path: ROUTES.PARENT_DASHBOARD, icon: 'home' },
-        { label: 'Profil Anak', path: ROUTES.PARENT_CHILD_PROFILE, icon: 'user' },
-        { label: 'Mata Pelajaran', path: ROUTES.PARENT_SUBJECTS, icon: 'book' },
+        { label: 'Jadwal', path: ROUTES.PARENT_SCHEDULE, icon: 'schedule' },
+        { label: 'Absensi', path: ROUTES.PARENT_ATTENDANCE, icon: 'checkCircle' },
+        { label: 'Pembayaran SPP', path: ROUTES.PARENT_PAYMENT, icon: 'analytics' },
         { label: 'Materi', path: ROUTES.PARENT_MATERIALS, icon: 'document' },
         { label: 'Tugas', path: ROUTES.PARENT_ASSIGNMENTS, icon: 'assignment' },
         { label: 'Kuis', path: ROUTES.PARENT_QUIZZES, icon: 'quiz' },
         { label: 'Nilai', path: ROUTES.PARENT_GRADES, icon: 'grade' },
-        { label: 'Jadwal', path: ROUTES.PARENT_SCHEDULE, icon: 'schedule' },
-        { label: 'Absensi', path: ROUTES.PARENT_ATTENDANCE, icon: 'checkCircle' },
         { label: 'Forum', path: ROUTES.PARENT_FORUM, icon: 'forum' },
         { label: 'Pesan', path: ROUTES.PARENT_MESSAGES, icon: 'message' },
         { label: 'Portofolio', path: ROUTES.PARENT_PORTFOLIO, icon: 'folder' },
         { label: 'Kalender', path: ROUTES.PARENT_CALENDAR, icon: 'calendar' },
-        { label: 'Pengumuman', path: ROUTES.PARENT_ANNOUNCEMENTS, icon: 'announcement' },
-        { label: 'Progress', path: ROUTES.PARENT_PROGRESS, icon: 'analytics' },
-        { label: 'Aktivitas', path: ROUTES.PARENT_ACTIVITY, icon: 'clock' },
       ];
     default:
       return [];

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Badge, Icon, EmptyState } from '../../components/common';
+import { Button, Badge, Icon, EmptyState } from '../../components/common';
 import { ROUTES, SCHOOL_LEVELS } from '../../constants';
 import './TeacherClasses.css';
 
@@ -60,15 +60,11 @@ const mockTeacherClasses: TeacherClass[] = [
 export const TeacherClasses = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
 
   const filteredClasses = mockTeacherClasses.filter((cls) => {
-    const matchesSearch =
-      cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cls.subjects.some((subject) => subject.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesLevel = selectedLevel === 'all' || cls.schoolLevel === selectedLevel;
-    return matchesSearch && matchesLevel;
+    return matchesLevel;
   });
 
   const handleViewClass = (classId: string) => {
@@ -92,11 +88,6 @@ export const TeacherClasses = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari kelas atau mata pelajaran..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
           <div className="filter-group">
             <select
               value={selectedLevel}
@@ -115,7 +106,7 @@ export const TeacherClasses = () => {
           <EmptyState
             icon="userGroup"
             title="Tidak Ada Kelas"
-            message={searchTerm || selectedLevel !== 'all'
+            message={selectedLevel !== 'all'
               ? 'Tidak ada kelas yang sesuai dengan filter yang dipilih.'
               : 'Anda belum memiliki kelas yang diajar.'}
           />

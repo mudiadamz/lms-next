@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, Icon, EmptyState, Pagination } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, Icon, EmptyState, Pagination } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
 import './TeacherGrading.css';
@@ -150,7 +150,6 @@ const mockGrades: GradeRecord[] = [
 export const TeacherGrading = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'pending' | 'graded'>('pending');
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -167,27 +166,17 @@ export const TeacherGrading = () => {
   const [grades, setGrades] = useState<GradeRecord[]>(mockGrades);
 
   const filteredPending = pendingGradings.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.subject.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClass = selectedClass === 'all' || item.class === selectedClass;
     const matchesSubject = selectedSubject === 'all' || item.subject === selectedSubject;
     const matchesType = selectedType === 'all' || item.type === selectedType;
-    return matchesSearch && matchesClass && matchesSubject && matchesType;
+    return matchesClass && matchesSubject && matchesType;
   });
 
   const filteredGraded = grades.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.studentNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.class.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.subject.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClass = selectedClass === 'all' || item.class === selectedClass;
     const matchesSubject = selectedSubject === 'all' || item.subject === selectedSubject;
     const matchesType = selectedType === 'all' || item.type === selectedType;
-    return matchesSearch && matchesClass && matchesSubject && matchesType;
+    return matchesClass && matchesSubject && matchesType;
   });
 
   const currentData = activeTab === 'pending' ? filteredPending : filteredGraded;
@@ -425,7 +414,7 @@ export const TeacherGrading = () => {
         <div className="grading-stats">
           <Card variant="elevated" className="stat-card">
             <div className="stat-icon" style={{ backgroundColor: 'rgba(255, 149, 0, 0.1)' }}>
-              <Icon name="assignment" size={24} style={{ color: '#ff9500' }} />
+              <Icon name="assignment" size={18} style={{ color: '#ff9500' }} />
             </div>
             <div className="stat-content">
               <div className="stat-value">{pendingCount}</div>
@@ -434,7 +423,7 @@ export const TeacherGrading = () => {
           </Card>
           <Card variant="elevated" className="stat-card">
             <div className="stat-icon" style={{ backgroundColor: 'rgba(52, 199, 89, 0.1)' }}>
-              <Icon name="checkCircle" size={24} style={{ color: '#34c759' }} />
+              <Icon name="checkCircle" size={18} style={{ color: '#34c759' }} />
             </div>
             <div className="stat-content">
               <div className="stat-value">{gradedCount}</div>
@@ -443,7 +432,7 @@ export const TeacherGrading = () => {
           </Card>
           <Card variant="elevated" className="stat-card">
             <div className="stat-icon" style={{ backgroundColor: 'rgba(0, 122, 255, 0.1)' }}>
-              <Icon name="grade" size={24} style={{ color: '#007aff' }} />
+              <Icon name="grade" size={18} style={{ color: '#007aff' }} />
             </div>
             <div className="stat-content">
               <div className="stat-value">{averageScore}%</div>
@@ -478,14 +467,6 @@ export const TeacherGrading = () => {
 
         {/* Filters */}
         <div className="page-filters">
-          <SearchBar
-            placeholder={`Cari ${activeTab === 'pending' ? 'tugas/kuis' : 'nilai'}...`}
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
           <div className="filter-group">
             <select
               value={selectedClass}
@@ -537,7 +518,7 @@ export const TeacherGrading = () => {
           <EmptyState
             icon={activeTab === 'pending' ? 'clock' : 'checkCircle'}
             title={`Tidak Ada ${activeTab === 'pending' ? 'Tugas/Kuis yang Menunggu Penilaian' : 'Nilai'}`}
-            message={searchTerm || selectedClass !== 'all' || selectedSubject !== 'all' || selectedType !== 'all'
+            message={selectedClass !== 'all' || selectedSubject !== 'all' || selectedType !== 'all'
               ? 'Tidak ada data yang sesuai dengan filter yang dipilih.'
               : activeTab === 'pending'
               ? 'Tidak ada tugas atau kuis yang menunggu penilaian.'

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Badge, SearchBar, Icon, EmptyState, Pagination, Modal } from '../../components/common';
+import { Badge, Icon, EmptyState, Pagination, Modal } from '../../components/common';
 import { formatDate, formatDateTime } from '../../utils';
 import { useAuth } from '../../contexts/AuthContext';
 import './ParentPortfolio.css';
@@ -98,7 +98,6 @@ export const ParentPortfolio = () => {
   // TODO: Filter portfolio items berdasarkan studentId dari user.studentId
   // const studentId = user?.studentId;
 
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedSemester, setSelectedSemester] = useState<string>('1');
@@ -108,13 +107,10 @@ export const ParentPortfolio = () => {
   const itemsPerPage = 9;
 
   const filteredItems = mockPortfolioItems.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.subject.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSubject = selectedSubject === 'all' || item.subjectId === selectedSubject;
     const matchesType = selectedType === 'all' || item.type === selectedType;
     const matchesSemester = item.semester.toString() === selectedSemester;
-    return matchesSearch && matchesSubject && matchesType && matchesSemester;
+    return matchesSubject && matchesType && matchesSemester;
   });
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
@@ -180,14 +176,6 @@ export const ParentPortfolio = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari portofolio..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
           <div className="filter-group">
             <select
               value={selectedSubject}
@@ -239,7 +227,7 @@ export const ParentPortfolio = () => {
             icon="folder"
             title="Tidak Ada Portofolio"
             message={
-              searchTerm || selectedSubject !== 'all' || selectedType !== 'all'
+              selectedSubject !== 'all' || selectedType !== 'all'
                 ? 'Tidak ada portofolio yang sesuai dengan filter yang dipilih.'
                 : 'Belum ada karya yang ditambahkan ke portofolio anak Anda.'
             }

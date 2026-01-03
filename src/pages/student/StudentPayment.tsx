@@ -130,41 +130,21 @@ export const StudentPayment = () => {
       <div className="student-payment">
         <h1>Pembayaran SPP</h1>
 
-        {/* Summary Cards */}
-        <div className="payment-summary">
-          <Card variant="elevated" className="summary-card summary-card--paid">
-            <div className="summary-icon" style={{ backgroundColor: 'rgba(52, 199, 89, 0.1)' }}>
-              <Icon name="checkCircle" size={24} style={{ color: '#34c759' }} />
-            </div>
-            <div className="summary-content">
-              <div className="summary-label">Sudah Dibayar</div>
-              <div className="summary-value">{formatCurrency(totalPaid)}</div>
-              <div className="summary-count">{paidPayments.length} pembayaran</div>
-            </div>
-          </Card>
-
-          <Card variant="elevated" className="summary-card summary-card--pending">
-            <div className="summary-icon" style={{ backgroundColor: 'rgba(255, 204, 0, 0.1)' }}>
-              <Icon name="clock" size={24} style={{ color: '#ffcc00' }} />
-            </div>
-            <div className="summary-content">
-              <div className="summary-label">Belum Dibayar</div>
-              <div className="summary-value">{formatCurrency(totalPending)}</div>
-              <div className="summary-count">{pendingPayments.length} pembayaran</div>
-            </div>
-          </Card>
-
-          <Card variant="elevated" className="summary-card summary-card--total">
-            <div className="summary-icon" style={{ backgroundColor: 'rgba(0, 122, 255, 0.1)' }}>
-              <Icon name="analytics" size={24} style={{ color: '#007aff' }} />
-            </div>
-            <div className="summary-content">
-              <div className="summary-label">Total SPP</div>
-              <div className="summary-value">{formatCurrency(totalPaid + totalPending)}</div>
-              <div className="summary-count">{studentPayments.length} pembayaran</div>
-            </div>
-          </Card>
-        </div>
+        {/* Summary Card - Only Unpaid */}
+        {pendingPayments.length > 0 && (
+          <div className="payment-summary">
+            <Card variant="elevated" className="summary-card summary-card--pending">
+              <div className="summary-icon" style={{ backgroundColor: 'rgba(255, 204, 0, 0.1)' }}>
+                <Icon name="clock" size={20} style={{ color: '#ffcc00' }} />
+              </div>
+              <div className="summary-content">
+                <div className="summary-label">Belum Dibayar</div>
+                <div className="summary-value">{formatCurrency(totalPending)}</div>
+                <div className="summary-count">{pendingPayments.length} pembayaran</div>
+              </div>
+            </Card>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="payment-tabs">

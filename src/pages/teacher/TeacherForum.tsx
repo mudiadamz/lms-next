@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, Modal, FormInput, FormSelect, FormTextarea, Dropdown, Icon, EmptyState, Pagination } from '../../components/common';
+import { Button, Badge, Modal, FormInput, FormSelect, FormTextarea, Dropdown, Icon, EmptyState, Pagination } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, getRelativeTime } from '../../utils';
 import { ForumPost } from '../../types';
@@ -240,14 +240,6 @@ export const TeacherForum = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari diskusi..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
           <div className="filter-group">
             <select
               value={selectedClass}
@@ -270,7 +262,7 @@ export const TeacherForum = () => {
             <EmptyState
             icon="chat"
             title="Tidak Ada Diskusi"
-            message={searchTerm || selectedClass !== 'all'
+            message={selectedClass !== 'all'
               ? 'Tidak ada diskusi yang sesuai dengan filter yang dipilih.'
               : 'Belum ada diskusi yang dibuat.'}
             action={{

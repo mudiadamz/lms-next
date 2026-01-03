@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, FormSelect, Badge, Table, Modal, SearchBar, Pagination, Icon, EmptyState } from '../../components/common';
+import { Button, FormSelect, Badge, Table, Modal, Pagination, Icon, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { ReportCard } from '../../types';
 import { formatDate } from '../../utils';
@@ -322,17 +322,6 @@ export const TeacherReports = () => {
 
         {selectedClass && (
           <>
-            <div className="page-filters">
-              <SearchBar
-                placeholder="Cari siswa..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-
             {paginatedReports.length === 0 ? (
               <EmptyState
                 icon="document"

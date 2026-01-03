@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Badge, Dropdown, Modal, FormInput, FormSelect, FormTextarea, Icon, EmptyState, Pagination, Table, FileUpload } from '../../components/common';
+import { Button, Badge, Dropdown, Modal, FormInput, FormSelect, FormTextarea, Icon, EmptyState, Pagination, Table, FileUpload } from '../../components/common';
 import { QuestionType, QuizQuestion } from '../../types';
 import { QUESTION_TYPE_LABELS } from '../../constants';
 import { formatDate } from '../../utils';
@@ -155,13 +155,10 @@ export const TeacherQuestionBank = () => {
   });
 
   const filteredQuestions = questions.filter((q) => {
-    const matchesSearch =
-      q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.topic?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesSubject = selectedSubject === 'all' || q.subjectId === selectedSubject;
     const matchesType = selectedType === 'all' || q.type === selectedType;
     const matchesDifficulty = selectedDifficulty === 'all' || q.difficulty === selectedDifficulty;
-    return matchesSearch && matchesSubject && matchesType && matchesDifficulty;
+    return matchesSubject && matchesType && matchesDifficulty;
   });
 
   const totalPages = Math.ceil(filteredQuestions.length / itemsPerPage);
@@ -460,14 +457,6 @@ export const TeacherQuestionBank = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari soal..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
           <div className="filter-group">
             <select
               value={selectedSubject}

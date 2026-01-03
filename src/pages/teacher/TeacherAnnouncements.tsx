@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, Icon, EmptyState, Pagination } from '../../components/common';
+import { Button, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, Icon, EmptyState, Pagination } from '../../components/common';
 import { Announcement } from '../../types';
 import { formatDate, getRelativeTime } from '../../utils';
 import './TeacherAnnouncements.css';
@@ -254,14 +254,6 @@ export const TeacherAnnouncements = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari pengumuman..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
           <div className="filter-group">
             <select
               value={selectedClass}
@@ -285,7 +277,7 @@ export const TeacherAnnouncements = () => {
           <EmptyState
             icon="announcement"
             title="Tidak Ada Pengumuman"
-            message={searchTerm || selectedClass !== 'all'
+            message={selectedClass !== 'all'
               ? 'Tidak ada pengumuman yang sesuai dengan filter yang dipilih.'
               : 'Belum ada pengumuman yang dibuat.'}
             action={{

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar } from '../../components/common';
+import { Button, Badge } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
 import './TeacherQuizzes.css';
@@ -29,10 +29,6 @@ export const TeacherQuizzes = () => {
           <Link to={ROUTES.TEACHER_QUIZZES_CREATE}>
             <Button>Buat Kuis Baru</Button>
           </Link>
-        </div>
-
-        <div className="page-filters">
-          <SearchBar placeholder="Cari kuis..." />
         </div>
 
         <div className="quizzes-grid">

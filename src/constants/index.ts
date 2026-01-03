@@ -98,6 +98,7 @@ export const ROUTES = {
   PARENT_FORUM_DETAIL: '/parent/forum/:id',
   PARENT_PORTFOLIO: '/parent/portfolio',
   PARENT_PROFILE: '/parent/profile',
+  PARENT_PAYMENT: '/parent/payment',
 } as const;
 
 // School Level Labels

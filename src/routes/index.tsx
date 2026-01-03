@@ -656,15 +656,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_SCHEDULE}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentSchedule />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_GRADES}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentGrades />
+            <StudentSchedule />
           </ProtectedRoute>
         }
       />
@@ -672,47 +664,15 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_ATTENDANCE}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentAttendance />
+            <StudentAttendance />
           </ProtectedRoute>
         }
       />
       <Route
-        path={ROUTES.PARENT_ASSIGNMENTS}
+        path={ROUTES.PARENT_PAYMENT}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentAssignments />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_ASSIGNMENT_DETAIL}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentAssignmentDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_MESSAGES}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentMessages />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_MESSAGE_CHAT}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentMessagesChat />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_SUBJECTS}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentSubjects />
+            <StudentPayment />
           </ProtectedRoute>
         }
       />
@@ -720,7 +680,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_MATERIALS}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentMaterials />
+            <StudentMaterials readOnly />
           </ProtectedRoute>
         }
       />
@@ -728,7 +688,23 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_MATERIAL_DETAIL}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentMaterialDetail />
+            <StudentMaterialDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_ASSIGNMENTS}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentAssignments readOnly />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_ASSIGNMENT_DETAIL}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentAssignmentDetail readOnly />
           </ProtectedRoute>
         }
       />
@@ -736,7 +712,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_QUIZZES}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentQuizzes />
+            <StudentQuizzes readOnly />
           </ProtectedRoute>
         }
       />
@@ -744,7 +720,15 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_QUIZ_DETAIL}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentQuizDetail />
+            <StudentQuizDetail readOnly />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_GRADES}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentGrades />
           </ProtectedRoute>
         }
       />
@@ -752,7 +736,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_FORUM}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentForum />
+            <StudentForum readOnly />
           </ProtectedRoute>
         }
       />
@@ -760,7 +744,23 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_FORUM_DETAIL}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentForumDetail />
+            <StudentForumDetail readOnly />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_MESSAGES}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentMessages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_MESSAGE_CHAT}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentMessagesChat />
           </ProtectedRoute>
         }
       />
@@ -768,7 +768,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_PORTFOLIO}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentPortfolio />
+            <StudentPortfolio />
           </ProtectedRoute>
         }
       />
@@ -776,7 +776,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_CALENDAR}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentCalendar />
+            <StudentCalendar />
           </ProtectedRoute>
         }
       />
@@ -785,30 +785,6 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['parent']}>
             <ParentProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_ANNOUNCEMENTS}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentAnnouncements />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_PROGRESS}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentProgress />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_ACTIVITY}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentActivity />
           </ProtectedRoute>
         }
       />

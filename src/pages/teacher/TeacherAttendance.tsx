@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Table, Badge, Dropdown, Modal, FormSelect, FormInput, FormTextarea, Icon, EmptyState, Pagination } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormSelect, FormInput, FormTextarea, Icon, EmptyState, Pagination } from '../../components/common';
 import { AttendanceStatus, Attendance } from '../../types';
 import { ATTENDANCE_STATUS_LABELS } from '../../constants';
 import { formatDate } from '../../utils';
@@ -94,7 +94,6 @@ const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, 'success' | 'danger' | 
 
 export const TeacherAttendance = () => {
   const [activeTab, setActiveTab] = useState<'input' | 'history'>('input');
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -122,10 +121,9 @@ export const TeacherAttendance = () => {
   const filteredAttendances = Object.values(groupedAttendances)
     .flat()
     .filter((att) => {
-      const matchesSearch = true; // Can be enhanced with student name search
       const matchesClass = selectedClass === '' || att.classId === selectedClass;
       const matchesSubject = selectedSubject === '' || att.subjectId === selectedSubject;
-      return matchesSearch && matchesClass && matchesSubject;
+      return matchesClass && matchesSubject;
     });
 
   const filteredHistory = filteredAttendances.filter((att) => {
@@ -396,14 +394,6 @@ export const TeacherAttendance = () => {
           <>
             {/* Filters */}
             <div className="page-filters">
-              <SearchBar
-                placeholder="Cari absensi..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
               <div className="filter-group">
                 <select
                   value={selectedClass}
@@ -456,7 +446,7 @@ export const TeacherAttendance = () => {
               <EmptyState
                 icon="userGroup"
                 title="Tidak Ada Riwayat Absensi"
-                message={searchTerm || selectedClass || selectedSubject || selectedDate
+                message={selectedClass || selectedSubject || selectedDate
                   ? 'Tidak ada absensi yang sesuai dengan filter yang dipilih.'
                   : 'Belum ada absensi yang diinput.'}
               />
