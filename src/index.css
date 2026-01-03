@@ -25,6 +25,18 @@
   --ios-background: #ffffff;
   --ios-secondary-background: #f2f2f7;
   --ios-tertiary-background: #ffffff;
+  
+  /* Accent Colors - Subtle */
+  --accent-blue: rgba(0, 122, 255, 0.08);
+  --accent-purple: rgba(88, 86, 214, 0.08);
+  --accent-green: rgba(52, 199, 89, 0.08);
+  --accent-orange: rgba(255, 149, 0, 0.08);
+  --accent-pink: rgba(255, 45, 85, 0.08);
+  --accent-teal: rgba(90, 200, 250, 0.08);
+  
+  /* Border Accent */
+  --border-accent-blue: rgba(0, 122, 255, 0.2);
+  --border-accent-purple: rgba(88, 86, 214, 0.2);
 }
 
 body {

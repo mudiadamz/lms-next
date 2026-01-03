@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--ios-secondary-background);
+  background: linear-gradient(180deg, #f2f2f7 0%, #f8f9fa 50%, #f2f2f7 100%);
   width: 100%;
   max-width: 100%;
   margin: 0;
@@ -22,7 +22,7 @@
 .dashboard-main {
   flex: 1;
   padding: 1rem;
-  background-color: var(--ios-secondary-background);
+  background: transparent;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   width: 100%;

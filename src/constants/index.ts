@@ -22,6 +22,7 @@ export const ROUTES = {
   STUDENT_MESSAGE_CHAT: '/student/messages/:id',
   STUDENT_PORTFOLIO: '/student/portfolio',
   STUDENT_CALENDAR: '/student/calendar',
+  STUDENT_PROFILE: '/student/profile',
   
   // Teacher Routes
   TEACHER_DASHBOARD: '/teacher/dashboard',
@@ -49,6 +50,7 @@ export const ROUTES = {
   TEACHER_ANNOUNCEMENTS: '/teacher/announcements',
   TEACHER_ANALYTICS: '/teacher/analytics',
   TEACHER_QUESTION_BANK: '/teacher/question-bank',
+  TEACHER_PROFILE: '/teacher/profile',
   
   // Admin Routes
   ADMIN_DASHBOARD: '/admin/dashboard',
@@ -69,6 +71,7 @@ export const ROUTES = {
   ADMIN_SETTINGS: '/admin/settings',
   ADMIN_CURRICULUM: '/admin/curriculum',
   ADMIN_AUDIT_LOG: '/admin/audit-log',
+  ADMIN_PROFILE: '/admin/profile',
   
   // Parent Routes
   PARENT_DASHBOARD: '/parent/dashboard',
@@ -92,6 +95,7 @@ export const ROUTES = {
   PARENT_FORUM: '/parent/forum',
   PARENT_FORUM_DETAIL: '/parent/forum/:id',
   PARENT_PORTFOLIO: '/parent/portfolio',
+  PARENT_PROFILE: '/parent/profile',
 } as const;
 
 // School Level Labels

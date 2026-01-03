@@ -20,13 +20,12 @@ const getMenuItems = (role: string): MenuItem[] => {
     case 'student':
       return [
         { label: 'Dashboard', path: ROUTES.STUDENT_DASHBOARD, icon: 'home' },
-        { label: 'Mata Pelajaran', path: ROUTES.STUDENT_SUBJECTS, icon: 'book' },
+        { label: 'Jadwal', path: ROUTES.STUDENT_SCHEDULE, icon: 'schedule' },
+        { label: 'Absensi', path: ROUTES.STUDENT_ATTENDANCE, icon: 'checkCircle' },
         { label: 'Materi', path: ROUTES.STUDENT_MATERIALS, icon: 'document' },
         { label: 'Tugas', path: ROUTES.STUDENT_ASSIGNMENTS, icon: 'assignment' },
         { label: 'Kuis', path: ROUTES.STUDENT_QUIZZES, icon: 'quiz' },
         { label: 'Nilai', path: ROUTES.STUDENT_GRADES, icon: 'grade' },
-        { label: 'Jadwal', path: ROUTES.STUDENT_SCHEDULE, icon: 'schedule' },
-        { label: 'Absensi', path: ROUTES.STUDENT_ATTENDANCE, icon: 'checkCircle' },
         { label: 'Forum', path: ROUTES.STUDENT_FORUM, icon: 'forum' },
         { label: 'Pesan', path: ROUTES.STUDENT_MESSAGES, icon: 'message' },
         { label: 'Portofolio', path: ROUTES.STUDENT_PORTFOLIO, icon: 'folder' },
