@@ -9,4 +9,11 @@ export * from './attendanceService';
 export * from './userService';
 export * from './classService';
 export * from './subjectService';
+export * from './scheduleService';
+export * from './forumService';
+export * from './messageService';
+export * from './notificationService';
+export * from './announcementService';
+export * from './reportCardService';
+export * from './academicYearService';
 
