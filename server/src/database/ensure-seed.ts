@@ -1,9 +1,23 @@
 import db from './db.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
+import { createTables } from './schema.js';
 
 async function ensureSeed() {
   console.log('🌱 Ensuring database is seeded...\n');
+
+  // Ensure tables exist first
+  try {
+    createTables();
+    console.log('✅ Database tables verified\n');
+  } catch (error: any) {
+    if (error?.message?.includes('already exists')) {
+      console.log('✅ Database tables already exist\n');
+    } else {
+      console.error('⚠️  Error creating tables:', error?.message);
+      throw error;
+    }
+  }
 
   // Check if users exist
   const existingUsers = db.prepare('SELECT username FROM users WHERE username IN (?, ?, ?, ?)').all('student', 'teacher', 'admin', 'parent') as any[];

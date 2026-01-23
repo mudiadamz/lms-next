@@ -33,11 +33,37 @@ app.get('/health', (req, res) => {
 
 // Initialize database with error handling
 let dbInitialized = false;
-setTimeout(() => {
+setTimeout(async () => {
   try {
     createTables();
     dbInitialized = true;
     console.log('✅ Database initialized successfully');
+    
+    // Check if users exist, if not, seed them
+    try {
+      const db = (await import('./database/db.js')).default;
+      const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as any;
+      
+      if (userCount.count === 0) {
+        console.log('⚠️  No users found in database. Running ensure-seed...');
+        const { execSync } = await import('child_process');
+        try {
+          execSync('npm run ensure-seed', { 
+            cwd: process.cwd(),
+            stdio: 'inherit',
+            env: process.env
+          });
+          console.log('✅ Database seeded successfully');
+        } catch (seedError: any) {
+          console.error('⚠️  Auto-seed failed. Please run manually: npm run ensure-seed');
+          console.error('Seed error:', seedError.message);
+        }
+      } else {
+        console.log(`✅ Found ${userCount.count} users in database`);
+      }
+    } catch (checkError) {
+      console.log('⚠️  Could not check users. Please run: npm run ensure-seed');
+    }
   } catch (error: any) {
     console.error('❌ Database initialization error:', error);
     console.error('Error message:', error?.message);
@@ -47,7 +73,7 @@ setTimeout(() => {
       console.log('✅ Tables already exist');
     }
   }
-}, 100); // Small delay to ensure server starts first
+}, 1000); // Delay to ensure server starts first
 
 // API Routes
 app.use('/api/auth', authRoutes);
