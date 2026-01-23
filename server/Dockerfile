@@ -1,7 +1,10 @@
 # Dockerfile untuk deploy backend
 # Bisa digunakan di Railway, Render, Fly.io, atau platform lain
 
-FROM node:18-alpine
+FROM node:20-alpine
+
+# Install build dependencies for better-sqlite3
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
