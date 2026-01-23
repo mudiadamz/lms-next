@@ -58,14 +58,9 @@ export const StudentSchedule = () => {
     }
   }, [user?.id]);
 
-  // Mock data removed - now using API
-
-const formatTime = (time: string) => {
-  return time; // Already in HH:mm format
-};
-
-export const StudentSchedule = () => {
-  const { user } = useAuth();
+  const formatTime = (time: string) => {
+    return time; // Already in HH:mm format
+  };
 
   // Filter schedules berdasarkan kelas siswa
   const studentClassId = (user as any)?.classId;
