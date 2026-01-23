@@ -1,328 +1,126 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon, Modal, EmptyState } from '../../components/common';
+import { Button, Badge, Icon, Modal, EmptyState, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, formatDateTime } from '../../utils';
+import { assignmentService, quizService, announcementService, scheduleService, userService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './StudentCalendar.css';
 
 interface CalendarEvent {
   id: string;
   type: 'assignment' | 'quiz' | 'announcement' | 'exam' | 'schedule';
   title: string;
-  date: Date;
-  endDate?: Date;
+  date: Date | string;
+  endDate?: Date | string;
   subject?: string;
   description?: string;
   color: string;
   route?: string;
 }
 
-// Contoh data event kalender
-const mockEvents: CalendarEvent[] = [
-  // Januari 2025
-  {
-    id: '1',
-    type: 'assignment',
-    title: 'Tugas Matematika - Aljabar',
-    date: new Date('2025-01-15T23:59:59'),
-    subject: 'Matematika',
-    description: 'Deadline tugas aljabar - Kerjakan soal halaman 45-50',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  {
-    id: '2',
-    type: 'quiz',
-    title: 'Kuis Matematika - Bab 1',
-    date: new Date('2025-01-10T08:00:00'),
-    endDate: new Date('2025-01-17T23:59:59'),
-    subject: 'Matematika',
-    description: 'Kuis online tersedia sampai 17 Januari 2025',
-    color: '#007aff',
-    route: ROUTES.STUDENT_QUIZZES,
-  },
-  {
-    id: '3',
-    type: 'announcement',
-    title: 'Pengumuman Ujian Tengah Semester',
-    date: new Date('2025-01-05'),
-    description: 'UTS akan dilaksanakan tanggal 20-25 Februari 2025',
-    color: '#ff9500',
-  },
-  {
-    id: '4',
-    type: 'assignment',
-    title: 'Tugas Bahasa Indonesia - Esai',
-    date: new Date('2025-01-20T23:59:59'),
-    subject: 'Bahasa Indonesia',
-    description: 'Deadline tugas menulis esai tentang lingkungan',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  {
-    id: '5',
-    type: 'quiz',
-    title: 'Kuis Bahasa Indonesia',
-    date: new Date('2025-01-18T08:00:00'),
-    endDate: new Date('2025-01-25T23:59:59'),
-    subject: 'Bahasa Indonesia',
-    description: 'Kuis tentang tata bahasa dan sastra',
-    color: '#007aff',
-    route: ROUTES.STUDENT_QUIZZES,
-  },
-  {
-    id: '6',
-    type: 'assignment',
-    title: 'Tugas IPA - Laporan Praktikum',
-    date: new Date('2025-01-22T23:59:59'),
-    subject: 'IPA',
-    description: 'Submit laporan praktikum fotosintesis',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  {
-    id: '7',
-    type: 'announcement',
-    title: 'Libur Semester Genap',
-    date: new Date('2025-01-28'),
-    description: 'Libur semester genap dimulai tanggal 28 Januari',
-    color: '#ff9500',
-  },
-  {
-    id: '8',
-    type: 'schedule',
-    title: 'Jadwal Pelajaran - Senin',
-    date: new Date('2025-01-13T07:30:00'),
-    subject: 'Jadwal',
-    description: 'Matematika, Bahasa Indonesia, IPA, IPS',
-    color: '#5856d6',
-    route: ROUTES.STUDENT_SCHEDULE,
-  },
-  
-  // Februari 2025
-  {
-    id: '9',
-    type: 'exam',
-    title: 'Ujian Tengah Semester',
-    date: new Date('2025-02-20'),
-    endDate: new Date('2025-02-25'),
-    description: 'UTS Semester Genap - Semua mata pelajaran',
-    color: '#34c759',
-  },
-  {
-    id: '10',
-    type: 'assignment',
-    title: 'Tugas IPS - Presentasi',
-    date: new Date('2025-02-05T23:59:59'),
-    subject: 'IPS',
-    description: 'Presentasi tentang sejarah Indonesia',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  {
-    id: '11',
-    type: 'quiz',
-    title: 'Kuis IPA - Sistem Pencernaan',
-    date: new Date('2025-02-08T08:00:00'),
-    endDate: new Date('2025-02-15T23:59:59'),
-    subject: 'IPA',
-    description: 'Kuis tentang sistem pencernaan manusia',
-    color: '#007aff',
-    route: ROUTES.STUDENT_QUIZZES,
-  },
-  {
-    id: '12',
-    type: 'assignment',
-    title: 'Tugas Matematika - Geometri',
-    date: new Date('2025-02-12T23:59:59'),
-    subject: 'Matematika',
-    description: 'Kerjakan soal geometri halaman 78-85',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  {
-    id: '13',
-    type: 'announcement',
-    title: 'Pengumuman Libur Nasional',
-    date: new Date('2025-02-14'),
-    description: 'Libur Hari Raya Imlek',
-    color: '#ff9500',
-  },
-  {
-    id: '14',
-    type: 'quiz',
-    title: 'Kuis Bahasa Inggris',
-    date: new Date('2025-02-18T08:00:00'),
-    endDate: new Date('2025-02-24T23:59:59'),
-    subject: 'Bahasa Inggris',
-    description: 'Kuis vocabulary dan grammar',
-    color: '#007aff',
-    route: ROUTES.STUDENT_QUIZZES,
-  },
-  {
-    id: '15',
-    type: 'assignment',
-    title: 'Tugas Seni Budaya - Lukisan',
-    date: new Date('2025-02-28T23:59:59'),
-    subject: 'Seni Budaya',
-    description: 'Kumpulkan karya lukisan tema alam',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  
-  // Maret 2025
-  {
-    id: '16',
-    type: 'assignment',
-    title: 'Tugas PKN - Makalah',
-    date: new Date('2025-03-05T23:59:59'),
-    subject: 'PKN',
-    description: 'Makalah tentang Pancasila',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  {
-    id: '17',
-    type: 'quiz',
-    title: 'Kuis Matematika - Trigonometri',
-    date: new Date('2025-03-08T08:00:00'),
-    endDate: new Date('2025-03-15T23:59:59'),
-    subject: 'Matematika',
-    description: 'Kuis tentang trigonometri',
-    color: '#007aff',
-    route: ROUTES.STUDENT_QUIZZES,
-  },
-  {
-    id: '18',
-    type: 'announcement',
-    title: 'Pengumuman Study Tour',
-    date: new Date('2025-03-10'),
-    description: 'Study tour ke museum tanggal 20 Maret',
-    color: '#ff9500',
-  },
-  {
-    id: '19',
-    type: 'assignment',
-    title: 'Tugas Bahasa Indonesia - Resensi',
-    date: new Date('2025-03-15T23:59:59'),
-    subject: 'Bahasa Indonesia',
-    description: 'Resensi buku yang telah dibaca',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  {
-    id: '20',
-    type: 'schedule',
-    title: 'Jadwal Ujian Praktek',
-    date: new Date('2025-03-20T08:00:00'),
-    subject: 'Jadwal',
-    description: 'Ujian praktek IPA dan Bahasa Inggris',
-    color: '#5856d6',
-    route: ROUTES.STUDENT_SCHEDULE,
-  },
-  {
-    id: '21',
-    type: 'quiz',
-    title: 'Kuis IPS - Ekonomi',
-    date: new Date('2025-03-22T08:00:00'),
-    endDate: new Date('2025-03-29T23:59:59'),
-    subject: 'IPS',
-    description: 'Kuis tentang sistem ekonomi',
-    color: '#007aff',
-    route: ROUTES.STUDENT_QUIZZES,
-  },
-  {
-    id: '22',
-    type: 'announcement',
-    title: 'Pengumuman Libur Semester',
-    date: new Date('2025-03-28'),
-    description: 'Libur akhir semester genap',
-    color: '#ff9500',
-  },
-  
-  // April 2025
-  {
-    id: '23',
-    type: 'exam',
-    title: 'Ujian Akhir Semester',
-    date: new Date('2025-04-10'),
-    endDate: new Date('2025-04-17'),
-    description: 'UAS Semester Genap - Semua mata pelajaran',
-    color: '#34c759',
-  },
-  {
-    id: '24',
-    type: 'assignment',
-    title: 'Tugas Matematika - Statistika',
-    date: new Date('2025-04-05T23:59:59'),
-    subject: 'Matematika',
-    description: 'Analisis data dan membuat grafik',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  {
-    id: '25',
-    type: 'announcement',
-    title: 'Pengumuman Penerimaan Raport',
-    date: new Date('2025-04-20'),
-    description: 'Pengambilan raport semester genap',
-    color: '#ff9500',
-  },
-  
-  // Mei 2025
-  {
-    id: '26',
-    type: 'announcement',
-    title: 'Libur Hari Buruh',
-    date: new Date('2025-05-01'),
-    description: 'Libur nasional Hari Buruh Internasional',
-    color: '#ff9500',
-  },
-  {
-    id: '27',
-    type: 'assignment',
-    title: 'Tugas IPA - Proyek Sains',
-    date: new Date('2025-05-10T23:59:59'),
-    subject: 'IPA',
-    description: 'Proyek sains tentang energi terbarukan',
-    color: '#ff3b30',
-    route: ROUTES.STUDENT_ASSIGNMENTS,
-  },
-  {
-    id: '28',
-    type: 'quiz',
-    title: 'Kuis Bahasa Indonesia - Puisi',
-    date: new Date('2025-05-15T08:00:00'),
-    endDate: new Date('2025-05-22T23:59:59'),
-    subject: 'Bahasa Indonesia',
-    description: 'Kuis tentang puisi dan sastra',
-    color: '#007aff',
-    route: ROUTES.STUDENT_QUIZZES,
-  },
-  
-  // Juni 2025
-  {
-    id: '29',
-    type: 'exam',
-    title: 'Ujian Kenaikan Kelas',
-    date: new Date('2025-06-10'),
-    endDate: new Date('2025-06-15'),
-    description: 'UKK untuk kenaikan kelas',
-    color: '#34c759',
-  },
-  {
-    id: '30',
-    type: 'announcement',
-    title: 'Libur Akhir Tahun Pelajaran',
-    date: new Date('2025-06-20'),
-    description: 'Libur akhir tahun pelajaran dimulai',
-    color: '#ff9500',
-  },
-];
+export const StudentCalendar = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showEventModal, setShowEventModal] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  const [filterType, setFilterType] = useState<string>('all');
 
-const TYPE_LABELS = {
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setIsLoading(true);
+        const studentData = user?.id ? await userService.getUserById(user.id) : null;
+        const classId = (studentData as any)?.classId;
+
+        const [assignmentsData, quizzesData, announcementsData, schedulesData] = await Promise.all([
+          assignmentService.getAssignments(classId ? { classId } : {}),
+          quizService.getQuizzes(classId ? { classId } : {}),
+          announcementService.getAnnouncements({ targetAudience: 'student' }),
+          scheduleService.getSchedules(classId ? { classId } : {}),
+        ]);
+
+        const calendarEvents: CalendarEvent[] = [];
+
+        // Add assignments
+        assignmentsData.forEach(assignment => {
+          calendarEvents.push({
+            id: `assignment-${assignment.id}`,
+            type: 'assignment',
+            title: assignment.title,
+            date: assignment.dueDate,
+            subject: assignment.subjectId,
+            description: assignment.description,
+            color: '#ff3b30',
+            route: ROUTES.STUDENT_ASSIGNMENTS,
+          });
+        });
+
+        // Add quizzes
+        quizzesData.forEach(quiz => {
+          calendarEvents.push({
+            id: `quiz-${quiz.id}`,
+            type: 'quiz',
+            title: quiz.title,
+            date: quiz.startDate || quiz.startTime || Date.now(),
+            endDate: quiz.endDate || quiz.endTime,
+            subject: quiz.subjectId,
+            description: quiz.description,
+            color: '#007aff',
+            route: ROUTES.STUDENT_QUIZZES,
+          });
+        });
+
+        // Add announcements
+        announcementsData.forEach(announcement => {
+          calendarEvents.push({
+            id: `announcement-${announcement.id}`,
+            type: 'announcement',
+            title: announcement.title,
+            date: announcement.createdAt,
+            endDate: announcement.endDate,
+            description: announcement.content,
+            color: '#ff9500',
+          });
+        });
+
+        // Add schedules (convert to events for current month)
+        schedulesData.forEach(schedule => {
+          const today = new Date();
+          const scheduleDate = new Date(today.getFullYear(), today.getMonth(), schedule.dayOfWeek === 0 ? 7 : schedule.dayOfWeek);
+          calendarEvents.push({
+            id: `schedule-${schedule.id}`,
+            type: 'schedule',
+            title: `Jadwal - ${schedule.subjectId}`,
+            date: scheduleDate,
+            subject: schedule.subjectId,
+            description: `${schedule.startTime} - ${schedule.endTime}`,
+            color: '#5856d6',
+            route: ROUTES.STUDENT_SCHEDULE,
+          });
+        });
+
+        setEvents(calendarEvents);
+      } catch (error) {
+        console.error('Error loading calendar events:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadEvents();
+    }
+  }, [user?.id, currentMonth, currentYear]);
+
+  const TYPE_LABELS = {
   assignment: 'Tugas',
   quiz: 'Kuis',
   announcement: 'Pengumuman',
@@ -338,16 +136,8 @@ const TYPE_ICONS = {
   schedule: 'schedule',
 };
 
-export const StudentCalendar = () => {
-  const navigate = useNavigate();
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [showEventModal, setShowEventModal] = useState(false);
-  const [filterType, setFilterType] = useState<string>('all');
-
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+  const year = currentYear;
+  const month = currentMonth;
 
   // Get first day of month and number of days
   const firstDayOfMonth = new Date(year, month, 1).getDay();
@@ -355,7 +145,7 @@ export const StudentCalendar = () => {
   const daysInPrevMonth = new Date(year, month, 0).getDate();
 
   // Filter events
-  const filteredEvents = mockEvents.filter((event) => {
+  const filteredEvents = events.filter((event) => {
     if (filterType !== 'all' && event.type !== filterType) return false;
     
     const eventDate = new Date(event.date);
@@ -387,7 +177,21 @@ export const StudentCalendar = () => {
   });
 
   const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate(new Date(year, month + (direction === 'next' ? 1 : -1), 1));
+    if (direction === 'next') {
+      if (currentMonth === 11) {
+        setCurrentMonth(0);
+        setCurrentYear(currentYear + 1);
+      } else {
+        setCurrentMonth(currentMonth + 1);
+      }
+    } else {
+      if (currentMonth === 0) {
+        setCurrentMonth(11);
+        setCurrentYear(currentYear - 1);
+      } else {
+        setCurrentMonth(currentMonth - 1);
+      }
+    }
   };
 
   const handleDateClick = (date: Date) => {
@@ -475,7 +279,11 @@ export const StudentCalendar = () => {
             <Button variant="outline" onClick={() => navigateMonth('next')}>
               <Icon name="chevronRight" size={20} />
             </Button>
-            <Button variant="outline" onClick={() => setCurrentDate(new Date())}>
+            <Button variant="outline" onClick={() => {
+              const today = new Date();
+              setCurrentMonth(today.getMonth());
+              setCurrentYear(today.getFullYear());
+            }}>
               Hari Ini
             </Button>
           </div>
@@ -553,7 +361,7 @@ export const StudentCalendar = () => {
           </Card>
 
           {/* Events List */}
-          {filteredEvents.length > 0 ? (
+          {!isLoading && filteredEvents.length > 0 ? (
             <Card title="Event Bulan Ini" variant="elevated" className="events-card">
               <div className="events-list">
                 {filteredEvents.map((event) => (
@@ -583,8 +391,8 @@ export const StudentCalendar = () => {
                       <h4 className="event-title">{event.title}</h4>
                       <div className="event-date">
                         <Icon name="calendar" size={14} style={{ marginRight: '0.25rem' }} />
-                        {formatDate(event.date)}
-                        {event.endDate && ` - ${formatDate(event.endDate)}`}
+                        {formatDate(new Date(event.date))}
+                        {event.endDate && ` - ${formatDate(new Date(event.endDate))}`}
                       </div>
                       {event.description && (
                         <p className="event-description">{event.description}</p>
@@ -627,8 +435,8 @@ export const StudentCalendar = () => {
                 <div className="info-row">
                   <Icon name="calendar" size={18} style={{ marginRight: '0.5rem' }} />
                   <div>
-                    <strong>Tanggal:</strong> {formatDate(selectedEvent.date)}
-                    {selectedEvent.endDate && ` - ${formatDate(selectedEvent.endDate)}`}
+                    <strong>Tanggal:</strong> {formatDate(new Date(selectedEvent.date))}
+                    {selectedEvent.endDate && ` - ${formatDate(new Date(selectedEvent.endDate))}`}
                   </div>
                 </div>
                 {selectedEvent.description && (

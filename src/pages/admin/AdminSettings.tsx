@@ -29,8 +29,8 @@ export const AdminSettings = () => {
     setIsSaved(false);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Note: Settings are managed via SettingsContext
+      // In a real implementation, this would call an API
       updateSettings(formData);
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 3000);

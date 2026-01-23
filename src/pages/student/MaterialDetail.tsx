@@ -1,22 +1,12 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge } from '../../components/common';
+import { Button, Badge, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
+import { materialService, subjectService, userService } from '../../services';
 import './MaterialDetail.css';
-
-const mockMaterial = {
-  id: '1',
-  title: 'Pengenalan Aljabar',
-  type: 'document',
-  description: 'Materi pembelajaran tentang pengenalan dasar aljabar untuk kelas X. Materi ini mencakup konsep dasar variabel, konstanta, dan operasi aljabar.',
-  subject: 'Matematika',
-  teacher: 'Ibu Siti',
-  createdAt: new Date('2024-01-15'),
-  fileUrl: '/materials/aljabar.pdf',
-  attachments: ['soal-latihan.pdf', 'video-penjelasan.mp4'],
-};
 
 const getTypeLabel = (type: string) => {
   const labels: Record<string, { icon: string; label: string }> = {
@@ -31,7 +21,53 @@ const getTypeLabel = (type: string) => {
 export const StudentMaterialDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const typeInfo = getTypeLabel(mockMaterial.type);
+  const [material, setMaterial] = useState<any>(null);
+  const [subjectName, setSubjectName] = useState('');
+  const [teacherName, setTeacherName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const materialData = await materialService.getMaterialById(id);
+        const [subjectInfo, teacherInfo] = await Promise.all([
+          subjectService.getSubjectById(materialData.subjectId),
+          userService.getUserById(materialData.teacherId),
+        ]);
+
+        setMaterial(materialData);
+        setSubjectName(subjectInfo.name);
+        setTeacherName(teacherInfo.fullName);
+      } catch (error) {
+        console.error('Error loading material detail:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!material) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="book" title="Materi Tidak Ditemukan" message="Materi yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
+
+  const typeInfo = getTypeLabel(material.type);
 
   return (
     <DashboardLayout>
@@ -40,35 +76,35 @@ export const StudentMaterialDetail = () => {
         <Card>
           <div className="material-header">
             <div>
-              <h1>{mockMaterial.title}</h1>
+              <h1>{material.title}</h1>
               <div className="material-meta">
                 <Badge variant="primary">
                   {typeInfo.icon} {typeInfo.label}
                 </Badge>
-                <span>{mockMaterial.subject}</span>
-                <span>Oleh: {mockMaterial.teacher}</span>
-                <span>{formatDate(mockMaterial.createdAt)}</span>
+                <span>{subjectName}</span>
+                <span>Oleh: {teacherName}</span>
+                <span>{formatDate(new Date(material.createdAt))}</span>
               </div>
             </div>
           </div>
 
           <div className="material-description">
             <h3>Deskripsi</h3>
-            <p>{mockMaterial.description}</p>
+            <p>{material.description}</p>
           </div>
 
           <div className="material-content">
-            {mockMaterial.type === 'video' ? (
+            {material.type === 'video' ? (
               <div className="video-container">
                 <video controls width="100%">
-                  <source src={mockMaterial.fileUrl} type="video/mp4" />
+                  <source src={material.fileUrl} type="video/mp4" />
                   Browser Anda tidak mendukung video tag.
                 </video>
               </div>
-            ) : mockMaterial.type === 'link' ? (
+            ) : material.type === 'link' ? (
               <div className="link-container">
                 <a
-                  href={mockMaterial.fileUrl}
+                  href={material.fileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="external-link"
@@ -80,13 +116,13 @@ export const StudentMaterialDetail = () => {
               <div className="document-container">
                 <div className="document-preview">
                   <iframe
-                    src={mockMaterial.fileUrl}
-                    title={mockMaterial.title}
+                    src={material.fileUrl}
+                    title={material.title}
                     className="document-iframe"
                   />
                 </div>
                 <div className="document-actions">
-                  <a href={mockMaterial.fileUrl} download>
+                  <a href={material.fileUrl} download>
                     <Button variant="primary">📥 Download</Button>
                   </a>
                 </div>
@@ -94,14 +130,14 @@ export const StudentMaterialDetail = () => {
             )}
           </div>
 
-          {mockMaterial.attachments && mockMaterial.attachments.length > 0 && (
+          {material.attachments && material.attachments.length > 0 && (
             <div className="material-attachments">
               <h3>Lampiran</h3>
               <ul>
-                {mockMaterial.attachments.map((file, index) => (
+                {material.attachments.map((file: string, index: number) => (
                   <li key={index}>
-                    <a href="#" download>
-                      📎 {file}
+                    <a href={file} download target="_blank" rel="noopener noreferrer">
+                      📎 {file.split('/').pop() || file}
                     </a>
                   </li>
                 ))}

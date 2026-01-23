@@ -1,43 +1,68 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, FormInput, FormTextarea, FileUpload, Badge, Modal } from '../../components/common';
+import { Button, FormInput, FormTextarea, FileUpload, Badge, Modal, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDateTime } from '../../utils';
+import { assignmentService, userService } from '../../services';
 import './GradingInterface.css';
-
-const mockSubmission = {
-  id: '1',
-  assignmentTitle: 'Tugas Matematika - Aljabar',
-  studentName: 'Budi Santoso',
-  studentId: '1',
-  submittedAt: new Date('2024-01-18T10:30:00'),
-  content: 'Jawaban tugas matematika...',
-  attachments: ['jawaban-aljabar.pdf'],
-  currentScore: null as number | null,
-  feedback: '',
-};
 
 export const GradingInterface = () => {
   const { assignmentId, submissionId } = useParams<{ assignmentId: string; submissionId: string }>();
   const navigate = useNavigate();
-  const [score, setScore] = useState(mockSubmission.currentScore?.toString() || '');
-  const [feedback, setFeedback] = useState(mockSubmission.feedback);
+  const [submission, setSubmission] = useState<any>(null);
+  const [assignment, setAssignment] = useState<any>(null);
+  const [studentName, setStudentName] = useState('');
+  const [score, setScore] = useState('');
+  const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!assignmentId || !submissionId) return;
+      
+      try {
+        setIsLoading(true);
+        const [assignmentData, submissionsData] = await Promise.all([
+          assignmentService.getAssignmentById(assignmentId),
+          assignmentService.getSubmissions(assignmentId),
+        ]);
+
+        setAssignment(assignmentData);
+        const submissionData = submissionsData.find(s => s.id === submissionId);
+        
+        if (submissionData) {
+          setSubmission(submissionData);
+          setScore(submissionData.score?.toString() || '');
+          setFeedback(submissionData.feedback || '');
+
+          // Get student name
+          const student = await userService.getUserById(submissionData.studentId);
+          setStudentName(student.fullName);
+        }
+      } catch (error) {
+        console.error('Error loading submission:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [assignmentId, submissionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!score || parseInt(score) < 0) {
+    if (!submissionId || !score || parseInt(score) < 0) {
       alert('Harap masukkan nilai yang valid');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // TODO: Call assignmentService.gradeSubmission
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await assignmentService.gradeSubmission(submissionId, parseFloat(score), feedback || undefined);
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Error grading submission:', error);
@@ -47,34 +72,50 @@ export const GradingInterface = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!submission || !assignment) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="assignment" title="Pengumpulan Tidak Ditemukan" message="Pengumpulan tugas yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="grading-interface">
         <div className="grading-header">
         </div>
 
-        <Card title={`Penilaian: ${mockSubmission.assignmentTitle}`}>
+        <Card title={`Penilaian: ${assignment.title}`}>
           <div className="submission-info">
             <div className="info-row">
-              <strong>Siswa:</strong> {mockSubmission.studentName}
+              <strong>Siswa:</strong> {studentName}
             </div>
             <div className="info-row">
-              <strong>Waktu Submit:</strong> {formatDateTime(mockSubmission.submittedAt)}
+              <strong>Waktu Submit:</strong> {formatDateTime(new Date(submission.submittedAt))}
             </div>
           </div>
         </Card>
 
         <Card title="Jawaban Siswa">
           <div className="submission-content">
-            <p>{mockSubmission.content}</p>
-            {mockSubmission.attachments && mockSubmission.attachments.length > 0 && (
+            <p>{submission.content || 'Tidak ada konten'}</p>
+            {submission.attachments && submission.attachments.length > 0 && (
               <div className="submission-attachments">
                 <h4>Lampiran:</h4>
                 <ul>
-                  {mockSubmission.attachments.map((file, index) => (
+                  {submission.attachments.map((file: string, index: number) => (
                     <li key={index}>
-                      <a href="#" download>
-                        📎 {file}
+                      <a href={file} download target="_blank" rel="noopener noreferrer">
+                        📎 {file.split('/').pop() || file}
                       </a>
                     </li>
                   ))}
@@ -93,8 +134,8 @@ export const GradingInterface = () => {
               onChange={(e) => setScore(e.target.value)}
               required
               min="0"
-              max="100"
-              placeholder="0-100"
+              max={assignment.maxScore || 100}
+              placeholder={`0-${assignment.maxScore || 100}`}
             />
 
             <FormTextarea

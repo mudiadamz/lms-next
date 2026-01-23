@@ -2,88 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon, Table } from '../../components/common';
+import { Button, Badge, Icon, Table, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { ReportCard, Grade } from '../../types';
 import { formatDate } from '../../utils';
+import { reportCardService, subjectService, userService, classService } from '../../services';
 import './TeacherReports.css';
-
-// Mock data untuk rapor detail
-const mockReportCard: ReportCard & { studentName: string; studentNumber: string; className: string } = {
-  id: '1',
-  studentId: 'student1',
-  studentName: 'Budi Santoso',
-  studentNumber: '2024001',
-  classId: 'class1',
-  className: 'X IPA 1',
-  academicYear: '2024-2025',
-  semester: 1,
-  averageScore: 85.5,
-  rank: 5,
-  teacherNotes: 'Siswa menunjukkan kemajuan yang baik dalam pembelajaran. Perlu lebih aktif dalam diskusi kelas. Pertahankan semangat belajar!',
-  grades: [
-    {
-      id: 'g1',
-      studentId: 'student1',
-      subjectId: 'subject1',
-      score: 88,
-      maxScore: 100,
-      type: 'assignment',
-      teacherId: 'teacher1',
-      notes: 'Kerja bagus',
-      createdAt: new Date('2024-01-15'),
-    },
-    {
-      id: 'g2',
-      studentId: 'student1',
-      subjectId: 'subject1',
-      score: 85,
-      maxScore: 100,
-      type: 'quiz',
-      teacherId: 'teacher1',
-      createdAt: new Date('2024-01-20'),
-    },
-    {
-      id: 'g3',
-      studentId: 'student1',
-      subjectId: 'subject2',
-      score: 90,
-      maxScore: 100,
-      type: 'assignment',
-      teacherId: 'teacher1',
-      createdAt: new Date('2024-01-18'),
-    },
-    {
-      id: 'g4',
-      studentId: 'student1',
-      subjectId: 'subject2',
-      score: 82,
-      maxScore: 100,
-      type: 'quiz',
-      teacherId: 'teacher1',
-      createdAt: new Date('2024-01-22'),
-    },
-    {
-      id: 'g5',
-      studentId: 'student1',
-      subjectId: 'subject1',
-      score: 87,
-      maxScore: 100,
-      type: 'midterm',
-      teacherId: 'teacher1',
-      createdAt: new Date('2024-01-25'),
-    },
-  ],
-  createdAt: new Date('2024-01-30'),
-};
-
-const MOCK_SUBJECTS: Record<string, string> = {
-  subject1: 'Matematika',
-  subject2: 'Fisika',
-  subject3: 'Kimia',
-  subject4: 'Biologi',
-  subject5: 'Bahasa Indonesia',
-};
 
 const GRADE_TYPE_LABELS: Record<string, string> = {
   assignment: 'Tugas',
@@ -96,11 +20,44 @@ const GRADE_TYPE_LABELS: Record<string, string> = {
 export const TeacherReportDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [report, setReport] = useState(mockReportCard);
+  const [report, setReport] = useState<any>(null);
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [studentName, setStudentName] = useState('');
+  const [studentNumber, setStudentNumber] = useState('');
+  const [className, setClassName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch report from API based on id
-    // For now, using mock data
+    const loadData = async () => {
+      if (!id) return;
+      try {
+        setIsLoading(true);
+        const [reportData, subjectsData] = await Promise.all([
+          reportCardService.getReportCardById(id),
+          subjectService.getSubjects(),
+        ]);
+
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
+
+        // Fetch student and class info
+        const [studentInfo, classInfo] = await Promise.all([
+          userService.getUserById(reportData.studentId),
+          classService.getClassById(reportData.classId),
+        ]);
+
+        setStudentName(studentInfo.fullName);
+        setStudentNumber((studentInfo as any).studentNumber || '-');
+        setClassName(classInfo.name);
+        setReport(reportData);
+      } catch (error) {
+        console.error('Error loading report:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
   }, [id]);
 
   const getScoreColor = (score: number) => {
@@ -111,8 +68,28 @@ export const TeacherReportDetail = () => {
   };
 
   const getSubjectName = (subjectId: string) => {
-    return MOCK_SUBJECTS[subjectId] || subjectId;
+    return subjects[subjectId] || subjectId;
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!report) {
+    return (
+      <DashboardLayout>
+        <EmptyState
+          icon="document"
+          title="Rapor Tidak Ditemukan"
+          message="Rapor yang Anda cari tidak ditemukan."
+        />
+      </DashboardLayout>
+    );
+  }
 
   // Group grades by subject
   const gradesBySubject = report.grades.reduce((acc, grade) => {
@@ -174,13 +151,13 @@ export const TeacherReportDetail = () => {
               <h1>Rapor Siswa</h1>
               <div className="report-student-info">
                 <div className="info-item">
-                  <strong>Nama:</strong> {report.studentName}
+                  <strong>Nama:</strong> {studentName}
                 </div>
                 <div className="info-item">
-                  <strong>NIS:</strong> {report.studentNumber}
+                  <strong>NIS:</strong> {studentNumber}
                 </div>
                 <div className="info-item">
-                  <strong>Kelas:</strong> {report.className}
+                  <strong>Kelas:</strong> {className}
                 </div>
                 <div className="info-item">
                   <strong>Tahun Ajaran:</strong> {report.academicYear}

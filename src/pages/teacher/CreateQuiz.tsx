@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
-import { FormInput, FormSelect, FormTextarea, Modal } from '../../components/common';
+import { Button, FormInput, FormSelect, FormTextarea, Modal, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { QuestionType } from '../../types';
+import { quizService, subjectService, classService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './CreateQuiz.css';
 
 interface Question {
@@ -64,8 +65,23 @@ export const CreateQuiz = () => {
 
     setIsSubmitting(true);
     try {
-      // TODO: Call quizService.createQuiz
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await quizService.createQuiz({
+        title: formData.title,
+        description: formData.description,
+        subjectId: formData.subjectId,
+        classId: formData.classId,
+        teacherId: user?.id || '',
+        startDate: new Date(formData.startDate).toISOString(),
+        endDate: new Date(formData.endDate).toISOString(),
+        timeLimit: parseInt(formData.timeLimit) || 30,
+        questions: questions.map(q => ({
+          question: q.question,
+          type: q.type,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          points: q.points,
+        })),
+      });
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Error creating quiz:', error);
@@ -74,6 +90,14 @@ export const CreateQuiz = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -103,7 +127,7 @@ export const CreateQuiz = () => {
                 onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
                 options={[
                   { value: '', label: 'Pilih mata pelajaran' },
-                  { value: '1', label: 'Matematika' },
+                  ...subjects,
                 ]}
                 required
               />
@@ -114,7 +138,7 @@ export const CreateQuiz = () => {
                 onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                 options={[
                   { value: '', label: 'Pilih kelas' },
-                  { value: '1', label: 'X IPA 1' },
+                  ...classes,
                 ]}
                 required
               />

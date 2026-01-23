@@ -2,23 +2,10 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, FormInput, FormSelect, Icon } from '../../components/common';
+import { Button, FormInput, FormSelect, Icon, Loading, EmptyState } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
+import { classService, userService, academicYearService } from '../../services';
 import './AdminClasses.css';
-
-// Mock data untuk dropdowns
-const MOCK_TEACHERS = [
-  { value: 'teacher1', label: 'Ibu Siti' },
-  { value: 'teacher2', label: 'Bapak Budi' },
-  { value: 'teacher3', label: 'Ibu Rina' },
-  { value: 'teacher4', label: 'Bapak Andi' },
-];
-
-const MOCK_ACADEMIC_YEARS = [
-  { value: '2024-2025', label: '2024-2025' },
-  { value: '2023-2024', label: '2023-2024' },
-  { value: '2022-2023', label: '2022-2023' },
-];
 
 const GRADE_OPTIONS = [
   { value: '1', label: 'Kelas 1' },
@@ -35,22 +22,13 @@ const GRADE_OPTIONS = [
   { value: '12', label: 'Kelas 12' },
 ];
 
-// Mock class data
-const mockClassData = {
-  id: '1',
-  name: 'X IPA 1',
-  grade: 10,
-  schoolLevel: 'sma',
-  homeroomTeacherId: 'teacher1',
-  academicYear: '2024-2025',
-  semester: 1,
-  maxStudents: 36,
-};
-
 export const AdminClassesEdit = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [teachers, setTeachers] = useState<Array<{ value: string; label: string }>>([]);
+  const [academicYears, setAcademicYears] = useState<Array<{ value: string; label: string }>>([]);
   const [formData, setFormData] = useState({
     name: '',
     grade: '',
@@ -62,43 +40,55 @@ export const AdminClassesEdit = () => {
   });
 
   useEffect(() => {
-    // TODO: Fetch class data from API
-    // For now, using mock data
-    if (id) {
-      setFormData({
-        name: mockClassData.name,
-        grade: mockClassData.grade.toString(),
-        schoolLevel: mockClassData.schoolLevel,
-        homeroomTeacherId: mockClassData.homeroomTeacherId,
-        academicYear: mockClassData.academicYear,
-        semester: mockClassData.semester.toString(),
-        maxStudents: mockClassData.maxStudents.toString(),
-      });
-    }
+    const loadData = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const [classData, teachersData, academicYearsData] = await Promise.all([
+          classService.getClassById(id),
+          userService.getUsers('teacher'),
+          academicYearService.getAcademicYears(),
+        ]);
+
+        setFormData({
+          name: classData.name,
+          grade: classData.grade.toString(),
+          schoolLevel: classData.schoolLevel,
+          homeroomTeacherId: classData.homeroomTeacherId || '',
+          academicYear: classData.academicYear,
+          semester: classData.semester.toString(),
+          maxStudents: '36', // Default, not in schema
+        });
+
+        setTeachers(teachersData.map(t => ({ value: t.id, label: t.fullName })));
+        setAcademicYears(academicYearsData.map(ay => ({ value: ay.name, label: ay.name })));
+      } catch (error) {
+        console.error('Error loading class data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [id]);
 
   const handleUpdateClass = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!id) return;
+    
     setIsUpdating(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const updatedClass = {
-        id: id!,
+      await classService.updateClass(id, {
         name: formData.name,
         grade: parseInt(formData.grade),
         schoolLevel: formData.schoolLevel as 'sd' | 'smp' | 'sma',
-        homeroomTeacherId: formData.homeroomTeacherId,
+        homeroomTeacherId: formData.homeroomTeacherId || undefined,
         academicYear: formData.academicYear,
         semester: parseInt(formData.semester),
-      };
+      });
 
-      // TODO: Call classService.updateClass
-      console.log('Updating class:', updatedClass);
-
-      // Navigate back to classes list
       navigate(ROUTES.ADMIN_CLASSES);
     } catch (error) {
       console.error('Error updating class:', error);
@@ -107,6 +97,14 @@ export const AdminClassesEdit = () => {
       setIsUpdating(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -163,7 +161,7 @@ export const AdminClassesEdit = () => {
               onChange={(e) => setFormData({ ...formData, homeroomTeacherId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih wali kelas' },
-                ...MOCK_TEACHERS,
+                ...teachers,
               ]}
               required
             />
@@ -174,7 +172,7 @@ export const AdminClassesEdit = () => {
               onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
               options={[
                 { value: '', label: 'Pilih tahun ajaran' },
-                ...MOCK_ACADEMIC_YEARS,
+                ...academicYears,
               ]}
               required
             />

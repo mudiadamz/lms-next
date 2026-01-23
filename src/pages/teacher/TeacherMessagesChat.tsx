@@ -2,10 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, FormTextarea, Badge, Icon } from '../../components/common';
+import { Button, FormTextarea, Badge, Icon, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { getRelativeTime } from '../../utils';
 import { useAuth } from '../../contexts/AuthContext';
+import { messageService, userService, classService } from '../../services';
 import './TeacherMessages.css';
 
 interface Message {
@@ -18,123 +19,63 @@ interface Message {
   isRead: boolean;
 }
 
-// Mock data untuk percakapan
-const mockConversations: Record<string, { participantName: string; participantRole: 'student' | 'parent'; participantClass?: string }> = {
-  '1': {
-    participantName: 'Budi Santoso',
-    participantRole: 'student',
-    participantClass: 'X IPA 1',
-  },
-  '2': {
-    participantName: 'Bapak Santoso',
-    participantRole: 'parent',
-    participantClass: 'X IPA 1',
-  },
-  '3': {
-    participantName: 'Siti Nurhaliza',
-    participantRole: 'student',
-    participantClass: 'X IPA 1',
-  },
-  '4': {
-    participantName: 'Ibu Nurhaliza',
-    participantRole: 'parent',
-    participantClass: 'X IPA 1',
-  },
-};
-
-// Mock messages
-const mockMessages: Record<string, Message[]> = {
-  '1': [
-    {
-      id: '1',
-      senderId: 'student1',
-      senderName: 'Budi Santoso',
-      senderRole: 'student',
-      content: 'Halo Bu, saya ingin bertanya tentang tugas matematika yang diberikan kemarin.',
-      createdAt: new Date('2024-01-18T09:00:00'),
-      isRead: true,
-    },
-    {
-      id: '2',
-      senderId: 'teacher1',
-      senderName: 'Ibu Siti',
-      senderRole: 'teacher',
-      content: 'Halo Budi, silakan tanyakan apa yang ingin kamu ketahui.',
-      createdAt: new Date('2024-01-18T09:05:00'),
-      isRead: true,
-    },
-    {
-      id: '3',
-      senderId: 'student1',
-      senderName: 'Budi Santoso',
-      senderRole: 'student',
-      content: 'Saya bingung dengan soal nomor 5, bagaimana cara menyelesaikannya?',
-      createdAt: new Date('2024-01-18T09:10:00'),
-      isRead: true,
-    },
-    {
-      id: '4',
-      senderId: 'teacher1',
-      senderName: 'Ibu Siti',
-      senderRole: 'teacher',
-      content: 'Baik, untuk soal nomor 5 kamu perlu menggunakan rumus persamaan kuadrat. Coba lihat contoh di halaman 45 buku paket.',
-      createdAt: new Date('2024-01-18T09:15:00'),
-      isRead: true,
-    },
-    {
-      id: '5',
-      senderId: 'student1',
-      senderName: 'Budi Santoso',
-      senderRole: 'student',
-      content: 'Terima kasih Bu, saya akan coba lagi.',
-      createdAt: new Date('2024-01-18T10:30:00'),
-      isRead: true,
-    },
-  ],
-  '2': [
-    {
-      id: '6',
-      senderId: 'parent1',
-      senderName: 'Bapak Santoso',
-      senderRole: 'parent',
-      content: 'Selamat pagi Bu, saya ingin menanyakan progress belajar anak saya Budi.',
-      createdAt: new Date('2024-01-17T08:00:00'),
-      isRead: true,
-    },
-    {
-      id: '7',
-      senderId: 'teacher1',
-      senderName: 'Ibu Siti',
-      senderRole: 'teacher',
-      content: 'Selamat pagi Pak, Budi menunjukkan kemajuan yang baik. Nilai-nilainya cukup memuaskan.',
-      createdAt: new Date('2024-01-17T08:15:00'),
-      isRead: true,
-    },
-    {
-      id: '8',
-      senderId: 'parent1',
-      senderName: 'Bapak Santoso',
-      senderRole: 'parent',
-      content: 'Baik Bu, terima kasih atas informasinya.',
-      createdAt: new Date('2024-01-17T15:20:00'),
-      isRead: false,
-    },
-  ],
-};
-
 export const TeacherMessagesChat = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [messages, setMessages] = useState<Message[]>(mockMessages[id || ''] || []);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversation, setConversation] = useState<{ participantName: string; participantRole: 'student' | 'parent'; participantClass?: string } | null>(null);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const conversation = mockConversations[id || ''] || {
-    participantName: 'Unknown',
-    participantRole: 'student' as const,
-  };
+  useEffect(() => {
+    const loadData = async () => {
+      if (!id || !user?.id) return;
+      try {
+        setIsLoading(true);
+        const [messagesData, participantInfo] = await Promise.all([
+          messageService.getMessages(id),
+          userService.getUserById(id),
+        ]);
+
+        // Convert API messages to component format
+        const formattedMessages: Message[] = messagesData.map(msg => ({
+          id: msg.id,
+          senderId: msg.senderId,
+          senderName: msg.senderName || participantInfo.fullName,
+          senderRole: msg.senderRole || (participantInfo.role as 'student' | 'parent'),
+          content: msg.content,
+          createdAt: new Date(msg.createdAt),
+          isRead: msg.isRead || false,
+        }));
+
+        setMessages(formattedMessages);
+
+        // Get participant class if student
+        let participantClass: string | undefined;
+        if (participantInfo.role === 'student') {
+          const classId = (participantInfo as any).classId;
+          if (classId) {
+            const classInfo = await classService.getClassById(classId);
+            participantClass = classInfo.name;
+          }
+        }
+
+        setConversation({
+          participantName: participantInfo.fullName,
+          participantRole: participantInfo.role as 'student' | 'parent',
+          participantClass,
+        });
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, [id, user?.id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -146,21 +87,23 @@ export const TeacherMessagesChat = () => {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !id || !user?.id) return;
 
     setIsSending(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const sentMessage = await messageService.sendMessage({
+        receiverId: id,
+        content: newMessage,
+      });
 
       const message: Message = {
-        id: Date.now().toString(),
-        senderId: user?.id || 'teacher1',
-        senderName: user?.fullName || 'Guru',
+        id: sentMessage.id,
+        senderId: user.id,
+        senderName: user.fullName || 'Guru',
         senderRole: 'teacher',
-        content: newMessage,
-        createdAt: new Date(),
-        isRead: false,
+        content: sentMessage.content,
+        createdAt: new Date(sentMessage.createdAt),
+        isRead: sentMessage.isRead || false,
       };
 
       setMessages([...messages, message]);
@@ -176,6 +119,26 @@ export const TeacherMessagesChat = () => {
   const isOwnMessage = (message: Message) => {
     return message.senderId === user?.id || message.senderRole === 'teacher';
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!conversation) {
+    return (
+      <DashboardLayout>
+        <EmptyState
+          icon="chat"
+          title="Percakapan Tidak Ditemukan"
+          message="Percakapan yang Anda cari tidak ditemukan."
+        />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

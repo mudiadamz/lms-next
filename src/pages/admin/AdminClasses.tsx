@@ -1,54 +1,50 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Table, Dropdown, EmptyState, Icon, ConfirmDialog } from '../../components/common';
+import { Button, Badge, Table, Dropdown, EmptyState, Icon, ConfirmDialog, Loading } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
+import { classService, userService } from '../../services';
 import './AdminClasses.css';
-
-const mockClasses = [
-  {
-    id: '1',
-    name: 'X IPA 1',
-    grade: 10,
-    schoolLevel: 'sma',
-    homeroomTeacher: 'Ibu Siti',
-    studentCount: 30,
-    maxStudents: 36,
-  },
-  {
-    id: '2',
-    name: 'X IPA 2',
-    grade: 10,
-    schoolLevel: 'sma',
-    homeroomTeacher: 'Bapak Budi',
-    studentCount: 28,
-    maxStudents: 36,
-  },
-  {
-    id: '3',
-    name: 'XI IPA 1',
-    grade: 11,
-    schoolLevel: 'sma',
-    homeroomTeacher: 'Ibu Rina',
-    studentCount: 32,
-    maxStudents: 36,
-  },
-];
 
 export const AdminClasses = () => {
   const navigate = useNavigate();
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedClass, setSelectedClass] = useState<typeof mockClasses[0] | null>(null);
-  const [classes, setClasses] = useState(mockClasses);
+  const [selectedClass, setSelectedClass] = useState<any | null>(null);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [classesData, teachersData] = await Promise.all([
+          classService.getClasses(),
+          userService.getUsers('teacher'),
+        ]);
+
+        setClasses(classesData);
+        const teacherMap: Record<string, string> = {};
+        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        setTeachers(teacherMap);
+      } catch (error) {
+        console.error('Error loading classes:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const filteredClasses = classes.filter((cls) => {
     const matchesLevel = selectedLevel === 'all' || cls.schoolLevel === selectedLevel;
     return matchesLevel;
   });
 
-  const handleDelete = (cls: typeof mockClasses[0]) => {
+  const handleDelete = (cls: any) => {
     setSelectedClass(cls);
     setShowDeleteDialog(true);
   };
@@ -56,8 +52,7 @@ export const AdminClasses = () => {
   const confirmDelete = async () => {
     if (!selectedClass) return;
     try {
-      // TODO: Call classService.deleteClass
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await classService.deleteClass(selectedClass.id);
       setClasses(classes.filter((c) => c.id !== selectedClass.id));
       setShowDeleteDialog(false);
       setSelectedClass(null);
@@ -71,7 +66,7 @@ export const AdminClasses = () => {
     {
       key: 'name',
       header: 'Nama Kelas',
-      render: (item: typeof mockClasses[0]) => (
+      render: (item: any) => (
         <div>
           <strong>{item.name}</strong>
           <br />
@@ -82,23 +77,24 @@ export const AdminClasses = () => {
     {
       key: 'grade',
       header: 'Kelas',
-      render: (item: typeof mockClasses[0]) => `Kelas ${item.grade}`,
+      render: (item: any) => `Kelas ${item.grade || '-'}`,
     },
     {
       key: 'homeroomTeacher',
       header: 'Wali Kelas',
+      render: (item: any) => teachers[(item as any).homeroomTeacherId] || (item as any).homeroomTeacher || '-',
     },
     {
       key: 'studentCount',
       header: 'Siswa',
-      render: (item: typeof mockClasses[0]) => (
+      render: (item: any) => (
         <div>
-          {item.studentCount}/{item.maxStudents}
+          {(item as any).studentCount || 0}/{(item as any).maxStudents || 0}
           <Badge
-            variant={item.studentCount >= item.maxStudents ? 'danger' : 'primary'}
+            variant={(item as any).studentCount >= (item as any).maxStudents ? 'danger' : 'primary'}
             style={{ marginLeft: '0.5rem' }}
           >
-            {Math.round((item.studentCount / item.maxStudents) * 100)}%
+            {((item as any).studentCount || 0) >= ((item as any).maxStudents || 0) ? 'Penuh' : 'Tersedia'}
           </Badge>
         </div>
       ),
@@ -106,13 +102,12 @@ export const AdminClasses = () => {
     {
       key: 'actions',
       header: 'Aksi',
-      render: (item: typeof mockClasses[0]) => (
+      render: (item: any) => (
         <Dropdown
-          trigger={<Button variant="outline" size="small">Kelola</Button>}
+          trigger={<Button variant="outline" size="small">⋯</Button>}
           items={[
             { label: 'Detail', onClick: () => navigate(`${ROUTES.ADMIN_CLASSES_DETAIL.replace(':id', item.id)}`) },
             { label: 'Edit', onClick: () => navigate(`${ROUTES.ADMIN_CLASSES_EDIT.replace(':id', item.id)}`) },
-            { label: 'Daftar Siswa', onClick: () => navigate(`${ROUTES.ADMIN_CLASSES_STUDENTS.replace(':id', item.id)}`) },
             { divider: true },
             { label: 'Hapus', onClick: () => handleDelete(item) },
           ]}
@@ -126,33 +121,30 @@ export const AdminClasses = () => {
     <DashboardLayout>
       <div className="admin-classes">
         <div className="page-header">
-          <h1>Manajemen Kelas</h1>
-          <Button onClick={() => navigate(ROUTES.ADMIN_CLASSES_CREATE)}>
-            <Icon name="plus" size={16} style={{ marginRight: '0.5rem' }} />
-            Tambah Kelas
-          </Button>
+          <h1>Kelas</h1>
+          <Button onClick={() => navigate(ROUTES.ADMIN_CLASSES_CREATE)}>Tambah Kelas</Button>
         </div>
 
         <div className="page-filters">
-          <div className="filter-group">
-            <select
-              value={selectedLevel}
-              onChange={(e) => setSelectedLevel(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Semua Tingkat</option>
-              <option value="sd">SD</option>
-              <option value="smp">SMP</option>
-              <option value="sma">SMA</option>
-            </select>
-          </div>
+          <select
+            value={selectedLevel}
+            onChange={(e) => setSelectedLevel(e.target.value)}
+            className="filter-select"
+          >
+            <option value="all">Semua Tingkat</option>
+            <option value="sd">SD</option>
+            <option value="smp">SMP</option>
+            <option value="sma">SMA</option>
+          </select>
         </div>
 
-        {filteredClasses.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : filteredClasses.length === 0 ? (
           <EmptyState
             icon="userGroup"
             title="Tidak Ada Kelas"
-            message={searchTerm || selectedLevel !== 'all' 
+            message={selectedLevel !== 'all' 
               ? 'Tidak ada kelas yang sesuai dengan filter yang dipilih.'
               : 'Belum ada kelas yang terdaftar.'}
             action={{ 
@@ -161,10 +153,7 @@ export const AdminClasses = () => {
             }}
           />
         ) : (
-          <Card 
-            title={`Daftar Kelas (${filteredClasses.length})`} 
-            variant="elevated"
-          >
+          <Card title={`Daftar Kelas (${filteredClasses.length})`} variant="elevated">
             <Table columns={columns} data={filteredClasses} />
           </Card>
         )}
@@ -185,4 +174,5 @@ export const AdminClasses = () => {
     </DashboardLayout>
   );
 };
+
 

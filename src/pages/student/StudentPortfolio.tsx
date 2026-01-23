@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon, EmptyState, Pagination, Modal } from '../../components/common';
+import { Button, Badge, Icon, EmptyState, Pagination, Modal, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, formatDateTime } from '../../utils';
+import { assignmentService, quizService, gradeService, subjectService, userService } from '../../services';
 import './StudentPortfolio.css';
 
 interface PortfolioItem {
@@ -15,110 +16,17 @@ interface PortfolioItem {
   subject: string;
   subjectId: string;
   teacher: string;
-  submittedAt: Date;
-  gradedAt?: Date;
+  submittedAt: Date | string;
+  gradedAt?: Date | string;
   score?: number;
   maxScore: number;
   grade?: string;
   feedback?: string;
   attachments?: string[];
   description?: string;
-  semester: number;
-  academicYear: string;
+  semester?: number;
+  academicYear?: string;
 }
-
-
-// Contoh data portofolio
-const mockPortfolioItems: PortfolioItem[] = [
-  {
-    id: '1',
-    type: 'assignment',
-    title: 'Tugas Matematika - Aljabar',
-    subject: 'Matematika',
-    subjectId: 'subject1',
-    teacher: 'Ibu Siti',
-    submittedAt: new Date('2024-01-18T14:30:00'),
-    gradedAt: new Date('2024-01-20T10:00:00'),
-    score: 85,
-    maxScore: 100,
-    grade: 'B+',
-    feedback: 'Kerja bagus! Perlu lebih teliti dalam perhitungan.',
-    attachments: ['tugas_aljabar.pdf'],
-    description: 'Menyelesaikan soal aljabar linear dan kuadrat',
-    semester: 1,
-    academicYear: '2024-2025',
-  },
-  {
-    id: '2',
-    type: 'project',
-    title: 'Proyek Fisika - Rangkaian Listrik',
-    subject: 'Fisika',
-    subjectId: 'subject2',
-    teacher: 'Bapak Budi',
-    submittedAt: new Date('2024-01-15T16:00:00'),
-    gradedAt: new Date('2024-01-22T09:00:00'),
-    score: 92,
-    maxScore: 100,
-    grade: 'A',
-    feedback: 'Sangat baik! Presentasi dan laporan sangat detail.',
-    attachments: ['proyek_fisika.pdf', 'presentasi_fisika.pptx'],
-    description: 'Membuat rangkaian listrik sederhana dan laporan',
-    semester: 1,
-    academicYear: '2024-2025',
-  },
-  {
-    id: '3',
-    type: 'assignment',
-    title: 'Tugas Bahasa Indonesia - Menulis Esai',
-    subject: 'Bahasa Indonesia',
-    subjectId: 'subject5',
-    teacher: 'Ibu Rina',
-    submittedAt: new Date('2024-01-20T12:00:00'),
-    gradedAt: new Date('2024-01-25T11:00:00'),
-    score: 88,
-    maxScore: 100,
-    grade: 'A-',
-    feedback: 'Esai sangat menarik dengan struktur yang baik.',
-    attachments: ['esai_bahasa.pdf'],
-    description: 'Menulis esai tentang lingkungan hidup',
-    semester: 1,
-    academicYear: '2024-2025',
-  },
-  {
-    id: '4',
-    type: 'quiz',
-    title: 'Kuis Kimia - Tabel Periodik',
-    subject: 'Kimia',
-    subjectId: 'subject3',
-    teacher: 'Ibu Dewi',
-    submittedAt: new Date('2024-01-19T10:00:00'),
-    gradedAt: new Date('2024-01-19T10:05:00'),
-    score: 90,
-    maxScore: 100,
-    grade: 'A',
-    feedback: 'Jawaban sangat akurat!',
-    semester: 1,
-    academicYear: '2024-2025',
-  },
-  {
-    id: '5',
-    type: 'project',
-    title: 'Proyek Biologi - Observasi Tumbuhan',
-    subject: 'Biologi',
-    subjectId: 'subject4',
-    teacher: 'Bapak Eko',
-    submittedAt: new Date('2024-01-17T15:00:00'),
-    gradedAt: new Date('2024-01-24T14:00:00'),
-    score: 87,
-    maxScore: 100,
-    grade: 'B+',
-    feedback: 'Observasi detail, dokumentasi lengkap.',
-    attachments: ['laporan_biologi.pdf', 'foto_tumbuhan.jpg'],
-    description: 'Observasi dan dokumentasi pertumbuhan tanaman',
-    semester: 1,
-    academicYear: '2024-2025',
-  },
-];
 
 const TYPE_LABELS = {
   assignment: 'Tugas',
@@ -143,13 +51,98 @@ const getScoreColor = (score: number, maxScore: number) => {
 export const StudentPortfolio = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const itemsPerPage = 9;
 
-  const totalPages = Math.ceil(mockPortfolioItems.length / itemsPerPage);
-  const paginatedItems = mockPortfolioItems.slice(
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const studentData = user?.id ? await userService.getUserById(user.id) : null;
+        const classId = (studentData as any)?.classId;
+
+        const [assignmentsData, quizzesData, gradesData, subjectsData, teachersData] = await Promise.all([
+          assignmentService.getAssignments(classId ? { classId } : {}),
+          quizService.getQuizzes(classId ? { classId } : {}),
+          gradeService.getGrades(user?.id ? { studentId: user.id } : {}),
+          subjectService.getSubjects(),
+          userService.getUsers('teacher'),
+        ]);
+
+        // Combine assignments, quizzes, and grades into portfolio items
+        const items: PortfolioItem[] = [];
+        
+        // Add assignments with grades
+        assignmentsData.forEach(assignment => {
+          const grade = gradesData.find(g => g.assignmentId === assignment.id);
+          if (grade || assignment.status === 'submitted') {
+            items.push({
+              id: assignment.id,
+              type: 'assignment',
+              title: assignment.title,
+              subject: assignment.subjectId,
+              subjectId: assignment.subjectId,
+              teacher: assignment.teacherId,
+              submittedAt: assignment.submittedAt || assignment.createdAt || Date.now(),
+              gradedAt: grade?.createdAt,
+              score: grade?.score,
+              maxScore: grade?.maxScore || assignment.maxScore || 100,
+              grade: grade?.grade,
+              feedback: grade?.feedback,
+              attachments: assignment.attachments,
+              description: assignment.description,
+            });
+          }
+        });
+
+        // Add quizzes with grades
+        quizzesData.forEach(quiz => {
+          const grade = gradesData.find(g => g.quizId === quiz.id);
+          if (grade || quiz.score !== null) {
+            items.push({
+              id: quiz.id,
+              type: 'quiz',
+              title: quiz.title,
+              subject: quiz.subjectId,
+              subjectId: quiz.subjectId,
+              teacher: quiz.teacherId,
+              submittedAt: quiz.submittedAt || quiz.createdAt || Date.now(),
+              gradedAt: grade?.createdAt || quiz.gradedAt,
+              score: grade?.score || quiz.score,
+              maxScore: grade?.maxScore || quiz.maxScore || 100,
+              grade: grade?.grade,
+              feedback: grade?.feedback,
+            });
+          }
+        });
+
+        setPortfolioItems(items);
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
+        const teacherMap: Record<string, string> = {};
+        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        setTeachers(teacherMap);
+      } catch (error) {
+        console.error('Error loading portfolio:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
+  const totalPages = Math.ceil(portfolioItems.length / itemsPerPage);
+  const paginatedItems = portfolioItems.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
@@ -167,7 +160,9 @@ export const StudentPortfolio = () => {
         </div>
 
         {/* Portfolio Grid */}
-        {paginatedItems.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : paginatedItems.length === 0 ? (
           <EmptyState
             icon="folder"
             title="Tidak Ada Portofolio"
@@ -200,11 +195,11 @@ export const StudentPortfolio = () => {
                   <div className="portfolio-item-meta">
                     <div className="meta-item">
                       <Icon name="book" size={14} style={{ marginRight: '0.25rem' }} />
-                      {item.subject}
+                      {subjects[item.subjectId] || item.subject}
                     </div>
                     <div className="meta-item">
                       <Icon name="user" size={14} style={{ marginRight: '0.25rem' }} />
-                      {item.teacher}
+                      {teachers[item.teacher] || item.teacher}
                     </div>
                   </div>
                   {item.description && (
@@ -213,7 +208,7 @@ export const StudentPortfolio = () => {
                   <div className="portfolio-item-footer">
                     <div className="footer-date">
                       <Icon name="calendar" size={14} style={{ marginRight: '0.25rem' }} />
-                      {formatDate(item.submittedAt)}
+                      {formatDate(new Date(item.submittedAt))}
                     </div>
                     {item.grade && (
                       <Badge variant="primary" size="small">
@@ -249,7 +244,7 @@ export const StudentPortfolio = () => {
               <div className="detail-header-info">
                 <div className="detail-badges">
                   <Badge variant="info">{TYPE_LABELS[selectedItem.type]}</Badge>
-                  <Badge variant="secondary">{selectedItem.subject}</Badge>
+                  <Badge variant="secondary">{subjects[selectedItem.subjectId] || selectedItem.subject}</Badge>
                   {selectedItem.grade && (
                     <Badge variant="primary">{selectedItem.grade}</Badge>
                   )}
@@ -270,25 +265,29 @@ export const StudentPortfolio = () => {
 
               <div className="detail-info-grid">
                 <div className="info-item">
-                  <strong>Mata Pelajaran:</strong> {selectedItem.subject}
+                  <strong>Mata Pelajaran:</strong> {subjects[selectedItem.subjectId] || selectedItem.subject}
                 </div>
                 <div className="info-item">
-                  <strong>Guru:</strong> {selectedItem.teacher}
+                  <strong>Guru:</strong> {teachers[selectedItem.teacher] || selectedItem.teacher}
                 </div>
                 <div className="info-item">
-                  <strong>Dikirim:</strong> {formatDateTime(selectedItem.submittedAt)}
+                  <strong>Dikirim:</strong> {formatDateTime(new Date(selectedItem.submittedAt))}
                 </div>
                 {selectedItem.gradedAt && (
                   <div className="info-item">
-                    <strong>Dinilai:</strong> {formatDateTime(selectedItem.gradedAt)}
+                    <strong>Dinilai:</strong> {formatDateTime(new Date(selectedItem.gradedAt))}
                   </div>
                 )}
-                <div className="info-item">
-                  <strong>Semester:</strong> Semester {selectedItem.semester}
-                </div>
-                <div className="info-item">
-                  <strong>Tahun Ajaran:</strong> {selectedItem.academicYear}
-                </div>
+                {selectedItem.semester && (
+                  <div className="info-item">
+                    <strong>Semester:</strong> Semester {selectedItem.semester}
+                  </div>
+                )}
+                {selectedItem.academicYear && (
+                  <div className="info-item">
+                    <strong>Tahun Ajaran:</strong> {selectedItem.academicYear}
+                  </div>
+                )}
               </div>
 
               {selectedItem.description && (

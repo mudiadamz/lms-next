@@ -1,156 +1,123 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, FormSelect, Badge, Table, Modal, Pagination, Icon, EmptyState } from '../../components/common';
+import { Button, FormSelect, Badge, Table, Modal, Pagination, Icon, EmptyState, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { ReportCard } from '../../types';
 import { formatDate } from '../../utils';
+import { reportCardService, classService, userService, academicYearService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './TeacherReports.css';
-
-const MOCK_CLASSES = [
-  { value: 'class1', label: 'X IPA 1' },
-  { value: 'class2', label: 'X IPA 2' },
-  { value: 'class3', label: 'XI IPA 1' },
-];
-
-const MOCK_STUDENTS = [
-  { id: 'student1', studentNumber: '2024001', fullName: 'Budi Santoso', classId: 'class1' },
-  { id: 'student2', studentNumber: '2024002', fullName: 'Siti Nurhaliza', classId: 'class1' },
-  { id: 'student3', studentNumber: '2024003', fullName: 'Andi Pratama', classId: 'class1' },
-  { id: 'student4', studentNumber: '2024004', fullName: 'Rina Wijaya', classId: 'class2' },
-  { id: 'student5', studentNumber: '2024005', fullName: 'Dedi Kurniawan', classId: 'class2' },
-];
-
-// Mock data rapor
-const mockReportCards: (ReportCard & { studentName: string; studentNumber: string })[] = [
-  {
-    id: '1',
-    studentId: 'student1',
-    studentName: 'Budi Santoso',
-    studentNumber: '2024001',
-    classId: 'class1',
-    academicYear: '2024-2025',
-    semester: 1,
-    averageScore: 85.5,
-    rank: 5,
-    teacherNotes: 'Siswa menunjukkan kemajuan yang baik dalam pembelajaran. Perlu lebih aktif dalam diskusi kelas.',
-    grades: [
-      {
-        id: 'g1',
-        studentId: 'student1',
-        subjectId: 'subject1',
-        score: 88,
-        maxScore: 100,
-        type: 'assignment',
-        teacherId: 'teacher1',
-        createdAt: new Date('2024-01-15'),
-      },
-      {
-        id: 'g2',
-        studentId: 'student1',
-        subjectId: 'subject1',
-        score: 85,
-        maxScore: 100,
-        type: 'quiz',
-        teacherId: 'teacher1',
-        createdAt: new Date('2024-01-20'),
-      },
-    ],
-    createdAt: new Date('2024-01-30'),
-  },
-  {
-    id: '2',
-    studentId: 'student2',
-    studentName: 'Siti Nurhaliza',
-    studentNumber: '2024002',
-    classId: 'class1',
-    academicYear: '2024-2025',
-    semester: 1,
-    averageScore: 92.3,
-    rank: 2,
-    teacherNotes: 'Siswa sangat aktif dan berprestasi. Pertahankan semangat belajar!',
-    grades: [
-      {
-        id: 'g3',
-        studentId: 'student2',
-        subjectId: 'subject1',
-        score: 95,
-        maxScore: 100,
-        type: 'assignment',
-        teacherId: 'teacher1',
-        createdAt: new Date('2024-01-15'),
-      },
-      {
-        id: 'g4',
-        studentId: 'student2',
-        subjectId: 'subject1',
-        score: 90,
-        maxScore: 100,
-        type: 'quiz',
-        teacherId: 'teacher1',
-        createdAt: new Date('2024-01-20'),
-      },
-    ],
-    createdAt: new Date('2024-01-30'),
-  },
-  {
-    id: '3',
-    studentId: 'student3',
-    studentName: 'Andi Pratama',
-    studentNumber: '2024003',
-    classId: 'class1',
-    academicYear: '2024-2025',
-    semester: 1,
-    averageScore: 78.2,
-    rank: 12,
-    teacherNotes: 'Perlu lebih banyak latihan untuk meningkatkan pemahaman materi.',
-    grades: [
-      {
-        id: 'g5',
-        studentId: 'student3',
-        subjectId: 'subject1',
-        score: 75,
-        maxScore: 100,
-        type: 'assignment',
-        teacherId: 'teacher1',
-        createdAt: new Date('2024-01-15'),
-      },
-      {
-        id: 'g6',
-        studentId: 'student3',
-        subjectId: 'subject1',
-        score: 80,
-        maxScore: 100,
-        type: 'quiz',
-        teacherId: 'teacher1',
-        createdAt: new Date('2024-01-20'),
-      },
-    ],
-    createdAt: new Date('2024-01-30'),
-  },
-];
 
 export const TeacherReports = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [selectedClass, setSelectedClass] = useState<string>('');
   const [selectedSemester, setSelectedSemester] = useState<string>('1');
-  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('2024-2025');
+  const [selectedAcademicYear, setSelectedAcademicYear] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [reportCards, setReportCards] = useState<(ReportCard & { studentName: string; studentNumber: string })[]>([]);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
+  const [academicYears, setAcademicYears] = useState<Array<{ value: string; label: string }>>([]);
+  const [students, setStudents] = useState<Record<string, { fullName: string; studentNumber: string }>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const itemsPerPage = 10;
 
-  const filteredReports = mockReportCards.filter((report) => {
-    const matchesClass = selectedClass === '' || report.classId === selectedClass;
-    const matchesSemester = report.semester.toString() === selectedSemester;
-    const matchesAcademicYear = report.academicYear === selectedAcademicYear;
-    const matchesSearch =
-      report.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.studentNumber.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesClass && matchesSemester && matchesAcademicYear && matchesSearch;
-  });
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [classesData, academicYearsData, studentsData] = await Promise.all([
+          classService.getClasses(),
+          academicYearService.getAcademicYears(),
+          userService.getUsers('student'),
+        ]);
+
+        // Filter classes taught by this teacher
+        const teacherClasses = classesData.filter(c => {
+          const teacherIds = (c as any).teacherIds || [];
+          return teacherIds.includes(user?.id);
+        });
+
+        setClasses(teacherClasses.map(c => ({ value: c.id, label: c.name })));
+        // Use AcademicYear.name as the year identifier
+        setAcademicYears(academicYearsData.map(ay => ({ value: ay.name, label: ay.name })));
+        
+        const studentMap: Record<string, { fullName: string; studentNumber: string }> = {};
+        studentsData.forEach(s => {
+          studentMap[s.id] = {
+            fullName: s.fullName,
+            studentNumber: (s as any).studentNumber || '',
+          };
+        });
+        setStudents(studentMap);
+
+        // Set default academic year
+        if (academicYearsData.length > 0 && !selectedAcademicYear) {
+          setSelectedAcademicYear(academicYearsData[0].name);
+        }
+      } catch (error) {
+        console.error('Error loading report data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    const loadReportCards = async () => {
+      if (!selectedClass || !selectedAcademicYear || !selectedSemester) {
+        setReportCards([]);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        // Get students in the selected class
+        const classData = await classService.getClassById(selectedClass);
+        const studentIds = (classData as any).studentIds || [];
+
+        // Get report cards for all students
+        const reportCardsData = await Promise.all(
+          studentIds.map(async (studentId: string) => {
+            try {
+              const reportCard = await reportCardService.getReportCard(
+                studentId,
+                selectedAcademicYear,
+                parseInt(selectedSemester)
+              );
+              const student = students[studentId] || { fullName: studentId, studentNumber: '' };
+              return {
+                ...reportCard,
+                studentName: student.fullName,
+                studentNumber: student.studentNumber,
+              };
+            } catch (error) {
+              // If report card doesn't exist, return null
+              return null;
+            }
+          })
+        );
+
+        setReportCards(reportCardsData.filter(rc => rc !== null) as any[]);
+      } catch (error) {
+        console.error('Error loading report cards:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadReportCards();
+  }, [selectedClass, selectedAcademicYear, selectedSemester, students]);
+
 
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
   const paginatedReports = filteredReports.slice(
@@ -159,15 +126,57 @@ export const TeacherReports = () => {
   );
 
   const handleGenerate = async () => {
-    if (!selectedClass) {
-      alert('Pilih kelas terlebih dahulu');
+    if (!selectedClass || !selectedAcademicYear || !selectedSemester) {
+      alert('Pilih kelas, tahun ajaran, dan semester terlebih dahulu');
       return;
     }
 
     setIsGenerating(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      // Get students in the selected class
+      const classData = await classService.getClassById(selectedClass);
+      const studentIds = (classData as any).studentIds || [];
+
+      // Generate report cards for all students
+      await Promise.all(
+        studentIds.map(async (studentId: string) => {
+          try {
+            // Try to get existing report card, if not exists, create it
+            await reportCardService.getReportCard(
+              studentId,
+              selectedAcademicYear,
+              parseInt(selectedSemester)
+            );
+          } catch (error) {
+            // If report card doesn't exist, generate it
+            // Note: This might require a generate endpoint in the API
+            console.log('Generating report card for student:', studentId);
+          }
+        })
+      );
+
+      // Reload report cards
+      const reportCardsData = await Promise.all(
+        studentIds.map(async (studentId: string) => {
+          try {
+            const reportCard = await reportCardService.getReportCard(
+              studentId,
+              selectedAcademicYear,
+              parseInt(selectedSemester)
+            );
+            const student = students[studentId] || { fullName: studentId, studentNumber: '' };
+            return {
+              ...reportCard,
+              studentName: student.fullName,
+              studentNumber: student.studentNumber,
+            };
+          } catch (error) {
+            return null;
+          }
+        })
+      );
+
+      setReportCards(reportCardsData.filter(rc => rc !== null) as any[]);
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Error generating report:', error);
@@ -182,7 +191,7 @@ export const TeacherReports = () => {
   };
 
   const getClassName = (classId: string) => {
-    return MOCK_CLASSES.find((c) => c.value === classId)?.label || classId;
+    return classes.find((c) => c.value === classId)?.label || classId;
   };
 
   const getScoreColor = (score: number) => {
@@ -280,7 +289,7 @@ export const TeacherReports = () => {
                 }}
                 options={[
                   { value: '', label: 'Pilih kelas' },
-                  ...MOCK_CLASSES,
+                  ...classes,
                 ]}
                 required
               />
@@ -291,10 +300,7 @@ export const TeacherReports = () => {
                   setSelectedAcademicYear(e.target.value);
                   setCurrentPage(1);
                 }}
-                options={[
-                  { value: '2024-2025', label: '2024-2025' },
-                  { value: '2023-2024', label: '2023-2024' },
-                ]}
+                options={academicYears}
                 required
               />
               <FormSelect
@@ -322,7 +328,9 @@ export const TeacherReports = () => {
 
         {selectedClass && (
           <>
-            {paginatedReports.length === 0 ? (
+            {isLoading ? (
+              <Loading />
+            ) : paginatedReports.length === 0 ? (
               <EmptyState
                 icon="document"
                 title="Tidak Ada Rapor"

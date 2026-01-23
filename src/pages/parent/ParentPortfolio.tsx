@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Badge, Icon, EmptyState, Pagination, Modal } from '../../components/common';
+import { Badge, Icon, EmptyState, Pagination, Modal, Loading, FormSelect, Button } from '../../components/common';
 import { formatDate, formatDateTime } from '../../utils';
 import { useAuth } from '../../contexts/AuthContext';
+import { assignmentService, quizService, gradeService, subjectService, userService } from '../../services';
 import './ParentPortfolio.css';
 
 interface PortfolioItem {
@@ -13,65 +14,174 @@ interface PortfolioItem {
   subject: string;
   subjectId: string;
   teacher: string;
-  submittedAt: Date;
-  gradedAt?: Date;
+  submittedAt: Date | string;
+  gradedAt?: Date | string;
   score?: number;
   maxScore: number;
   grade?: string;
   feedback?: string;
   attachments?: string[];
   description?: string;
-  semester: number;
-  academicYear: string;
+  semester?: number;
+  academicYear?: string;
 }
 
-const MOCK_SUBJECTS = [
-  { value: 'all', label: 'Semua Mata Pelajaran' },
-  { value: 'subject1', label: 'Matematika' },
-  { value: 'subject2', label: 'Fisika' },
-  { value: 'subject3', label: 'Kimia' },
-  { value: 'subject4', label: 'Biologi' },
-  { value: 'subject5', label: 'Bahasa Indonesia' },
-];
+const TYPE_LABELS = {
+  assignment: 'Tugas',
+  project: 'Proyek',
+  quiz: 'Kuis',
+};
 
-const mockPortfolioItems: PortfolioItem[] = [
-  {
-    id: '1',
-    type: 'assignment',
-    title: 'Tugas Matematika - Aljabar',
-    subject: 'Matematika',
-    subjectId: 'subject1',
-    teacher: 'Ibu Siti',
-    submittedAt: new Date('2024-01-18T14:30:00'),
-    gradedAt: new Date('2024-01-20T10:00:00'),
-    score: 85,
-    maxScore: 100,
-    grade: 'B+',
-    feedback: 'Kerja bagus! Perlu lebih teliti dalam perhitungan.',
-    attachments: ['tugas_aljabar.pdf'],
-    description: 'Menyelesaikan soal aljabar linear dan kuadrat',
-    semester: 1,
-    academicYear: '2024-2025',
-  },
-  {
-    id: '2',
-    type: 'project',
-    title: 'Proyek Fisika - Rangkaian Listrik',
-    subject: 'Fisika',
-    subjectId: 'subject2',
-    teacher: 'Bapak Budi',
-    submittedAt: new Date('2024-01-15T16:00:00'),
-    gradedAt: new Date('2024-01-22T09:00:00'),
-    score: 92,
-    maxScore: 100,
-    grade: 'A',
-    feedback: 'Sangat baik! Presentasi dan laporan sangat detail.',
-    attachments: ['proyek_fisika.pdf', 'presentasi_fisika.pptx'],
-    description: 'Membuat rangkaian listrik sederhana dan laporan',
-    semester: 1,
-    academicYear: '2024-2025',
-  },
-];
+const TYPE_ICONS = {
+  assignment: 'assignment',
+  project: 'folder',
+  quiz: 'quiz',
+};
+
+const getScoreColor = (score: number, maxScore: number) => {
+  const percentage = (score / maxScore) * 100;
+  if (percentage >= 85) return 'success';
+  if (percentage >= 75) return 'primary';
+  if (percentage >= 65) return 'warning';
+  return 'danger';
+};
+
+export const ParentPortfolio = () => {
+  const { user } = useAuth();
+  const [portfolioItems, setPortfolioItems] = useState<PortfolioItem[]>([]);
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedSubject, setSelectedSubject] = useState<string>('all');
+  const [selectedType, setSelectedType] = useState<string>('all');
+  const [selectedSemester, setSelectedSemester] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const itemsPerPage = 9;
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const parentData = user?.id ? await userService.getUserById(user.id) : null;
+        const studentIds = (parentData as any)?.studentIds || [];
+        
+        if (studentIds.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        const firstChild = await userService.getUserById(studentIds[0]);
+        const classId = (firstChild as any)?.classId;
+
+        const [assignmentsData, quizzesData, gradesData, subjectsData, teachersData] = await Promise.all([
+          assignmentService.getAssignments(classId ? { classId } : {}),
+          quizService.getQuizzes(classId ? { classId } : {}),
+          Promise.all(studentIds.map((studentId: string) => gradeService.getGrades({ studentId }))).then(results => results.flat()),
+          subjectService.getSubjects(),
+          userService.getUsers('teacher'),
+        ]);
+
+        // Combine assignments, quizzes, and grades into portfolio items
+        const items: PortfolioItem[] = [];
+        
+        // Add assignments with grades
+        assignmentsData.forEach(assignment => {
+          const grade = gradesData.find(g => g.assignmentId === assignment.id);
+          if (grade || assignment.status === 'submitted') {
+            items.push({
+              id: assignment.id,
+              type: 'assignment',
+              title: assignment.title,
+              subject: assignment.subjectId,
+              subjectId: assignment.subjectId,
+              teacher: assignment.teacherId,
+              submittedAt: assignment.submittedAt || assignment.createdAt || Date.now(),
+              gradedAt: grade?.createdAt,
+              score: grade?.score,
+              maxScore: grade?.maxScore || assignment.maxScore || 100,
+              grade: grade?.grade,
+              feedback: grade?.feedback,
+              attachments: assignment.attachments,
+              description: assignment.description,
+            });
+          }
+        });
+
+        // Add quizzes with grades
+        quizzesData.forEach(quiz => {
+          const grade = gradesData.find(g => g.quizId === quiz.id);
+          if (grade || quiz.score !== null) {
+            items.push({
+              id: quiz.id,
+              type: 'quiz',
+              title: quiz.title,
+              subject: quiz.subjectId,
+              subjectId: quiz.subjectId,
+              teacher: quiz.teacherId,
+              submittedAt: quiz.submittedAt || quiz.createdAt || Date.now(),
+              gradedAt: grade?.createdAt || quiz.gradedAt,
+              score: grade?.score || quiz.score,
+              maxScore: grade?.maxScore || quiz.maxScore || 100,
+              grade: grade?.grade,
+              feedback: grade?.feedback,
+            });
+          }
+        });
+
+        setPortfolioItems(items);
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
+        const teacherMap: Record<string, string> = {};
+        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        setTeachers(teacherMap);
+      } catch (error) {
+        console.error('Error loading portfolio:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
+  const uniqueSubjects = Array.from(new Set(portfolioItems.map(item => item.subjectId).filter(Boolean)));
+  const subjectOptions = [
+    { value: 'all', label: 'Semua Mata Pelajaran' },
+    ...uniqueSubjects.map((subjectId) => ({ value: subjectId, label: subjects[subjectId] || subjectId })),
+  ];
+
+  const filteredItems = portfolioItems.filter((item) => {
+    const matchesSubject = selectedSubject === 'all' || item.subjectId === selectedSubject;
+    const matchesType = selectedType === 'all' || item.type === selectedType;
+    const matchesSemester = selectedSemester === 'all' || item.semester?.toString() === selectedSemester;
+    return matchesSubject && matchesType && matchesSemester;
+  });
+
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const paginatedItems = filteredItems.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalItems = portfolioItems.length;
+  const assignmentsCount = portfolioItems.filter((item) => item.type === 'assignment').length;
+  const projectsCount = portfolioItems.filter((item) => item.type === 'project').length;
+  const quizzesCount = portfolioItems.filter((item) => item.type === 'quiz').length;
+  const averageScore =
+    portfolioItems.filter((item) => item.score !== undefined).length > 0
+      ? portfolioItems.reduce((sum, item) => sum + (item.score || 0), 0) /
+        portfolioItems.filter((item) => item.score !== undefined).length
+      : 0;
+
+  const handleViewDetail = (item: PortfolioItem) => {
+    setSelectedItem(item);
+    setShowDetailModal(true);
+  };
 
 const TYPE_LABELS = {
   assignment: 'Tugas',
@@ -106,10 +216,10 @@ export const ParentPortfolio = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const itemsPerPage = 9;
 
-  const filteredItems = mockPortfolioItems.filter((item) => {
+  const filteredItems = portfolioItems.filter((item) => {
     const matchesSubject = selectedSubject === 'all' || item.subjectId === selectedSubject;
     const matchesType = selectedType === 'all' || item.type === selectedType;
-    const matchesSemester = item.semester.toString() === selectedSemester;
+    const matchesSemester = selectedSemester === 'all' || item.semester?.toString() === selectedSemester;
     return matchesSubject && matchesType && matchesSemester;
   });
 
@@ -119,13 +229,15 @@ export const ParentPortfolio = () => {
     currentPage * itemsPerPage
   );
 
-  const totalItems = mockPortfolioItems.length;
-  const assignmentsCount = mockPortfolioItems.filter((item) => item.type === 'assignment').length;
-  const projectsCount = mockPortfolioItems.filter((item) => item.type === 'project').length;
-  const quizzesCount = mockPortfolioItems.filter((item) => item.type === 'quiz').length;
+  const totalItems = portfolioItems.length;
+  const assignmentsCount = portfolioItems.filter((item) => item.type === 'assignment').length;
+  const projectsCount = portfolioItems.filter((item) => item.type === 'project').length;
+  const quizzesCount = portfolioItems.filter((item) => item.type === 'quiz').length;
   const averageScore =
-    mockPortfolioItems.reduce((sum, item) => sum + (item.score || 0), 0) /
-    mockPortfolioItems.filter((item) => item.score !== undefined).length;
+    portfolioItems.filter((item) => item.score !== undefined).length > 0
+      ? portfolioItems.reduce((sum, item) => sum + (item.score || 0), 0) /
+        portfolioItems.filter((item) => item.score !== undefined).length
+      : 0;
 
   const handleViewDetail = (item: PortfolioItem) => {
     setSelectedItem(item);
@@ -185,7 +297,7 @@ export const ParentPortfolio = () => {
               }}
               className="filter-select"
             >
-              {MOCK_SUBJECTS.map((subj) => (
+              {subjectOptions.map((subj) => (
                 <option key={subj.value} value={subj.value}>
                   {subj.label}
                 </option>
@@ -216,18 +328,21 @@ export const ParentPortfolio = () => {
               }}
               className="filter-select"
             >
+              <option value="all">Semua Semester</option>
               <option value="1">Semester 1</option>
               <option value="2">Semester 2</option>
             </select>
           </div>
         </div>
 
-        {paginatedItems.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : paginatedItems.length === 0 ? (
           <EmptyState
             icon="folder"
             title="Tidak Ada Portofolio"
             message={
-              selectedSubject !== 'all' || selectedType !== 'all'
+              selectedSubject !== 'all' || selectedType !== 'all' || selectedSemester !== 'all'
                 ? 'Tidak ada portofolio yang sesuai dengan filter yang dipilih.'
                 : 'Belum ada karya yang ditambahkan ke portofolio anak Anda.'
             }
@@ -259,11 +374,11 @@ export const ParentPortfolio = () => {
                   <div className="portfolio-item-meta">
                     <div className="meta-item">
                       <Icon name="book" size={14} style={{ marginRight: '0.25rem' }} />
-                      {item.subject}
+                      {subjects[item.subjectId] || item.subject}
                     </div>
                     <div className="meta-item">
                       <Icon name="user" size={14} style={{ marginRight: '0.25rem' }} />
-                      {item.teacher}
+                      {teachers[item.teacher] || item.teacher}
                     </div>
                   </div>
                   {item.description && (
@@ -272,7 +387,7 @@ export const ParentPortfolio = () => {
                   <div className="portfolio-item-footer">
                     <div className="footer-date">
                       <Icon name="calendar" size={14} style={{ marginRight: '0.25rem' }} />
-                      {formatDate(item.submittedAt)}
+                      {formatDate(new Date(item.submittedAt))}
                     </div>
                     {item.grade && (
                       <Badge variant="primary" size="small">
@@ -307,7 +422,7 @@ export const ParentPortfolio = () => {
               <div className="detail-header-info">
                 <div className="detail-badges">
                   <Badge variant="info">{TYPE_LABELS[selectedItem.type]}</Badge>
-                  <Badge variant="secondary">{selectedItem.subject}</Badge>
+                  <Badge variant="secondary">{subjects[selectedItem.subjectId] || selectedItem.subject}</Badge>
                   {selectedItem.grade && (
                     <Badge variant="primary">{selectedItem.grade}</Badge>
                   )}
@@ -328,25 +443,29 @@ export const ParentPortfolio = () => {
 
               <div className="detail-info-grid">
                 <div className="info-item">
-                  <strong>Mata Pelajaran:</strong> {selectedItem.subject}
+                  <strong>Mata Pelajaran:</strong> {subjects[selectedItem.subjectId] || selectedItem.subject}
                 </div>
                 <div className="info-item">
-                  <strong>Guru:</strong> {selectedItem.teacher}
+                  <strong>Guru:</strong> {teachers[selectedItem.teacher] || selectedItem.teacher}
                 </div>
                 <div className="info-item">
-                  <strong>Dikirim:</strong> {formatDateTime(selectedItem.submittedAt)}
+                  <strong>Dikirim:</strong> {formatDateTime(new Date(selectedItem.submittedAt))}
                 </div>
                 {selectedItem.gradedAt && (
                   <div className="info-item">
-                    <strong>Dinilai:</strong> {formatDateTime(selectedItem.gradedAt)}
+                    <strong>Dinilai:</strong> {formatDateTime(new Date(selectedItem.gradedAt))}
                   </div>
                 )}
-                <div className="info-item">
-                  <strong>Semester:</strong> Semester {selectedItem.semester}
-                </div>
-                <div className="info-item">
-                  <strong>Tahun Ajaran:</strong> {selectedItem.academicYear}
-                </div>
+                {selectedItem.semester && (
+                  <div className="info-item">
+                    <strong>Semester:</strong> Semester {selectedItem.semester}
+                  </div>
+                )}
+                {selectedItem.academicYear && (
+                  <div className="info-item">
+                    <strong>Tahun Ajaran:</strong> {selectedItem.academicYear}
+                  </div>
+                )}
               </div>
 
               {selectedItem.description && (

@@ -2,37 +2,50 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon, Table } from '../../components/common';
+import { Button, Badge, Icon, Table, Loading, EmptyState } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
+import { classService, subjectService, userService } from '../../services';
 import './AdminClasses.css';
-
-// Mock class data
-const mockClassData = {
-  id: '1',
-  name: 'X IPA 1',
-  grade: 10,
-  schoolLevel: 'sma',
-  homeroomTeacher: 'Ibu Siti',
-  homeroomTeacherId: 'teacher1',
-  studentCount: 30,
-  maxStudents: 36,
-  academicYear: '2024-2025',
-  semester: 1,
-  subjects: [
-    { id: '1', name: 'Matematika', teacher: 'Ibu Siti' },
-    { id: '2', name: 'Fisika', teacher: 'Bapak Budi' },
-    { id: '3', name: 'Kimia', teacher: 'Ibu Rina' },
-  ],
-};
 
 export const AdminClassesDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [classData, setClassData] = useState(mockClassData);
+  const [classData, setClassData] = useState<any>(null);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch class data from API
-    // For now, using mock data
+    const loadData = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const [classInfo, subjectsData, teachersData] = await Promise.all([
+          classService.getClassById(id),
+          subjectService.getSubjects(),
+          userService.getUsers('teacher'),
+        ]);
+
+        setClassData(classInfo);
+
+        // Get subjects for this class
+        const subjectIds = (classInfo as any).subjectIds || [];
+        const classSubjects = subjectsData.filter(s => subjectIds.includes(s.id));
+        setSubjects(classSubjects);
+
+        // Create teacher map
+        const teacherMap: Record<string, string> = {};
+        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        setTeachers(teacherMap);
+      } catch (error) {
+        console.error('Error loading class detail:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [id]);
 
   const subjectColumns = [
@@ -43,8 +56,29 @@ export const AdminClassesDetail = () => {
     {
       key: 'teacher',
       header: 'Guru',
+      render: (item: any) => teachers[item.teacherId] || '-',
     },
   ];
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!classData) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="class" title="Kelas Tidak Ditemukan" message="Kelas yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
+
+  const studentIds = (classData as any).studentIds || [];
+  const studentCount = studentIds.length;
+  const maxStudents = 36; // Default
 
   return (
     <DashboardLayout>
@@ -81,7 +115,7 @@ export const AdminClassesDetail = () => {
             </div>
             <div className="info-row">
               <span className="info-label">Wali Kelas:</span>
-              <span className="info-value">{classData.homeroomTeacher}</span>
+              <span className="info-value">{teachers[classData.homeroomTeacherId] || '-'}</span>
             </div>
             <div className="info-row">
               <span className="info-label">Tahun Ajaran:</span>
@@ -94,12 +128,12 @@ export const AdminClassesDetail = () => {
             <div className="info-row">
               <span className="info-label">Jumlah Siswa:</span>
               <span className="info-value">
-                {classData.studentCount}/{classData.maxStudents}
+                {studentCount}/{maxStudents}
                 <Badge
-                  variant={classData.studentCount >= classData.maxStudents ? 'danger' : 'primary'}
+                  variant={studentCount >= maxStudents ? 'danger' : 'primary'}
                   style={{ marginLeft: '0.5rem' }}
                 >
-                  {Math.round((classData.studentCount / classData.maxStudents) * 100)}%
+                  {Math.round((studentCount / maxStudents) * 100)}%
                 </Badge>
               </span>
             </div>
@@ -107,12 +141,10 @@ export const AdminClassesDetail = () => {
         </Card>
 
         <Card title="Mata Pelajaran" variant="elevated">
-          {classData.subjects.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-              Belum ada mata pelajaran yang ditambahkan
-            </div>
+          {subjects.length === 0 ? (
+            <EmptyState icon="book" title="Tidak Ada Mata Pelajaran" message="Belum ada mata pelajaran yang ditambahkan untuk kelas ini." />
           ) : (
-            <Table columns={subjectColumns} data={classData.subjects} />
+            <Table columns={subjectColumns} data={subjects} />
           )}
         </Card>
       </div>

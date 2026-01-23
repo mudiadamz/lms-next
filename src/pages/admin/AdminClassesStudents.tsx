@@ -2,45 +2,42 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Icon, Pagination } from '../../components/common';
+import { Button, Table, Badge, Icon, Pagination, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
+import { classService, userService } from '../../services';
 import './AdminClasses.css';
-
-// Mock students data
-const mockStudents = [
-  {
-    id: '1',
-    studentNumber: '2024001',
-    fullName: 'Budi Santoso',
-    gender: 'Laki-laki',
-    phoneNumber: '081234567890',
-  },
-  {
-    id: '2',
-    studentNumber: '2024002',
-    fullName: 'Siti Nurhaliza',
-    gender: 'Perempuan',
-    phoneNumber: '081234567891',
-  },
-  {
-    id: '3',
-    studentNumber: '2024003',
-    fullName: 'Andi Pratama',
-    gender: 'Laki-laki',
-    phoneNumber: '081234567892',
-  },
-];
 
 export const AdminClassesStudents = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [currentPage, setCurrentPage] = useState(1);
-  const [students, setStudents] = useState(mockStudents);
+  const [students, setStudents] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const itemsPerPage = 10;
 
   useEffect(() => {
-    // TODO: Fetch students data from API based on classId
-    // For now, using mock data
+    const loadData = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const classInfo = await classService.getClassById(id);
+        const studentIds = (classInfo as any).studentIds || [];
+        
+        if (studentIds.length > 0) {
+          const studentsData = await Promise.all(
+            studentIds.map((studentId: string) => userService.getUserById(studentId))
+          );
+          setStudents(studentsData);
+        }
+      } catch (error) {
+        console.error('Error loading students:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [id]);
 
   const filteredStudents = students;
@@ -55,11 +52,12 @@ export const AdminClassesStudents = () => {
     {
       key: 'studentNumber',
       header: 'NIS',
+      render: (item: any) => (item as any).studentNumber || '-',
     },
     {
       key: 'fullName',
       header: 'Nama Lengkap',
-      render: (item: typeof mockStudents[0]) => (
+      render: (item: any) => (
         <div>
           <strong>{item.fullName}</strong>
         </div>
@@ -68,24 +66,33 @@ export const AdminClassesStudents = () => {
     {
       key: 'gender',
       header: 'Jenis Kelamin',
-      render: (item: typeof mockStudents[0]) => (
-        <Badge variant="secondary">{item.gender}</Badge>
+      render: (item: any) => (
+        <Badge variant="secondary">{(item as any).gender || '-'}</Badge>
       ),
     },
     {
       key: 'phoneNumber',
       header: 'No. HP',
+      render: (item: any) => (item as any).phoneNumber || '-',
     },
     {
       key: 'actions',
       header: 'Aksi',
-      render: (item: typeof mockStudents[0]) => (
+      render: (item: any) => (
         <Button variant="outline" size="small" onClick={() => console.log('View student', item.id)}>
           Detail
         </Button>
       ),
     },
   ];
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -95,7 +102,7 @@ export const AdminClassesStudents = () => {
         </div>
 
         <Card
-          title={`Daftar Siswa (${filteredStudents.length})`}
+          title={`Daftar Siswa (${students.length})`}
           variant="elevated"
           headerAction={
             <Button size="small">
@@ -105,9 +112,7 @@ export const AdminClassesStudents = () => {
           }
         >
           {paginatedStudents.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-              Tidak ada siswa yang ditemukan
-            </div>
+            <EmptyState icon="users" title="Tidak Ada Siswa" message="Belum ada siswa yang terdaftar di kelas ini." />
           ) : (
             <>
               <Table columns={columns} data={paginatedStudents} />

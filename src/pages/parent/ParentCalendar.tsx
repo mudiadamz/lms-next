@@ -1,66 +1,25 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon, Modal, EmptyState } from '../../components/common';
+import { Button, Badge, Icon, Modal, EmptyState, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
+import { assignmentService, quizService, announcementService, scheduleService, userService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './ParentCalendar.css';
 
 interface CalendarEvent {
   id: string;
   type: 'assignment' | 'quiz' | 'announcement' | 'exam' | 'schedule';
   title: string;
-  date: Date;
-  endDate?: Date;
+  date: Date | string;
+  endDate?: Date | string;
   subject?: string;
   description?: string;
   color: string;
   route?: string;
 }
-
-// Contoh data event kalender (sama dengan student, tapi route PARENT_*)
-const mockEvents: CalendarEvent[] = [
-  {
-    id: '1',
-    type: 'assignment',
-    title: 'Tugas Matematika - Aljabar',
-    date: new Date('2025-01-15T23:59:59'),
-    subject: 'Matematika',
-    description: 'Deadline tugas aljabar',
-    color: '#ff3b30',
-    route: ROUTES.PARENT_ASSIGNMENTS,
-  },
-  {
-    id: '2',
-    type: 'quiz',
-    title: 'Kuis Matematika - Bab 1',
-    date: new Date('2025-01-10T08:00:00'),
-    endDate: new Date('2025-01-17T23:59:59'),
-    subject: 'Matematika',
-    description: 'Kuis online tersedia sampai 17 Januari 2025',
-    color: '#007aff',
-    route: ROUTES.PARENT_QUIZZES,
-  },
-  {
-    id: '3',
-    type: 'announcement',
-    title: 'Pengumuman Ujian Tengah Semester',
-    date: new Date('2025-01-05'),
-    description: 'UTS akan dilaksanakan tanggal 20-25 Februari 2025',
-    color: '#ff9500',
-  },
-  {
-    id: '4',
-    type: 'schedule',
-    title: 'Jadwal Pelajaran - Senin',
-    date: new Date('2025-01-13T07:30:00'),
-    subject: 'Jadwal',
-    description: 'Matematika, Bahasa Indonesia, IPA, IPS',
-    color: '#5856d6',
-    route: ROUTES.PARENT_SCHEDULE,
-  },
-];
 
 const TYPE_LABELS = {
   assignment: 'Tugas',
@@ -80,20 +39,121 @@ const TYPE_ICONS = {
 
 export const ParentCalendar = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showEventModal, setShowEventModal] = useState(false);
   const [filterType, setFilterType] = useState<string>('all');
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
-  const year = currentDate.getFullYear();
-  const month = currentDate.getMonth();
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setIsLoading(true);
+        const parentData = user?.id ? await userService.getUserById(user.id) : null;
+        const studentIds = (parentData as any)?.studentIds || [];
+        
+        if (studentIds.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        const firstChild = await userService.getUserById(studentIds[0]);
+        const classId = (firstChild as any)?.classId;
+
+        const [assignmentsData, quizzesData, announcementsData, schedulesData] = await Promise.all([
+          assignmentService.getAssignments(classId ? { classId } : {}),
+          quizService.getQuizzes(classId ? { classId } : {}),
+          announcementService.getAnnouncements({ targetAudience: 'parent' }),
+          scheduleService.getSchedules(classId ? { classId } : {}),
+        ]);
+
+        const calendarEvents: CalendarEvent[] = [];
+
+        // Add assignments
+        assignmentsData.forEach(assignment => {
+          calendarEvents.push({
+            id: `assignment-${assignment.id}`,
+            type: 'assignment',
+            title: assignment.title,
+            date: assignment.dueDate,
+            subject: assignment.subjectId,
+            description: assignment.description,
+            color: '#ff3b30',
+            route: ROUTES.PARENT_ASSIGNMENTS,
+          });
+        });
+
+        // Add quizzes
+        quizzesData.forEach(quiz => {
+          calendarEvents.push({
+            id: `quiz-${quiz.id}`,
+            type: 'quiz',
+            title: quiz.title,
+            date: quiz.startDate || quiz.startTime || Date.now(),
+            endDate: quiz.endDate || quiz.endTime,
+            subject: quiz.subjectId,
+            description: quiz.description,
+            color: '#007aff',
+            route: ROUTES.PARENT_QUIZZES,
+          });
+        });
+
+        // Add announcements
+        announcementsData.forEach(announcement => {
+          calendarEvents.push({
+            id: `announcement-${announcement.id}`,
+            type: 'announcement',
+            title: announcement.title,
+            date: announcement.createdAt,
+            endDate: announcement.endDate,
+            description: announcement.content,
+            color: '#ff9500',
+          });
+        });
+
+        // Add schedules
+        schedulesData.forEach(schedule => {
+          const today = new Date();
+          const scheduleDate = new Date(today.getFullYear(), today.getMonth(), schedule.dayOfWeek === 0 ? 7 : schedule.dayOfWeek);
+          calendarEvents.push({
+            id: `schedule-${schedule.id}`,
+            type: 'schedule',
+            title: `Jadwal - ${schedule.subjectId}`,
+            date: scheduleDate,
+            subject: schedule.subjectId,
+            description: `${schedule.startTime} - ${schedule.endTime}`,
+            color: '#5856d6',
+            route: ROUTES.PARENT_SCHEDULE,
+          });
+        });
+
+        setEvents(calendarEvents);
+      } catch (error) {
+        console.error('Error loading calendar events:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadEvents();
+    }
+  }, [user?.id, currentMonth, currentYear]);
+
+
+  const year = currentYear;
+  const month = currentMonth;
 
   const firstDayOfMonth = new Date(year, month, 1).getDay();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const daysInPrevMonth = new Date(year, month, 0).getDate();
 
-  const filteredEvents = mockEvents.filter((event) => {
+  const filteredEvents = events.filter((event) => {
     if (filterType !== 'all' && event.type !== filterType) return false;
     
     const eventDate = new Date(event.date);
@@ -124,7 +184,21 @@ export const ParentCalendar = () => {
   });
 
   const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate(new Date(year, month + (direction === 'next' ? 1 : -1), 1));
+    if (direction === 'next') {
+      if (currentMonth === 11) {
+        setCurrentMonth(0);
+        setCurrentYear(currentYear + 1);
+      } else {
+        setCurrentMonth(currentMonth + 1);
+      }
+    } else {
+      if (currentMonth === 0) {
+        setCurrentMonth(11);
+        setCurrentYear(currentYear - 1);
+      } else {
+        setCurrentMonth(currentMonth - 1);
+      }
+    }
   };
 
   const handleDateClick = (date: Date) => {
@@ -198,7 +272,11 @@ export const ParentCalendar = () => {
             <Button variant="outline" onClick={() => navigateMonth('next')}>
               <Icon name="chevronRight" size={20} />
             </Button>
-            <Button variant="outline" onClick={() => setCurrentDate(new Date())}>
+            <Button variant="outline" onClick={() => {
+              const today = new Date();
+              setCurrentMonth(today.getMonth());
+              setCurrentYear(today.getFullYear());
+            }}>
               Hari Ini
             </Button>
           </div>
@@ -218,6 +296,8 @@ export const ParentCalendar = () => {
             ))}
           </select>
         </div>
+
+        {isLoading && <Loading />}
 
         <div className="calendar-content-wrapper">
           <Card variant="elevated" className="calendar-card">
@@ -343,8 +423,8 @@ export const ParentCalendar = () => {
                 <div className="info-row">
                   <Icon name="calendar" size={18} style={{ marginRight: '0.5rem' }} />
                   <div>
-                    <strong>Tanggal:</strong> {formatDate(selectedEvent.date)}
-                    {selectedEvent.endDate && ` - ${formatDate(selectedEvent.endDate)}`}
+                    <strong>Tanggal:</strong> {formatDate(new Date(selectedEvent.date))}
+                    {selectedEvent.endDate && ` - ${formatDate(new Date(selectedEvent.endDate))}`}
                   </div>
                 </div>
                 {selectedEvent.description && (

@@ -2,51 +2,70 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon, Table } from '../../components/common';
+import { Button, Badge, Icon, Table, Loading, EmptyState } from '../../components/common';
 import { ROUTES, SCHOOL_LEVELS } from '../../constants';
+import { classService, subjectService, userService } from '../../services';
 import './TeacherClasses.css';
-
-// Mock data untuk detail kelas
-const mockClassData = {
-  id: 'class1',
-  name: 'X IPA 1',
-  grade: 10,
-  schoolLevel: 'sma',
-  studentCount: 30,
-  maxStudents: 36,
-  homeroomTeacher: 'Ibu Siti',
-  subjects: [
-    { id: 'subj1', name: 'Matematika', teacher: 'Ibu Siti' },
-    { id: 'subj2', name: 'Fisika', teacher: 'Bapak Budi' },
-  ],
-  academicYear: '2024-2025',
-  semester: 1,
-  students: [
-    { id: '1', studentNumber: '2024001', fullName: 'Budi Santoso', gender: 'Laki-laki' },
-    { id: '2', studentNumber: '2024002', fullName: 'Siti Nurhaliza', gender: 'Perempuan' },
-    { id: '3', studentNumber: '2024003', fullName: 'Andi Pratama', gender: 'Laki-laki' },
-  ],
-};
 
 export const TeacherClassDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [classData, setClassData] = useState(mockClassData);
+  const [classData, setClassData] = useState<any>(null);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch class data from API based on id
-    // For now, using mock data
+    const loadData = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const [classInfo, subjectsData, teachersData] = await Promise.all([
+          classService.getClassById(id),
+          subjectService.getSubjects(),
+          userService.getUsers('teacher'),
+        ]);
+
+        setClassData(classInfo);
+        
+        // Get subjects for this class
+        const subjectIds = (classInfo as any).subjectIds || [];
+        const classSubjects = subjectsData.filter(s => subjectIds.includes(s.id));
+        setSubjects(classSubjects);
+
+        // Get students for this class
+        const studentIds = (classInfo as any).studentIds || [];
+        const studentsData = await Promise.all(
+          studentIds.map((studentId: string) => userService.getUserById(studentId))
+        );
+        setStudents(studentsData);
+
+        // Create teacher map
+        const teacherMap: Record<string, string> = {};
+        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        setTeachers(teacherMap);
+      } catch (error) {
+        console.error('Error loading class detail:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [id]);
 
   const studentColumns = [
     {
       key: 'studentNumber',
       header: 'NIS',
+      render: (item: any) => (item as any).studentNumber || '-',
     },
     {
       key: 'fullName',
       header: 'Nama Lengkap',
-      render: (item: typeof mockClassData.students[0]) => (
+      render: (item: any) => (
         <div>
           <strong>{item.fullName}</strong>
         </div>
@@ -55,11 +74,30 @@ export const TeacherClassDetail = () => {
     {
       key: 'gender',
       header: 'Jenis Kelamin',
-      render: (item: typeof mockClassData.students[0]) => (
-        <Badge variant="secondary">{item.gender}</Badge>
+      render: (item: any) => (
+        <Badge variant="secondary">{(item as any).gender || '-'}</Badge>
       ),
     },
   ];
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!classData) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="class" title="Kelas Tidak Ditemukan" message="Kelas yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
+
+  const studentCount = students.length;
+  const maxStudents = 36; // Default max students
 
   return (
     <DashboardLayout>
@@ -92,7 +130,7 @@ export const TeacherClassDetail = () => {
             </div>
             <div className="info-row">
               <span className="info-label">Wali Kelas:</span>
-              <span className="info-value">{classData.homeroomTeacher}</span>
+              <span className="info-value">{teachers[classData.homeroomTeacherId] || '-'}</span>
             </div>
             <div className="info-row">
               <span className="info-label">Tahun Ajaran:</span>
@@ -105,12 +143,12 @@ export const TeacherClassDetail = () => {
             <div className="info-row">
               <span className="info-label">Jumlah Siswa:</span>
               <span className="info-value">
-                {classData.studentCount}/{classData.maxStudents}
+                {studentCount}/{maxStudents}
                 <Badge
-                  variant={classData.studentCount >= classData.maxStudents ? 'danger' : 'primary'}
+                  variant={studentCount >= maxStudents ? 'danger' : 'primary'}
                   style={{ marginLeft: '0.5rem' }}
                 >
-                  {Math.round((classData.studentCount / classData.maxStudents) * 100)}%
+                  {Math.round((studentCount / maxStudents) * 100)}%
                 </Badge>
               </span>
             </div>
@@ -118,25 +156,33 @@ export const TeacherClassDetail = () => {
         </Card>
 
         <Card title="Mata Pelajaran yang Diajar" variant="elevated" style={{ marginTop: '1.5rem' }}>
-          <div className="subjects-list-detail">
-            {classData.subjects.map((subject) => (
-              <div key={subject.id} className="subject-item">
-                <div>
-                  <strong>{subject.name}</strong>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--ios-gray)', marginTop: '0.25rem' }}>
-                    Guru: {subject.teacher}
+          {subjects.length === 0 ? (
+            <EmptyState icon="book" title="Tidak Ada Mata Pelajaran" message="Belum ada mata pelajaran yang ditambahkan untuk kelas ini." />
+          ) : (
+            <div className="subjects-list-detail">
+              {subjects.map((subject) => (
+                <div key={subject.id} className="subject-item">
+                  <div>
+                    <strong>{subject.name}</strong>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--ios-gray)', marginTop: '0.25rem' }}>
+                      Guru: {teachers[subject.teacherId] || '-'}
+                    </div>
                   </div>
+                  <Button variant="outline" size="small">
+                    Lihat Materi
+                  </Button>
                 </div>
-                <Button variant="outline" size="small">
-                  Lihat Materi
-                </Button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         <Card title="Daftar Siswa" variant="elevated" style={{ marginTop: '1.5rem' }}>
-          <Table columns={studentColumns} data={classData.students} />
+          {students.length === 0 ? (
+            <EmptyState icon="users" title="Tidak Ada Siswa" message="Belum ada siswa yang terdaftar di kelas ini." />
+          ) : (
+            <Table columns={studentColumns} data={students} />
+          )}
         </Card>
       </div>
     </DashboardLayout>

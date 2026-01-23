@@ -34,8 +34,9 @@ export const StudentDashboard = () => {
         const studentData = user?.id ? await (await import('../../services')).userService.getUserById(user.id) : null;
         const classId = (studentData as any)?.classId;
 
-        const [assignmentsData, gradesData, announcementsData, schedulesData, attendanceData] = await Promise.all([
+        const [assignmentsData, quizzesData, gradesData, announcementsData, schedulesData, attendanceData] = await Promise.all([
           assignmentService.getAssignments(classId ? { classId } : {}),
+          quizService.getQuizzes(classId ? { classId } : {}),
           gradeService.getGrades(user?.id ? { studentId: user.id } : {}),
           announcementService.getAnnouncements({ targetAudience: 'student' }),
           scheduleService.getSchedules(classId ? { classId } : {}),
@@ -83,9 +84,17 @@ export const StudentDashboard = () => {
         const presentCount = attendanceData.filter(a => a.status === 'present').length;
         const attendanceRate = totalAttendance > 0 ? (presentCount / totalAttendance) * 100 : 0;
 
+        // Get upcoming quizzes
+        const upcomingQuizzes = quizzesData.filter(q => {
+          const startDate = new Date(q.startDate || q.startTime || 0);
+          const endDate = new Date(q.endDate || q.endTime || 0);
+          const now = new Date();
+          return startDate <= now && endDate >= now;
+        }).length;
+
         setStats({
           activeAssignments,
-          upcomingQuizzes: 0, // TODO: Get from quizService
+          upcomingQuizzes,
           averageGrade: Math.round(averageGrade),
           attendanceRate: Math.round(attendanceRate),
         });

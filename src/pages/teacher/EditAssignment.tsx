@@ -2,16 +2,21 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
+import { Button, Loading, EmptyState } from '../../components/common';
 import { FormInput, FormSelect, FormTextarea, FileUpload } from '../../components/common';
 import { ROUTES } from '../../constants';
+import { assignmentService, subjectService, classService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './EditAssignment.css';
 
 export const EditAssignment = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [subjects, setSubjects] = useState<Array<{ value: string; label: string }>>([]);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -23,20 +28,28 @@ export const EditAssignment = () => {
   const [files, setFiles] = useState<File[]>([]);
 
   useEffect(() => {
-    // TODO: Fetch assignment data
-    const loadAssignment = async () => {
+    const loadData = async () => {
+      if (!id) return;
+      
       setIsLoading(true);
       try {
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        const [assignmentData, subjectsData, classesData] = await Promise.all([
+          assignmentService.getAssignmentById(id),
+          subjectService.getSubjects(undefined, user?.id),
+          classService.getClasses(),
+        ]);
+
         setFormData({
-          title: 'Tugas Matematika - Aljabar',
-          description: 'Kerjakan soal-soal aljabar berikut dengan benar.',
-          subjectId: '1',
-          classId: '1',
-          dueDate: '2024-01-20T23:59',
-          maxScore: '100',
+          title: assignmentData.title,
+          description: assignmentData.description,
+          subjectId: assignmentData.subjectId,
+          classId: assignmentData.classId,
+          dueDate: new Date(assignmentData.dueDate).toISOString().slice(0, 16),
+          maxScore: assignmentData.maxScore.toString(),
         });
+
+        setSubjects(subjectsData.map(s => ({ value: s.id, label: s.name })));
+        setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
       } catch (error) {
         console.error('Error loading assignment:', error);
       } finally {
@@ -44,16 +57,24 @@ export const EditAssignment = () => {
       }
     };
 
-    loadAssignment();
-  }, [id]);
+    loadData();
+  }, [id, user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!id) return;
+    
     setIsSubmitting(true);
 
     try {
-      // TODO: Call assignmentService.updateAssignment
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await assignmentService.updateAssignment(id, {
+        title: formData.title,
+        description: formData.description,
+        subjectId: formData.subjectId,
+        classId: formData.classId,
+        dueDate: new Date(formData.dueDate),
+        maxScore: parseFloat(formData.maxScore),
+      });
       navigate(`${ROUTES.TEACHER_ASSIGNMENTS}/${id}`);
     } catch (error) {
       console.error('Error updating assignment:', error);
@@ -66,7 +87,7 @@ export const EditAssignment = () => {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div>Loading...</div>
+        <Loading />
       </DashboardLayout>
     );
   }
@@ -100,8 +121,7 @@ export const EditAssignment = () => {
                 onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
                 options={[
                   { value: '', label: 'Pilih mata pelajaran' },
-                  { value: '1', label: 'Matematika' },
-                  { value: '2', label: 'Bahasa Indonesia' },
+                  ...subjects,
                 ]}
                 required
               />
@@ -112,8 +132,7 @@ export const EditAssignment = () => {
                 onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                 options={[
                   { value: '', label: 'Pilih kelas' },
-                  { value: '1', label: 'X IPA 1' },
-                  { value: '2', label: 'X IPA 2' },
+                  ...classes,
                 ]}
                 required
               />

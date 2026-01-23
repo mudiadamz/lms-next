@@ -1,40 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Modal, FormInput, FormSelect, FormTextarea, ConfirmDialog } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormSelect, FormTextarea, ConfirmDialog, Loading, EmptyState } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
+import { subjectService, userService, classService } from '../../services';
 import './SubjectManagement.css';
-
-const mockSubjects = [
-  {
-    id: '1',
-    name: 'Matematika',
-    code: 'MAT',
-    description: 'Mata pelajaran matematika untuk semua tingkat',
-    schoolLevel: 'sma',
-    teacher: 'Ibu Siti',
-    classCount: 5,
-  },
-  {
-    id: '2',
-    name: 'Bahasa Indonesia',
-    code: 'BIN',
-    description: 'Mata pelajaran bahasa Indonesia',
-    schoolLevel: 'sma',
-    teacher: 'Bapak Budi',
-    classCount: 5,
-  },
-  {
-    id: '3',
-    name: 'IPA',
-    code: 'IPA',
-    description: 'Ilmu Pengetahuan Alam',
-    schoolLevel: 'smp',
-    teacher: 'Ibu Rina',
-    classCount: 3,
-  },
-];
 
 export const SubjectManagement = () => {
   const navigate = useNavigate();
@@ -42,8 +13,11 @@ export const SubjectManagement = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState<typeof mockSubjects[0] | null>(null);
-  const [subjects, setSubjects] = useState(mockSubjects);
+  const [selectedSubject, setSelectedSubject] = useState<any | null>(null);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [teachers, setTeachers] = useState<Array<{ value: string; label: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     code: '',
@@ -51,6 +25,42 @@ export const SubjectManagement = () => {
     schoolLevel: '',
     teacherId: '',
   });
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [subjectsData, teachersData, classesData] = await Promise.all([
+          subjectService.getSubjects(),
+          userService.getUsers('teacher'),
+          classService.getClasses(),
+        ]);
+
+        // Calculate classCount for each subject
+        const subjectsWithCounts = subjectsData.map(subject => {
+          const classCount = classesData.filter(c => {
+            const subjectIds = (c as any).subjectIds || [];
+            return subjectIds.includes(subject.id);
+          }).length;
+
+          const teacher = teachersData.find(t => t.id === subject.teacherId);
+          return {
+            ...subject,
+            teacher: teacher?.fullName || '-',
+            classCount,
+          };
+        });
+
+        setSubjects(subjectsWithCounts);
+        setTeachers(teachersData.map(t => ({ value: t.id, label: t.fullName })));
+      } catch (error) {
+        console.error('Error loading subjects:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const filteredSubjects = subjects.filter((subject) => {
     const matchesLevel = selectedLevel === 'all' || subject.schoolLevel === selectedLevel;
@@ -68,50 +78,67 @@ export const SubjectManagement = () => {
     setShowCreateModal(true);
   };
 
-  const handleEdit = (subject: typeof mockSubjects[0]) => {
+  const handleEdit = (subject: any) => {
     setSelectedSubject(subject);
     setFormData({
       name: subject.name,
       code: subject.code,
-      description: subject.description,
+      description: subject.description || '',
       schoolLevel: subject.schoolLevel,
-      teacherId: subject.teacher,
+      teacherId: subject.teacherId || '',
     });
     setShowEditModal(true);
   };
 
-  const handleDelete = (subject: typeof mockSubjects[0]) => {
+  const handleDelete = (subject: any) => {
     setSelectedSubject(subject);
     setShowDeleteDialog(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
       if (showEditModal && selectedSubject) {
-        // Update existing subject
-        setSubjects(subjects.map((s) => 
-          s.id === selectedSubject.id 
-            ? { ...s, ...formData, teacher: formData.teacherId === '1' ? 'Ibu Siti' : 'Bapak Budi' }
-            : s
-        ));
-      } else {
-        // Create new subject
-        const newSubject = {
-          id: Date.now().toString(),
+        await subjectService.updateSubject(selectedSubject.id, {
           name: formData.name,
           code: formData.code,
           description: formData.description,
           schoolLevel: formData.schoolLevel as 'sd' | 'smp' | 'sma',
-          teacher: formData.teacherId === '1' ? 'Ibu Siti' : 'Bapak Budi',
-          classCount: 0,
-        };
-        setSubjects([...subjects, newSubject]);
+          teacherId: formData.teacherId,
+        });
+      } else {
+        await subjectService.createSubject({
+          name: formData.name,
+          code: formData.code,
+          description: formData.description,
+          schoolLevel: formData.schoolLevel as 'sd' | 'smp' | 'sma',
+          teacherId: formData.teacherId,
+        });
       }
       
+      // Reload data
+      const [subjectsData, teachersData, classesData] = await Promise.all([
+        subjectService.getSubjects(),
+        userService.getUsers('teacher'),
+        classService.getClasses(),
+      ]);
+
+      const subjectsWithCounts = subjectsData.map(subject => {
+        const classCount = classesData.filter(c => {
+          const subjectIds = (c as any).subjectIds || [];
+          return subjectIds.includes(subject.id);
+        }).length;
+
+        const teacher = teachersData.find(t => t.id === subject.teacherId);
+        return {
+          ...subject,
+          teacher: teacher?.fullName || '-',
+          classCount,
+        };
+      });
+
+      setSubjects(subjectsWithCounts);
       setShowCreateModal(false);
       setShowEditModal(false);
       setFormData({
@@ -124,20 +151,24 @@ export const SubjectManagement = () => {
     } catch (error) {
       console.error('Error saving subject:', error);
       alert('Gagal menyimpan mata pelajaran');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const confirmDelete = async () => {
     if (!selectedSubject) return;
+    setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await subjectService.deleteSubject(selectedSubject.id);
       setSubjects(subjects.filter((s) => s.id !== selectedSubject.id));
       setShowDeleteDialog(false);
       setSelectedSubject(null);
     } catch (error) {
       console.error('Error deleting subject:', error);
       alert('Gagal menghapus mata pelajaran');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -145,7 +176,7 @@ export const SubjectManagement = () => {
     {
       key: 'name',
       header: 'Nama Mata Pelajaran',
-      render: (item: typeof mockSubjects[0]) => (
+      render: (item: any) => (
         <div>
           <strong>{item.name}</strong>
           <br />
@@ -156,7 +187,7 @@ export const SubjectManagement = () => {
     {
       key: 'schoolLevel',
       header: 'Tingkat',
-      render: (item: typeof mockSubjects[0]) => (
+      render: (item: any) => (
         <Badge variant="secondary">{SCHOOL_LEVELS[item.schoolLevel]}</Badge>
       ),
     },
@@ -167,12 +198,12 @@ export const SubjectManagement = () => {
     {
       key: 'classCount',
       header: 'Jumlah Kelas',
-      render: (item: typeof mockSubjects[0]) => `${item.classCount} kelas`,
+      render: (item: any) => `${item.classCount || 0} kelas`,
     },
     {
       key: 'actions',
       header: 'Aksi',
-      render: (item: typeof mockSubjects[0]) => (
+      render: (item: any) => (
         <Dropdown
           trigger={<Button variant="outline" size="small">Kelola</Button>}
           items={[
@@ -210,9 +241,21 @@ export const SubjectManagement = () => {
           </div>
         </div>
 
-        <Card title={`Daftar Mata Pelajaran (${filteredSubjects.length})`} variant="elevated">
-          <Table columns={columns} data={filteredSubjects} />
-        </Card>
+        {isLoading ? (
+          <Loading />
+        ) : filteredSubjects.length === 0 ? (
+          <EmptyState
+            icon="book"
+            title="Tidak Ada Mata Pelajaran"
+            message={selectedLevel !== 'all'
+              ? 'Tidak ada mata pelajaran yang sesuai dengan filter yang dipilih.'
+              : 'Belum ada mata pelajaran yang terdaftar.'}
+          />
+        ) : (
+          <Card title={`Daftar Mata Pelajaran (${filteredSubjects.length})`} variant="elevated">
+            <Table columns={columns} data={filteredSubjects} />
+          </Card>
+        )}
 
         {/* Create Modal */}
         <Modal
@@ -259,16 +302,15 @@ export const SubjectManagement = () => {
               onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih guru' },
-                { value: '1', label: 'Ibu Siti' },
-                { value: '2', label: 'Bapak Budi' },
+                ...teachers,
               ]}
               required
             />
             <div className="modal-footer">
-              <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>
+              <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)} disabled={isSubmitting}>
                 Batal
               </Button>
-              <Button type="submit">Simpan</Button>
+              <Button type="submit" isLoading={isSubmitting}>Simpan</Button>
             </div>
           </form>
         </Modal>
@@ -317,16 +359,15 @@ export const SubjectManagement = () => {
               onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih guru' },
-                { value: '1', label: 'Ibu Siti' },
-                { value: '2', label: 'Bapak Budi' },
+                ...teachers,
               ]}
               required
             />
             <div className="modal-footer">
-              <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>
+              <Button variant="outline" type="button" onClick={() => setShowEditModal(false)} disabled={isSubmitting}>
                 Batal
               </Button>
-              <Button type="submit">Simpan Perubahan</Button>
+              <Button type="submit" isLoading={isSubmitting}>Simpan Perubahan</Button>
             </div>
           </form>
         </Modal>

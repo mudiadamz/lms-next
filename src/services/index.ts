@@ -16,4 +16,7 @@ export * from './notificationService';
 export * from './announcementService';
 export * from './reportCardService';
 export * from './academicYearService';
+export * from './paymentService';
+export * from './curriculumService';
+export * from './auditLogService';
 

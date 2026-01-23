@@ -2,35 +2,61 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon, Table } from '../../components/common';
+import { Button, Badge, Icon, Table, Loading, EmptyState } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
+import { subjectService, classService, userService } from '../../services';
 import './SubjectManagement.css';
-
-// Mock subject data
-const mockSubjectData = {
-  id: '1',
-  name: 'Matematika',
-  code: 'MAT',
-  description: 'Mata pelajaran matematika untuk semua tingkat',
-  schoolLevel: 'sma',
-  teacher: 'Ibu Siti',
-  teacherId: 'teacher1',
-  classCount: 5,
-  classes: [
-    { id: '1', name: 'X IPA 1', studentCount: 30 },
-    { id: '2', name: 'X IPA 2', studentCount: 28 },
-    { id: '3', name: 'XI IPA 1', studentCount: 32 },
-  ],
-};
 
 export const AdminSubjectsDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [subjectData, setSubjectData] = useState(mockSubjectData);
+  const [subjectData, setSubjectData] = useState<any>(null);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [teacherName, setTeacherName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch subject data from API
-    // For now, using mock data
+    const loadData = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const [subjectInfo, classesData, teachersData] = await Promise.all([
+          subjectService.getSubjectById(id),
+          classService.getClasses(),
+          userService.getUsers('teacher'),
+        ]);
+
+        setSubjectData(subjectInfo);
+
+        // Get classes using this subject
+        const classIds = (subjectInfo as any).classIds || [];
+        const subjectClasses = classesData.filter(c => classIds.includes(c.id));
+        
+        // Get student counts for each class
+        const classesWithCounts = await Promise.all(
+          subjectClasses.map(async (c) => {
+            const studentIds = (c as any).studentIds || [];
+            return {
+              id: c.id,
+              name: c.name,
+              studentCount: studentIds.length,
+            };
+          })
+        );
+        setClasses(classesWithCounts);
+
+        // Get teacher name
+        const teacher = teachersData.find(t => t.id === subjectInfo.teacherId);
+        setTeacherName(teacher?.fullName || '-');
+      } catch (error) {
+        console.error('Error loading subject detail:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [id]);
 
   const classColumns = [
@@ -41,12 +67,12 @@ export const AdminSubjectsDetail = () => {
     {
       key: 'studentCount',
       header: 'Jumlah Siswa',
-      render: (item: typeof mockSubjectData.classes[0]) => `${item.studentCount} siswa`,
+      render: (item: any) => `${item.studentCount} siswa`,
     },
     {
       key: 'actions',
       header: 'Aksi',
-      render: (item: typeof mockSubjectData.classes[0]) => (
+      render: (item: any) => (
         <Button
           variant="outline"
           size="small"
@@ -57,6 +83,22 @@ export const AdminSubjectsDetail = () => {
       ),
     },
   ];
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!subjectData) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="book" title="Mata Pelajaran Tidak Ditemukan" message="Mata pelajaran yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -98,7 +140,7 @@ export const AdminSubjectsDetail = () => {
             </div>
             <div className="info-row">
               <span className="info-label">Guru Pengampu:</span>
-              <span className="info-value">{subjectData.teacher}</span>
+              <span className="info-value">{teacherName}</span>
             </div>
             <div className="info-row">
               <span className="info-label">Deskripsi:</span>
@@ -106,18 +148,16 @@ export const AdminSubjectsDetail = () => {
             </div>
             <div className="info-row">
               <span className="info-label">Jumlah Kelas:</span>
-              <span className="info-value">{subjectData.classCount} kelas</span>
+              <span className="info-value">{classes.length} kelas</span>
             </div>
           </div>
         </Card>
 
         <Card title="Kelas yang Menggunakan Mata Pelajaran Ini" variant="elevated">
-          {subjectData.classes.length === 0 ? (
-            <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
-              Belum ada kelas yang menggunakan mata pelajaran ini
-            </div>
+          {classes.length === 0 ? (
+            <EmptyState icon="class" title="Tidak Ada Kelas" message="Belum ada kelas yang menggunakan mata pelajaran ini." />
           ) : (
-            <Table columns={classColumns} data={subjectData.classes} />
+            <Table columns={classColumns} data={classes} />
           )}
         </Card>
       </div>

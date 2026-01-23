@@ -1,22 +1,52 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Badge, Table, EmptyState, Pagination } from '../../components/common';
+import { Badge, Table, EmptyState, Pagination, Loading } from '../../components/common';
 import { Attendance, AttendanceStatus } from '../../types';
 import { ATTENDANCE_STATUS_LABELS } from '../../constants';
 import { formatDate, getRelativeTime } from '../../utils';
+import { attendanceService, subjectService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './StudentAttendance.css';
 
-const MOCK_SUBJECTS: Record<string, string> = {
-  subject1: 'Matematika',
-  subject2: 'Fisika',
-  subject3: 'Kimia',
-  subject4: 'Biologi',
-  subject5: 'Bahasa Indonesia',
+const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, 'success' | 'danger' | 'warning' | 'info'> = {
+  present: 'success',
+  absent: 'danger',
+  late: 'warning',
+  excused: 'info',
 };
 
-// Contoh data absensi
-const mockAttendances: Attendance[] = [
+export const StudentAttendance = () => {
+  const { user } = useAuth();
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [attendancesData, subjectsData] = await Promise.all([
+          attendanceService.getAttendance(user?.id ? { studentId: user.id } : {}),
+          subjectService.getSubjects(),
+        ]);
+        setAttendances(attendancesData);
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
+      } catch (error) {
+        console.error('Error loading attendance:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
   {
     id: '1',
     studentId: 'student1',
@@ -79,33 +109,9 @@ const mockAttendances: Attendance[] = [
     recordedBy: 'teacher1',
     createdAt: new Date('2024-01-20'),
   },
-  {
-    id: '7',
-    studentId: 'student1',
-    classId: 'class1',
-    subjectId: 'subject5',
-    date: new Date('2024-01-21'),
-    status: 'excused',
-    notes: 'Izin keperluan keluarga',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-21'),
-  },
-];
-
-const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, 'success' | 'danger' | 'warning' | 'info'> = {
-  present: 'success',
-  absent: 'danger',
-  late: 'warning',
-  excused: 'info',
-};
-
-export const StudentAttendance = () => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
-
   // Sort by date (newest first)
-  const sortedAttendances = [...mockAttendances].sort(
-    (a, b) => b.date.getTime() - a.date.getTime()
+  const sortedAttendances = [...attendances].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
   );
 
   const totalPages = Math.ceil(sortedAttendances.length / itemsPerPage);
@@ -115,7 +121,7 @@ export const StudentAttendance = () => {
   );
 
   const getSubjectName = (subjectId: string) => {
-    return MOCK_SUBJECTS[subjectId] || subjectId;
+    return subjects[subjectId] || subjectId;
   };
 
   const columns = [
@@ -124,9 +130,9 @@ export const StudentAttendance = () => {
       header: 'Tanggal',
       render: (item: Attendance) => (
         <div>
-          <strong>{formatDate(item.date)}</strong>
+          <strong>{formatDate(new Date(item.date))}</strong>
           <div style={{ fontSize: '0.85rem', color: 'var(--ios-gray)', marginTop: '0.25rem' }}>
-            {getRelativeTime(item.date)}
+            {getRelativeTime(new Date(item.date))}
           </div>
         </div>
       ),
@@ -160,7 +166,9 @@ export const StudentAttendance = () => {
         </div>
 
         {/* Attendance Table */}
-        {paginatedAttendances.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : paginatedAttendances.length === 0 ? (
           <EmptyState
             icon="userGroup"
             title="Tidak Ada Data Absensi"

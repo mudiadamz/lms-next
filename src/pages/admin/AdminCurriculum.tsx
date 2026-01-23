@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState, Loading } from '../../components/common';
 import { SCHOOL_LEVELS } from '../../constants';
+import { curriculumService } from '../../services';
 import './AdminCurriculum.css';
 
 // Interface untuk Curriculum
@@ -17,38 +18,6 @@ interface Curriculum {
   createdAt: Date;
 }
 
-// Contoh data kurikulum
-const mockCurriculums: Curriculum[] = [
-  {
-    id: '1',
-    name: 'Kurikulum Merdeka',
-    description: 'Kurikulum Merdeka adalah kurikulum dengan pembelajaran intrakurikuler yang beragam di mana konten akan lebih optimal agar peserta didik memiliki cukup waktu untuk mendalami konsep dan menguatkan kompetensi.',
-    schoolLevel: 'all',
-    isActive: true,
-    startDate: new Date('2023-07-01'),
-    createdAt: new Date('2023-01-01'),
-  },
-  {
-    id: '2',
-    name: 'Kurikulum 2013',
-    description: 'Kurikulum 2013 adalah kurikulum yang mengembangkan kompetensi siswa dalam ranah pengetahuan, keterampilan, dan sikap secara utuh.',
-    schoolLevel: 'all',
-    isActive: false,
-    startDate: new Date('2013-07-01'),
-    endDate: new Date('2023-06-30'),
-    createdAt: new Date('2013-01-01'),
-  },
-  {
-    id: '3',
-    name: 'Kurikulum Khusus SD',
-    description: 'Kurikulum khusus untuk Sekolah Dasar dengan fokus pada pengembangan karakter dan literasi dasar.',
-    schoolLevel: 'sd',
-    isActive: false,
-    startDate: new Date('2022-07-01'),
-    createdAt: new Date('2022-01-01'),
-  },
-];
-
 export const AdminCurriculum = () => {
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -56,7 +25,26 @@ export const AdminCurriculum = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showActivateDialog, setShowActivateDialog] = useState(false);
   const [selectedCurriculum, setSelectedCurriculum] = useState<Curriculum | null>(null);
-  const [curriculums, setCurriculums] = useState<Curriculum[]>(mockCurriculums);
+  const [curriculums, setCurriculums] = useState<Curriculum[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const curriculumsData = await curriculumService.getCurriculums(
+          selectedLevel !== 'all' ? selectedLevel : undefined
+        );
+        setCurriculums(curriculumsData);
+      } catch (error) {
+        console.error('Error loading curriculum data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [selectedLevel]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -115,58 +103,29 @@ export const AdminCurriculum = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
       if (showEditModal && selectedCurriculum) {
-        // Update existing curriculum
-        const startDate = new Date(formData.startDate);
-        
-        // Validate start date
-        if (isNaN(startDate.getTime())) {
-          alert('Tanggal mulai tidak valid');
-          return;
-        }
-        
-        const updatedCurriculum: Curriculum = {
-          ...selectedCurriculum,
+        await curriculumService.updateCurriculum(selectedCurriculum.id, {
           name: formData.name,
           description: formData.description,
           schoolLevel: formData.schoolLevel as 'sd' | 'smp' | 'sma' | 'all',
-          startDate: startDate,
-          endDate: formData.endDate ? (() => {
-            const endDate = new Date(formData.endDate);
-            return isNaN(endDate.getTime()) ? undefined : endDate;
-          })() : undefined,
-        };
-        setCurriculums(
-          curriculums.map((c) => (c.id === selectedCurriculum.id ? updatedCurriculum : c))
-        );
+          startDate: new Date(formData.startDate),
+          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
+        });
       } else {
-        // Create new curriculum
-        const startDate = new Date(formData.startDate);
-        
-        // Validate start date
-        if (isNaN(startDate.getTime())) {
-          alert('Tanggal mulai tidak valid');
-          return;
-        }
-        
-        const newCurriculum: Curriculum = {
-          id: Date.now().toString(),
+        await curriculumService.createCurriculum({
           name: formData.name,
           description: formData.description,
           schoolLevel: formData.schoolLevel as 'sd' | 'smp' | 'sma' | 'all',
-          isActive: false,
-          startDate: startDate,
-          endDate: formData.endDate ? (() => {
-            const endDate = new Date(formData.endDate);
-            return isNaN(endDate.getTime()) ? undefined : endDate;
-          })() : undefined,
-          createdAt: new Date(),
-        };
-        setCurriculums([...curriculums, newCurriculum]);
+          startDate: new Date(formData.startDate),
+          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
+        });
       }
+
+      // Reload data
+      const curriculumsData = await curriculumService.getCurriculums(
+        selectedLevel !== 'all' ? selectedLevel : undefined
+      );
+      setCurriculums(curriculumsData);
 
       setShowCreateModal(false);
       setShowEditModal(false);
@@ -201,15 +160,13 @@ export const AdminCurriculum = () => {
   const confirmActivate = async () => {
     if (!selectedCurriculum) return;
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      // Deactivate all curriculums first, then activate selected one
-      setCurriculums(
-        curriculums.map((c) => ({
-          ...c,
-          isActive: c.id === selectedCurriculum.id,
-        }))
+      await curriculumService.activateCurriculum(selectedCurriculum.id);
+      
+      // Reload data
+      const curriculumsData = await curriculumService.getCurriculums(
+        selectedLevel !== 'all' ? selectedLevel : undefined
       );
+      setCurriculums(curriculumsData);
       setShowActivateDialog(false);
       setSelectedCurriculum(null);
     } catch (error) {
@@ -338,11 +295,13 @@ export const AdminCurriculum = () => {
           </div>
         </div>
 
-        {filteredCurriculums.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : filteredCurriculums.length === 0 ? (
           <EmptyState
             icon="book"
             title="Tidak Ada Kurikulum"
-            message={searchTerm || selectedLevel !== 'all'
+            message={selectedLevel !== 'all'
               ? 'Tidak ada kurikulum yang sesuai dengan filter yang dipilih.'
               : 'Belum ada kurikulum yang terdaftar.'}
             action={{

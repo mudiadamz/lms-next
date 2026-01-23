@@ -2,49 +2,99 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, SearchBar, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FileUpload } from '../../components/common';
+import { Button, Table, SearchBar, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FileUpload, Loading } from '../../components/common';
 import { ROLE_LABELS, SCHOOL_LEVELS, ROUTES } from '../../constants';
+import { userService } from '../../services';
 import './AdminUsers.css';
-
-const mockUsers = [
-  {
-    id: '1',
-    fullName: 'Budi Santoso',
-    role: 'student',
-    studentNumber: '2024001',
-    schoolLevel: 'sma',
-    classId: 'class1',
-    phoneNumber: '081234567890',
-    birthPlace: 'Jakarta',
-    birthDate: '2005-05-15',
-  },
-  {
-    id: '2',
-    fullName: 'Ibu Siti',
-    role: 'teacher',
-    teacherNumber: '1985001',
-    schoolLevel: 'sma',
-    phoneNumber: '081234567891',
-    birthPlace: 'Bandung',
-    birthDate: '1985-03-20',
-  },
-  {
-    id: '3',
-    fullName: 'Admin Sekolah',
-    role: 'admin',
-    adminNumber: 'ADM001',
-    schoolLevel: 'sma',
-    phoneNumber: '081234567892',
-    birthPlace: 'Surabaya',
-    birthDate: '1980-01-10',
-  },
-];
 
 export const AdminUsers = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubMenu, setSelectedSubMenu] = useState<string>('admin');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPreview, setImportPreview] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    const role = searchParams.get('role') || 'admin';
+    setSelectedSubMenu(role);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        setIsLoading(true);
+        const usersData = await userService.getUsers(selectedSubMenu as any);
+        setUsers(usersData);
+      } catch (error) {
+        console.error('Error loading users:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUsers();
+  }, [selectedSubMenu]);
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch =
+      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (user.studentNumber && user.studentNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.teacherNumber && user.teacherNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.adminNumber && user.adminNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesSubMenu = user.role === selectedSubMenu;
+    return matchesSearch && matchesSubMenu;
+  });
+
+  const paginatedUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+
+  const handleDelete = (user: any) => {
+    setSelectedUser(user);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedUser) return;
+    try {
+      await userService.deleteUser(selectedUser.id);
+      setUsers(users.filter(u => u.id !== selectedUser.id));
+      setShowDeleteDialog(false);
+      setSelectedUser(null);
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('Gagal menghapus pengguna');
+    }
+  };
+
+  const handleAddUser = () => {
+    navigate(`${ROUTES.ADMIN_USERS}/create/${selectedSubMenu}`);
+  };
+
+  const getButtonLabel = () => {
+    switch (selectedSubMenu) {
+      case 'admin':
+        return 'Tambah Admin';
+      case 'student':
+        return 'Tambah Murid';
+      case 'teacher':
+        return 'Tambah Guru';
+      default:
+        return 'Tambah Pengguna';
+    }
+  };
   const [currentPage, setCurrentPage] = useState(1);
 
   // Read role from URL query parameter
@@ -54,11 +104,12 @@ export const AdminUsers = () => {
   }, [searchParams]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<typeof mockUsers[0] | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<any[]>([]);
-  const [users, setUsers] = useState(mockUsers);
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const itemsPerPage = 10;
 
   const filteredUsers = users.filter((user) => {
@@ -78,7 +129,7 @@ export const AdminUsers = () => {
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
 
-  const handleDelete = (user: typeof mockUsers[0]) => {
+  const handleDelete = (user: any) => {
     setSelectedUser(user);
     setShowDeleteDialog(true);
   };
@@ -126,30 +177,16 @@ export const AdminUsers = () => {
 
   const handleParseExcel = async (file: File) => {
     // TODO: Implement actual Excel parsing using xlsx library
-    // For now, simulate with mock data
+    // For now, show a placeholder message
     setIsImporting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Note: In a real implementation, use xlsx library to parse the file
+      // const workbook = XLSX.read(file, { type: 'binary' });
+      // const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      // const data = XLSX.utils.sheet_to_json(sheet);
       
-      // Mock preview data based on file name
-      const mockPreview = [
-        {
-          fullName: 'John Doe',
-          username: 'john',
-          email: 'john@example.com',
-          role: 'student',
-          schoolLevel: 'sma',
-        },
-        {
-          fullName: 'Jane Smith',
-          username: 'jane',
-          email: 'jane@example.com',
-          role: 'student',
-          schoolLevel: 'sma',
-        },
-      ];
-      
-      setImportPreview(mockPreview);
+      alert('Fitur import Excel belum diimplementasikan. Silakan gunakan form manual.');
+      setImportPreview([]);
     } catch (error) {
       console.error('Error parsing Excel:', error);
       alert('Gagal membaca file Excel');
@@ -167,7 +204,8 @@ export const AdminUsers = () => {
     setIsImporting(true);
     try {
       // TODO: Call API to import users
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // await userService.importUsers(importPreview);
+      alert('Fitur import Excel belum diimplementasikan. Silakan gunakan form manual.');
       
       // Add imported users to the list
       const newUsers = importPreview.map((user, index) => {
@@ -235,7 +273,7 @@ export const AdminUsers = () => {
     {
       key: 'fullName',
       header: 'Nama',
-      render: (item: typeof mockUsers[0]) => (
+      render: (item: any) => (
         <div>
           <strong>{item.fullName}</strong>
         </div>
@@ -244,7 +282,7 @@ export const AdminUsers = () => {
     {
       key: 'number',
       header: 'Nomor Induk',
-      render: (item: typeof mockUsers[0]) => {
+      render: (item: any) => {
         if (item.role === 'student' && 'studentNumber' in item) {
           return item.studentNumber || '-';
         } else if (item.role === 'teacher' && 'teacherNumber' in item) {
@@ -258,7 +296,7 @@ export const AdminUsers = () => {
     {
       key: 'role',
       header: 'Role',
-      render: (item: typeof mockUsers[0]) => (
+      render: (item: any) => (
         <Badge variant={item.role === 'admin' ? 'danger' : item.role === 'teacher' ? 'primary' : 'secondary'}>
           {ROLE_LABELS[item.role]}
         </Badge>
@@ -267,7 +305,7 @@ export const AdminUsers = () => {
     {
       key: 'schoolLevel',
       header: 'Tingkat',
-      render: (item: typeof mockUsers[0]) => {
+      render: (item: any) => {
         const levels: Record<string, string> = {
           sd: 'SD',
           smp: 'SMP',
@@ -279,7 +317,7 @@ export const AdminUsers = () => {
     {
       key: 'actions',
       header: 'Aksi',
-      render: (item: typeof mockUsers[0]) => (
+      render: (item: any) => (
         <Dropdown
           trigger={<Button variant="outline" size="small">⋯</Button>}
           items={[

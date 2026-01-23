@@ -1,41 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Modal } from '../../components/common';
+import { Button, Badge, Modal, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDateTime, isPast } from '../../utils';
+import { quizService, subjectService, userService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './QuizDetail.css';
-
-const mockQuiz = {
-  id: '1',
-  title: 'Kuis Matematika - Bab 1',
-  description: 'Kuis tentang aljabar dasar. Waktu pengerjaan 30 menit.',
-  subject: 'Matematika',
-  teacher: 'Ibu Siti',
-  timeLimit: 30,
-  questions: 10,
-  startDate: new Date('2024-01-18T08:00:00'),
-  endDate: new Date('2024-01-25T23:59:59'),
-  maxScore: 100,
-};
-
-const mockQuestions = [
-  {
-    id: '1',
-    question: 'Berapakah hasil dari 2x + 3x?',
-    type: 'multiple_choice',
-    options: ['5x', '6x', '5', '6'],
-    correctAnswer: '5x',
-  },
-  {
-    id: '2',
-    question: 'Sederhanakan: 3(x + 2)',
-    type: 'multiple_choice',
-    options: ['3x + 2', '3x + 6', 'x + 6', '3x'],
-    correctAnswer: '3x + 6',
-  },
-];
 
 interface StudentQuizDetailProps {
   readOnly?: boolean;
@@ -44,19 +16,67 @@ interface StudentQuizDetailProps {
 export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps = {} as StudentQuizDetailProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [quiz, setQuiz] = useState<any>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [subjectName, setSubjectName] = useState('');
+  const [teacherName, setTeacherName] = useState('');
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showStartModal, setShowStartModal] = useState(!readOnly);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(mockQuiz.timeLimit * 60);
+  const [timeRemaining, setTimeRemaining] = useState(0);
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!id || !user?.id) return;
+      
+      try {
+        setIsLoading(true);
+        const quizData = await quizService.getQuizById(id);
+        setQuiz(quizData);
+
+        if (quizData.questions) {
+          setQuestions(quizData.questions);
+        }
+
+        setTimeRemaining(quizData.timeLimit * 60);
+
+        // Get subject and teacher names
+        const [subjectInfo, teacherInfo] = await Promise.all([
+          subjectService.getSubjectById(quizData.subjectId),
+          userService.getUserById(quizData.teacherId),
+        ]);
+
+        setSubjectName(subjectInfo.name);
+        setTeacherName(teacherInfo.fullName);
+      } catch (error) {
+        console.error('Error loading quiz detail:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+      }
+    };
+  }, [id, user?.id]);
 
   const handleStart = () => {
     setShowStartModal(false);
     // Start timer
-    const interval = setInterval(() => {
+    timerIntervalRef.current = setInterval(() => {
       setTimeRemaining((prev) => {
         if (prev <= 1) {
-          clearInterval(interval);
+          if (timerIntervalRef.current) {
+            clearInterval(timerIntervalRef.current);
+          }
           handleSubmit();
           return 0;
         }
@@ -66,10 +86,11 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
   };
 
   const handleSubmit = async () => {
+    if (!id) return;
+    
     setIsSubmitting(true);
     try {
-      // TODO: Call quizService.submitQuiz
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await quizService.submitQuiz(id, answers);
       navigate(readOnly ? ROUTES.PARENT_QUIZZES : ROUTES.STUDENT_QUIZZES);
     } catch (error) {
       console.error('Error submitting quiz:', error);
@@ -85,8 +106,24 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const isActive = new Date() >= mockQuiz.startDate && new Date() <= mockQuiz.endDate;
-  const isOverdue = isPast(mockQuiz.endDate);
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!quiz) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="quiz" title="Kuis Tidak Ditemukan" message="Kuis yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
+
+  const isActive = new Date() >= new Date(quiz.startDate) && new Date() <= new Date(quiz.endDate);
+  const isOverdue = isPast(new Date(quiz.endDate));
 
   if (readOnly) {
     return (
@@ -94,19 +131,19 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
         <div className="quiz-detail">
           <div className="quiz-header">
             <div>
-              <h1>{mockQuiz.title}</h1>
+              <h1>{quiz.title}</h1>
               <div className="quiz-meta">
-                <Badge variant="info">{mockQuiz.subject}</Badge>
-                <span>Guru: {mockQuiz.teacher}</span>
+                <Badge variant="info">{subjectName}</Badge>
+                <span>Guru: {teacherName}</span>
               </div>
             </div>
           </div>
           <Card>
             <div className="quiz-info">
-              <p><strong>Waktu:</strong> {mockQuiz.timeLimit} menit</p>
-              <p><strong>Jumlah Soal:</strong> {mockQuiz.questions}</p>
-              <p><strong>Nilai Maksimal:</strong> {mockQuiz.maxScore}</p>
-              <p><strong>Batas Waktu:</strong> {formatDateTime(mockQuiz.endDate)}</p>
+              <p><strong>Waktu:</strong> {quiz.timeLimit} menit</p>
+              <p><strong>Jumlah Soal:</strong> {questions.length}</p>
+              <p><strong>Nilai Maksimal:</strong> {quiz.maxScore}</p>
+              <p><strong>Batas Waktu:</strong> {formatDateTime(new Date(quiz.endDate))}</p>
             </div>
             <div className="info-note" style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
               <p>Sebagai orang tua, Anda dapat melihat detail kuis ini tetapi tidak dapat mengerjakan kuis.</p>
@@ -123,7 +160,7 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
         <Card>
           <div className="quiz-not-available">
             <h2>Kuis Belum Dimulai</h2>
-            <p>Kuis akan dimulai pada: {formatDateTime(mockQuiz.startDate)}</p>
+            <p>Kuis akan dimulai pada: {formatDateTime(new Date(quiz.startDate))}</p>
           </div>
         </Card>
       </DashboardLayout>
@@ -141,10 +178,10 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
             size="medium"
           >
             <div className="quiz-instructions">
-              <p><strong>Judul:</strong> {mockQuiz.title}</p>
-              <p><strong>Waktu:</strong> {mockQuiz.timeLimit} menit</p>
-              <p><strong>Jumlah Soal:</strong> {mockQuiz.questions}</p>
-              <p><strong>Nilai Maksimal:</strong> {mockQuiz.maxScore}</p>
+              <p><strong>Judul:</strong> {quiz.title}</p>
+              <p><strong>Waktu:</strong> {quiz.timeLimit} menit</p>
+              <p><strong>Jumlah Soal:</strong> {questions.length}</p>
+              <p><strong>Nilai Maksimal:</strong> {quiz.maxScore}</p>
               <div className="instructions-warning">
                 <p>⚠️ Setelah memulai, timer akan berjalan dan tidak dapat dihentikan.</p>
                 <p>Pastikan koneksi internet Anda stabil.</p>
@@ -161,10 +198,10 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
 
         <div className="quiz-header">
           <div>
-            <h1>{mockQuiz.title}</h1>
+            <h1>{quiz.title}</h1>
             <div className="quiz-meta">
-              <Badge variant="info">{mockQuiz.subject}</Badge>
-              <span>Guru: {mockQuiz.teacher}</span>
+              <Badge variant="info">{subjectName}</Badge>
+              <span>Guru: {teacherName}</span>
             </div>
           </div>
           <div className="quiz-timer">
@@ -176,13 +213,13 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
 
         <Card>
           <div className="quiz-questions">
-            {mockQuestions.map((question, index) => (
+            {questions.map((question, index) => (
               <div key={question.id} className="question-item">
                 <h3>
                   Soal {index + 1}: {question.question}
                 </h3>
                 <div className="question-options">
-                  {question.options.map((option, optIndex) => (
+                  {question.options?.map((option: string, optIndex: number) => (
                     <label key={optIndex} className="option-label">
                       <input
                         type="radio"
@@ -207,7 +244,7 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
             </Button>
             <Button
               onClick={() => setShowConfirmModal(true)}
-              disabled={Object.keys(answers).length < mockQuestions.length}
+              disabled={Object.keys(answers).length < questions.length}
             >
               Kumpulkan Kuis
             </Button>

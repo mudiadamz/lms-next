@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FormInput, FormSelect } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FormInput, FormSelect, Loading, EmptyState } from '../../components/common';
 import { formatDate } from '../../utils/dateUtils';
+import { classService, paymentService } from '../../services';
 import './AdminPayment.css';
 
 interface Payment {
@@ -20,92 +21,9 @@ interface Payment {
   createdAt: Date;
 }
 
-const MOCK_CLASSES = [
-  { value: 'class1', label: 'X IPA 1' },
-  { value: 'class2', label: 'X IPA 2' },
-  { value: 'class3', label: 'X IPS 1' },
-  { value: 'class4', label: 'XI IPA 1' },
-  { value: 'class5', label: 'XI IPA 2' },
-];
-
 const MONTHS = [
   'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-];
-
-const mockPayments: Payment[] = [
-  {
-    id: '1',
-    classId: 'class1',
-    className: 'X IPA 1',
-    month: 'Januari',
-    year: 2024,
-    amount: 500000,
-    dueDate: new Date('2024-01-10'),
-    status: 'paid',
-    paymentMethod: 'Transfer Bank',
-    receiptNumber: 'RCP-2024-001',
-    createdAt: new Date('2024-01-01'),
-  },
-  {
-    id: '2',
-    classId: 'class2',
-    className: 'X IPA 2',
-    month: 'Januari',
-    year: 2024,
-    amount: 500000,
-    dueDate: new Date('2024-01-10'),
-    status: 'paid',
-    paymentMethod: 'Tunai',
-    receiptNumber: 'RCP-2024-002',
-    createdAt: new Date('2024-01-01'),
-  },
-  {
-    id: '3',
-    classId: 'class1',
-    className: 'X IPA 1',
-    month: 'Februari',
-    year: 2024,
-    amount: 500000,
-    dueDate: new Date('2024-02-10'),
-    status: 'pending',
-    createdAt: new Date('2024-02-01'),
-  },
-  {
-    id: '4',
-    classId: 'class3',
-    className: 'X IPS 1',
-    month: 'Januari',
-    year: 2024,
-    amount: 500000,
-    dueDate: new Date('2024-01-10'),
-    status: 'overdue',
-    createdAt: new Date('2024-01-01'),
-  },
-  {
-    id: '5',
-    classId: 'class4',
-    className: 'XI IPA 1',
-    month: 'Januari',
-    year: 2024,
-    amount: 500000,
-    dueDate: new Date('2024-01-10'),
-    status: 'paid',
-    paymentMethod: 'Transfer Bank',
-    receiptNumber: 'RCP-2024-003',
-    createdAt: new Date('2024-01-01'),
-  },
-  {
-    id: '6',
-    classId: 'class5',
-    className: 'XI IPA 2',
-    month: 'Januari',
-    year: 2024,
-    amount: 500000,
-    dueDate: new Date('2024-01-10'),
-    status: 'pending',
-    createdAt: new Date('2024-01-01'),
-  },
 ];
 
 const formatCurrency = (amount: number): string => {
@@ -130,17 +48,18 @@ const getStatusBadge = (status: Payment['status']) => {
 };
 
 export const AdminPayment = () => {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
-  const [selectedYear, setSelectedYear] = useState<string>('2024');
+  const [selectedYear, setSelectedYear] = useState<string>(new Date().getFullYear().toString());
   const [currentPage, setCurrentPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
-  const [payments, setPayments] = useState<Payment[]>(mockPayments);
   const itemsPerPage = 10;
 
   const [formData, setFormData] = useState({
@@ -153,6 +72,35 @@ export const AdminPayment = () => {
     receiptNumber: '',
     notes: '',
   });
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [paymentsData, classesData] = await Promise.all([
+          paymentService.getPayments(),
+          classService.getClasses(),
+        ]);
+
+        // Map payments with class names
+        const paymentsWithClassNames = paymentsData.map(payment => {
+          const classInfo = classesData.find(c => c.id === payment.classId);
+          return {
+            ...payment,
+            className: classInfo?.name || payment.className || '-',
+          };
+        });
+
+        setPayments(paymentsWithClassNames);
+        setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
+      } catch (error) {
+        console.error('Error loading payments:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   const filteredPayments = payments.filter((payment) => {
     const matchesStatus = selectedStatus === 'all' || payment.status === selectedStatus;
@@ -196,7 +144,7 @@ export const AdminPayment = () => {
   };
 
   const handleSelectAllClasses = () => {
-    const allClassIds = MOCK_CLASSES.map((c) => c.value);
+    const allClassIds = classes.map((c) => c.value);
     setFormData((prev) => ({
       ...prev,
       selectedClasses: prev.selectedClasses.length === allClassIds.length ? [] : allClassIds,
@@ -223,19 +171,29 @@ export const AdminPayment = () => {
     setShowDeleteDialog(true);
   };
 
-  const handleMarkAsPaid = (payment: Payment) => {
-    setPayments(
-      payments.map((p) =>
-        p.id === payment.id
-          ? {
-              ...p,
-              status: 'paid' as const,
-              paymentMethod: p.paymentMethod || 'Tunai',
-              receiptNumber: p.receiptNumber || `RCP-${new Date().getFullYear()}-${String(payments.length + 1).padStart(3, '0')}`,
-            }
-          : p
-      )
-    );
+  const handleMarkAsPaid = async (payment: Payment) => {
+    try {
+      await paymentService.updatePayment(payment.id, {
+        status: 'paid',
+        paymentMethod: payment.paymentMethod || 'Tunai',
+        receiptNumber: payment.receiptNumber || `RCP-${new Date().getFullYear()}-${String(payments.length + 1).padStart(3, '0')}`,
+      });
+      
+      // Reload payments
+      const paymentsData = await paymentService.getPayments();
+      const classesData = await classService.getClasses();
+      const paymentsWithClassNames = paymentsData.map(p => {
+        const classInfo = classesData.find(c => c.id === p.classId);
+        return {
+          ...p,
+          className: classInfo?.name || p.className || '-',
+        };
+      });
+      setPayments(paymentsWithClassNames);
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      alert('Gagal memperbarui status pembayaran');
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -247,26 +205,26 @@ export const AdminPayment = () => {
         return;
       }
 
-      // Buat pembayaran untuk setiap kelas yang dipilih
-      const newPayments: Payment[] = formData.selectedClasses.map((classId, index) => {
-        const selectedClassData = MOCK_CLASSES.find((c) => c.value === classId);
-        return {
-          id: String(payments.length + index + 1),
-          classId: classId,
-          className: selectedClassData?.label || '',
-          month: formData.month,
-          year: parseInt(formData.year),
-          amount: parseInt(formData.amount),
-          dueDate: new Date(formData.dueDate),
-          status: 'pending' as const,
-          paymentMethod: formData.paymentMethod || undefined,
-          receiptNumber: formData.receiptNumber ? `${formData.receiptNumber}-${index + 1}` : undefined,
-          notes: formData.notes || undefined,
-          createdAt: new Date(),
-        };
+      const createdPayments = await paymentService.createPayment({
+        classIds: formData.selectedClasses,
+        month: formData.month,
+        year: parseInt(formData.year),
+        amount: parseFloat(formData.amount),
+        dueDate: formData.dueDate,
+        notes: formData.notes || undefined,
       });
       
-      setPayments([...payments, ...newPayments]);
+      // Reload payments
+      const paymentsData = await paymentService.getPayments();
+      const classesData = await classService.getClasses();
+      const paymentsWithClassNames = paymentsData.map(p => {
+        const classInfo = classesData.find(c => c.id === p.classId);
+        return {
+          ...p,
+          className: classInfo?.name || p.className || '-',
+        };
+      });
+      setPayments(paymentsWithClassNames);
       setShowCreateModal(false);
     } else if (showEditModal && selectedPayment) {
       if (formData.selectedClasses.length === 0) {
@@ -274,35 +232,55 @@ export const AdminPayment = () => {
         return;
       }
       
-      const updatedClassData = MOCK_CLASSES.find((c) => c.value === formData.selectedClasses[0]);
-      setPayments(
-        payments.map((p) =>
-          p.id === selectedPayment.id
-            ? {
-                ...p,
-                classId: formData.selectedClasses[0],
-                className: updatedClassData?.label || p.className,
-                month: formData.month,
-                year: parseInt(formData.year),
-                amount: parseInt(formData.amount),
-                dueDate: new Date(formData.dueDate),
-                paymentMethod: formData.paymentMethod || undefined,
-                receiptNumber: formData.receiptNumber || undefined,
-                notes: formData.notes || undefined,
-              }
-            : p
-        )
-      );
+      await paymentService.updatePayment(selectedPayment.id, {
+        classId: formData.selectedClasses[0],
+        month: formData.month,
+        year: parseInt(formData.year),
+        amount: parseFloat(formData.amount),
+        dueDate: new Date(formData.dueDate),
+        paymentMethod: formData.paymentMethod || undefined,
+        receiptNumber: formData.receiptNumber || undefined,
+        notes: formData.notes || undefined,
+      });
+      
+      // Reload payments
+      const paymentsData = await paymentService.getPayments();
+      const classesData = await classService.getClasses();
+      const paymentsWithClassNames = paymentsData.map(p => {
+        const classInfo = classesData.find(c => c.id === p.classId);
+        return {
+          ...p,
+          className: classInfo?.name || p.className || '-',
+        };
+      });
+      setPayments(paymentsWithClassNames);
       setShowEditModal(false);
       setSelectedPayment(null);
     }
   };
 
-  const confirmDelete = () => {
-    if (selectedPayment) {
-      setPayments(payments.filter((p) => p.id !== selectedPayment.id));
+  const confirmDelete = async () => {
+    if (!selectedPayment) return;
+    try {
+      await paymentService.deletePayment(selectedPayment.id);
+      
+      // Reload payments
+      const paymentsData = await paymentService.getPayments();
+      const classesData = await classService.getClasses();
+      const paymentsWithClassNames = paymentsData.map(p => {
+        const classInfo = classesData.find(c => c.id === p.classId);
+        return {
+          ...p,
+          className: classInfo?.name || p.className || '-',
+        };
+      });
+      setPayments(paymentsWithClassNames);
+      
       setShowDeleteDialog(false);
       setSelectedPayment(null);
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      alert('Gagal menghapus pembayaran');
     }
   };
 
@@ -462,7 +440,7 @@ export const AdminPayment = () => {
                 }}
                 options={[
                   { value: 'all', label: 'Semua Kelas' },
-                  ...MOCK_CLASSES.map((cls) => ({ value: cls.value, label: cls.label })),
+                  ...classes.map((cls) => ({ value: cls.value, label: cls.label })),
                 ]}
               />
               <FormSelect
@@ -495,12 +473,17 @@ export const AdminPayment = () => {
         </Card>
 
         {/* Payment Table */}
-        {paginatedPayments.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : paginatedPayments.length === 0 ? (
           <Card variant="elevated">
-            <div style={{ padding: '3rem', textAlign: 'center', color: '#666' }}>
-              <Icon name="analytics" size={48} style={{ marginBottom: '1rem', opacity: 0.3 }} />
-              <p>Tidak ada data pembayaran yang sesuai dengan filter yang dipilih.</p>
-            </div>
+            <EmptyState
+              icon="analytics"
+              title="Tidak Ada Data Pembayaran"
+              message={selectedStatus !== 'all' || selectedClass !== 'all' || selectedMonth !== 'all'
+                ? 'Tidak ada data pembayaran yang sesuai dengan filter yang dipilih.'
+                : 'Belum ada data pembayaran SPP.'}
+            />
           </Card>
         ) : (
           <Card title={`Daftar Pembayaran SPP (${filteredPayments.length})`} variant="elevated">
@@ -532,14 +515,14 @@ export const AdminPayment = () => {
                   <label>
                     <input
                       type="checkbox"
-                      checked={formData.selectedClasses.length === MOCK_CLASSES.length && MOCK_CLASSES.length > 0}
+                      checked={formData.selectedClasses.length === classes.length && classes.length > 0}
                       onChange={handleSelectAllClasses}
                     />
                     <span>Pilih Semua</span>
                   </label>
                 </div>
                 <div className="checkbox-divider"></div>
-                {MOCK_CLASSES.map((cls) => (
+                {classes.map((cls) => (
                   <div key={cls.value} className="checkbox-item">
                     <label>
                       <input
@@ -630,7 +613,7 @@ export const AdminPayment = () => {
               onChange={(e) => setFormData({ ...formData, selectedClasses: e.target.value ? [e.target.value] : [] })}
               options={[
                 { value: '', label: 'Pilih Kelas' },
-                ...MOCK_CLASSES.map((cls) => ({ value: cls.value, label: cls.label })),
+                ...classes.map((cls) => ({ value: cls.value, label: cls.label })),
               ]}
               required
             />

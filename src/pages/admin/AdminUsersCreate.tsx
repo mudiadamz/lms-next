@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, FormInput, FormSelect, FileUpload, Icon, FormTextarea } from '../../components/common';
+import { Button, FormInput, FormSelect, FileUpload, Icon, FormTextarea, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
+import { classService, userService } from '../../services';
 import './AdminUsers.css';
 
 // Mock data untuk dropdown
@@ -68,26 +69,13 @@ const VILLAGES: Record<string, Array<{ value: string; label: string }>> = {
   ],
 };
 
-const MOCK_CLASSES = [
-  { value: 'class1', label: 'Kelas 10A' },
-  { value: 'class2', label: 'Kelas 10B' },
-  { value: 'class3', label: 'Kelas 11A' },
-  { value: 'class4', label: 'Kelas 11B' },
-  { value: 'class5', label: 'Kelas 12A' },
-  { value: 'class6', label: 'Kelas 12B' },
-];
-
-const MOCK_PARENTS = [
-  { value: 'parent1', label: 'Bapak Santoso' },
-  { value: 'parent2', label: 'Ibu Santoso' },
-  { value: 'parent3', label: 'Bapak Wijaya' },
-  { value: 'parent4', label: 'Ibu Wijaya' },
-];
-
 export const AdminUsersCreate = () => {
   const navigate = useNavigate();
   const { role } = useParams<{ role: string }>();
   const selectedRole = role || 'admin';
+  const [isLoading, setIsLoading] = useState(true);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
+  const [parents, setParents] = useState<Array<{ value: string; label: string }>>([]);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -112,6 +100,25 @@ export const AdminUsersCreate = () => {
 
   const [isCreating, setIsCreating] = useState(false);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [classesData, parentsData] = await Promise.all([
+          classService.getClasses(),
+          userService.getUsers('parent'),
+        ]);
+        setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
+        setParents(parentsData.map(p => ({ value: p.id, label: p.fullName })));
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
 
   // Cleanup photo preview URL
   useEffect(() => {
@@ -151,9 +158,6 @@ export const AdminUsersCreate = () => {
     setIsCreating(true);
 
     try {
-      // TODO: Call userService.createUser
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
       // Get nomor induk berdasarkan role
       let numberInduk = '';
       if (selectedRole === 'student') {
@@ -168,15 +172,23 @@ export const AdminUsersCreate = () => {
         ? `${formData.fullAddress}${formData.village ? `, ${formData.village}` : ''}${formData.district ? `, ${formData.district}` : ''}${formData.city ? `, ${formData.city}` : ''}${formData.province ? `, ${formData.province}` : ''}`
         : undefined;
 
-      // TODO: Save user to backend
-      console.log('Creating user:', {
-        ...formData,
-        role: selectedRole,
+      await userService.createUser({
+        fullName: formData.fullName,
+        email: formData.fullName.toLowerCase().replace(/\s+/g, '.') + '@school.com', // Generate email
         password: numberInduk,
-        address,
+        role: selectedRole as 'student' | 'teacher' | 'admin' | 'parent',
+        phoneNumber: formData.phoneNumber || undefined,
+        address: address,
+        birthPlace: formData.birthPlace || undefined,
+        birthDate: formData.birthDate ? new Date(formData.birthDate).toISOString() : undefined,
+        schoolLevel: formData.schoolLevel || undefined,
+        studentNumber: selectedRole === 'student' ? formData.studentNumber : undefined,
+        teacherNumber: selectedRole === 'teacher' ? formData.teacherNumber : undefined,
+        adminNumber: selectedRole === 'admin' ? formData.adminNumber : undefined,
+        classId: selectedRole === 'student' ? formData.classId : undefined,
+        parentId: selectedRole === 'student' ? formData.parentId : undefined,
       });
 
-      // Redirect back to users list
       navigate(ROUTES.ADMIN_USERS);
     } catch (error) {
       console.error('Error creating user:', error);
@@ -185,6 +197,14 @@ export const AdminUsersCreate = () => {
       setIsCreating(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -258,7 +278,7 @@ export const AdminUsersCreate = () => {
                   onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                   options={[
                     { value: '', label: 'Pilih kelas' },
-                    ...MOCK_CLASSES,
+                    ...classes,
                   ]}
                   required
                 />
@@ -268,7 +288,7 @@ export const AdminUsersCreate = () => {
                   onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
                   options={[
                     { value: '', label: 'Pilih orang tua' },
-                    ...MOCK_PARENTS,
+                    ...parents,
                   ]}
                 />
               </>

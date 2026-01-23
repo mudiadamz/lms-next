@@ -1,88 +1,285 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Modal, FormSelect, FormInput, FormTextarea, Icon, EmptyState, Pagination } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormSelect, FormInput, FormTextarea, Icon, EmptyState, Pagination, Loading } from '../../components/common';
 import { AttendanceStatus, Attendance } from '../../types';
 import { ATTENDANCE_STATUS_LABELS } from '../../constants';
 import { formatDate } from '../../utils';
+import { attendanceService, classService, subjectService, userService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './TeacherAttendance.css';
 
-// Mock data untuk dropdowns
-const MOCK_CLASSES = [
-  { value: 'class1', label: 'X IPA 1' },
-  { value: 'class2', label: 'X IPA 2' },
-  { value: 'class3', label: 'XI IPA 1' },
-];
+const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, 'success' | 'danger' | 'warning' | 'info'> = {
+  present: 'success',
+  absent: 'danger',
+  late: 'warning',
+  excused: 'info',
+};
 
-const MOCK_SUBJECTS = [
-  { value: 'subject1', label: 'Matematika' },
-  { value: 'subject2', label: 'Fisika' },
-  { value: 'subject3', label: 'Kimia' },
-];
+export const TeacherAttendance = () => {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<'input' | 'history'>('input');
+  const [selectedClass, setSelectedClass] = useState<string>('');
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [selectedDate, setSelectedDate] = useState<string>(
+    new Date().toISOString().split('T')[0]
+  );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [showInputModal, setShowInputModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null);
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
+  const [subjects, setSubjects] = useState<Array<{ value: string; label: string }>>([]);
+  const [students, setStudents] = useState<Array<{ id: string; studentNumber: string; fullName: string }>>([]);
+  const [attendanceData, setAttendanceData] = useState<Record<string, AttendanceStatus>>({});
+  const [attendanceNotes, setAttendanceNotes] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const itemsPerPage = 10;
 
-const MOCK_STUDENTS = [
-  { id: 'student1', studentNumber: '2024001', fullName: 'Budi Santoso' },
-  { id: 'student2', studentNumber: '2024002', fullName: 'Siti Nurhaliza' },
-  { id: 'student3', studentNumber: '2024003', fullName: 'Andi Pratama' },
-  { id: 'student4', studentNumber: '2024004', fullName: 'Rina Wijaya' },
-  { id: 'student5', studentNumber: '2024005', fullName: 'Dedi Kurniawan' },
-];
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [classesData, subjectsData, studentsData] = await Promise.all([
+          classService.getClasses(),
+          subjectService.getSubjects(),
+          userService.getUsers('student'),
+        ]);
 
-// Contoh data absensi
-const mockAttendances: Attendance[] = [
-  {
-    id: '1',
-    studentId: 'student1',
-    classId: 'class1',
-    subjectId: 'subject1',
-    date: new Date('2024-01-15'),
-    status: 'present',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-15'),
-  },
-  {
-    id: '2',
-    studentId: 'student2',
-    classId: 'class1',
-    subjectId: 'subject1',
-    date: new Date('2024-01-15'),
-    status: 'present',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-15'),
-  },
-  {
-    id: '3',
-    studentId: 'student3',
-    classId: 'class1',
-    subjectId: 'subject1',
-    date: new Date('2024-01-15'),
-    status: 'late',
-    notes: 'Terlambat 10 menit',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-15'),
-  },
-  {
-    id: '4',
-    studentId: 'student4',
-    classId: 'class1',
-    subjectId: 'subject1',
-    date: new Date('2024-01-15'),
-    status: 'absent',
-    notes: 'Sakit',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-15'),
-  },
-  {
-    id: '5',
-    studentId: 'student1',
-    classId: 'class1',
-    subjectId: 'subject2',
-    date: new Date('2024-01-16'),
-    status: 'present',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-16'),
-  },
-];
+        // Get attendances for this teacher
+        const allAttendances = await attendanceService.getAttendance();
+
+        // Filter classes and subjects taught by this teacher
+        const teacherClasses = classesData.filter(c => {
+          const teacherIds = (c as any).teacherIds || [];
+          return teacherIds.includes(user?.id);
+        });
+
+        setClasses(teacherClasses.map(c => ({ value: c.id, label: c.name })));
+        setSubjects(subjectsData.map(s => ({ value: s.id, label: s.name })));
+        setStudents(studentsData.map(s => ({ 
+          id: s.id, 
+          studentNumber: (s as any).studentNumber || '', 
+          fullName: s.fullName 
+        })));
+
+        // Filter attendances by teacher
+        const teacherAttendances = allAttendances.filter(a => a.recordedBy === user?.id);
+        setAttendances(teacherAttendances);
+      } catch (error) {
+        console.error('Error loading attendance data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
+  // Group attendances by date, class, and subject for history view
+  const groupedAttendances = attendances.reduce((acc, att) => {
+    const dateStr = typeof att.date === 'string' ? att.date : att.date.toISOString().split('T')[0];
+    const key = `${dateStr}_${att.classId}_${att.subjectId}`;
+    if (!acc[key]) {
+      acc[key] = [];
+    }
+    acc[key].push(att);
+    return acc;
+  }, {} as Record<string, Attendance[]>);
+
+  const filteredAttendances = Object.values(groupedAttendances)
+    .flat()
+    .filter((att) => {
+      const matchesClass = selectedClass === '' || att.classId === selectedClass;
+      const matchesSubject = selectedSubject === '' || att.subjectId === selectedSubject;
+      return matchesClass && matchesSubject;
+    });
+
+  const filteredHistory = filteredAttendances.filter((att) => {
+    if (selectedDate) {
+      const dateStr = typeof att.date === 'string' ? att.date : att.date.toISOString().split('T')[0];
+      return dateStr === selectedDate;
+    }
+    return true;
+  });
+
+  const currentData = activeTab === 'input' ? [] : filteredHistory;
+  const totalPages = Math.ceil(currentData.length / itemsPerPage);
+  const paginatedData = currentData.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  const handleOpenInputModal = () => {
+    if (!selectedClass || !selectedSubject) {
+      alert('Pilih kelas dan mata pelajaran terlebih dahulu');
+      return;
+    }
+    
+    // Get students for selected class (students already have classId from useEffect)
+    const classStudents = students.filter(s => (s as any).classId === selectedClass);
+
+    // Initialize attendance data for all students
+    const initialData: Record<string, AttendanceStatus> = {};
+    classStudents.forEach((student) => {
+      initialData[student.id] = 'present'; // Default to present
+    });
+    setAttendanceData(initialData);
+    setAttendanceNotes({});
+    setShowInputModal(true);
+  };
+
+  const handleSubmitAttendance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setIsSubmitting(true);
+      // Get students for selected class (students already have classId from useEffect)
+      const classStudents = students.filter(s => (s as any).classId === selectedClass);
+
+      const attendancesToCreate = classStudents.map((student) => ({
+        studentId: student.id,
+        status: attendanceData[student.id] || 'present',
+        notes: attendanceNotes[student.id] || undefined,
+      }));
+
+      await attendanceService.bulkCreateAttendance(
+        selectedClass,
+        new Date(selectedDate),
+        attendancesToCreate.map(a => ({ studentId: a.studentId, status: a.status }))
+      );
+
+      // Reload attendances
+      const updatedAttendances = await attendanceService.getAttendance();
+      const teacherAttendances = updatedAttendances.filter(a => a.recordedBy === user?.id);
+      setAttendances(teacherAttendances);
+
+      setShowInputModal(false);
+      setAttendanceData({});
+      setAttendanceNotes({});
+      alert('Absensi berhasil disimpan');
+    } catch (error) {
+      console.error('Error saving attendance:', error);
+      alert('Gagal menyimpan absensi');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditAttendance = (attendance: Attendance) => {
+    setSelectedAttendance(attendance);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateAttendance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAttendance) return;
+
+    try {
+      setIsSubmitting(true);
+      await attendanceService.updateAttendance(
+        selectedAttendance.id,
+        selectedAttendance.status,
+        selectedAttendance.notes
+      );
+
+      // Reload attendances
+      const updatedAttendances = await attendanceService.getAttendance();
+      const teacherAttendances = updatedAttendances.filter(a => a.recordedBy === user?.id);
+      setAttendances(teacherAttendances);
+
+      setShowEditModal(false);
+      setSelectedAttendance(null);
+      alert('Absensi berhasil diupdate');
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+      alert('Gagal mengupdate absensi');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const getClassName = (classId: string) => {
+    return classes.find((c) => c.value === classId)?.label || classId;
+  };
+
+  const getSubjectName = (subjectId: string) => {
+    return subjects.find((s) => s.value === subjectId)?.label || subjectId;
+  };
+
+  const getStudentName = (studentId: string) => {
+    return students.find((s) => s.id === studentId)?.fullName || studentId;
+  };
+
+  const getStudentNumber = (studentId: string) => {
+    return students.find((s) => s.id === studentId)?.studentNumber || '-';
+  };
+
+  // Calculate statistics
+  const todayAttendances = attendances.filter((att) => {
+    const dateStr = typeof att.date === 'string' ? att.date : att.date.toISOString().split('T')[0];
+    return dateStr === new Date().toISOString().split('T')[0];
+  });
+  const presentCount = todayAttendances.filter((att) => att.status === 'present').length;
+  const absentCount = todayAttendances.filter((att) => att.status === 'absent').length;
+  const lateCount = todayAttendances.filter((att) => att.status === 'late').length;
+
+  const historyColumns = [
+    {
+      key: 'date',
+      header: 'Tanggal',
+      render: (item: Attendance) => formatDate(new Date(item.date)),
+    },
+    {
+      key: 'class',
+      header: 'Kelas',
+      render: (item: Attendance) => getClassName(item.classId),
+    },
+    {
+      key: 'subject',
+      header: 'Mata Pelajaran',
+      render: (item: Attendance) => getSubjectName(item.subjectId),
+    },
+    {
+      key: 'student',
+      header: 'Siswa',
+      render: (item: Attendance) => (
+        <div>
+          <strong>{getStudentName(item.studentId)}</strong>
+          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            NIS: {getStudentNumber(item.studentId)}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (item: Attendance) => (
+        <Badge variant={ATTENDANCE_STATUS_COLORS[item.status]}>
+          {ATTENDANCE_STATUS_LABELS[item.status] as string}
+        </Badge>
+      ),
+    },
+    {
+      key: 'notes',
+      header: 'Catatan',
+      render: (item: Attendance) => item.notes || '-',
+    },
+    {
+      key: 'actions',
+      header: 'Aksi',
+      render: (item: Attendance) => (
+        <Button variant="outline" size="small" onClick={() => handleEditAttendance(item)}>
+          Edit
+        </Button>
+      ),
+    },
+  ];
+
 
 
 const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, 'success' | 'danger' | 'warning' | 'info'> = {
@@ -103,7 +300,7 @@ export const TeacherAttendance = () => {
   const [showInputModal, setShowInputModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null);
-  const [attendances, setAttendances] = useState<Attendance[]>(mockAttendances);
+  const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [attendanceData, setAttendanceData] = useState<Record<string, AttendanceStatus>>({});
   const [attendanceNotes, setAttendanceNotes] = useState<Record<string, string>>({});
   const itemsPerPage = 10;
@@ -141,40 +338,59 @@ export const TeacherAttendance = () => {
     currentPage * itemsPerPage
   );
 
-  const handleOpenInputModal = () => {
+  const handleOpenInputModal = async () => {
     if (!selectedClass || !selectedSubject) {
       alert('Pilih kelas dan mata pelajaran terlebih dahulu');
       return;
     }
-    // Initialize attendance data for all students
-    const initialData: Record<string, AttendanceStatus> = {};
-    MOCK_STUDENTS.forEach((student) => {
-      initialData[student.id] = 'present'; // Default to present
-    });
-    setAttendanceData(initialData);
-    setAttendanceNotes({});
-    setShowInputModal(true);
+    try {
+      // Get students in the selected class
+      const classInfo = await classService.getClassById(selectedClass);
+      const studentIds = (classInfo as any).studentIds || [];
+      const classStudents = await Promise.all(
+        studentIds.map((studentId: string) => userService.getUserById(studentId))
+      );
+      
+      // Initialize attendance data for all students
+      const initialData: Record<string, AttendanceStatus> = {};
+      classStudents.forEach((student) => {
+        initialData[student.id] = 'present'; // Default to present
+      });
+      setAttendanceData(initialData);
+      setAttendanceNotes({});
+      setShowInputModal(true);
+    } catch (error) {
+      console.error('Error loading students:', error);
+      alert('Gagal memuat data siswa');
+    }
   };
 
   const handleSubmitAttendance = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedClass || !selectedSubject || !user?.id) return;
+    
+    setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const newAttendances: Attendance[] = MOCK_STUDENTS.map((student) => ({
-        id: Date.now().toString() + student.id,
-        studentId: student.id,
-        classId: selectedClass,
-        subjectId: selectedSubject,
-        date: new Date(selectedDate),
-        status: attendanceData[student.id] || 'present',
-        notes: attendanceNotes[student.id] || undefined,
-        recordedBy: 'teacher1', // In real app, get from auth context
-        createdAt: new Date(),
+      // Get students in the selected class
+      const classInfo = await classService.getClassById(selectedClass);
+      const studentIds = (classInfo as any).studentIds || [];
+      
+      const attendanceRecords = studentIds.map((studentId: string) => ({
+        studentId,
+        status: attendanceData[studentId] || 'present',
       }));
 
-      setAttendances([...attendances, ...newAttendances]);
+      await attendanceService.bulkCreateAttendance(
+        selectedClass,
+        new Date(selectedDate),
+        attendanceRecords
+      );
+
+      // Reload attendances
+      const allAttendances = await attendanceService.getAttendance();
+      const teacherAttendances = allAttendances.filter(a => a.recordedBy === user.id);
+      setAttendances(teacherAttendances);
+      
       setShowInputModal(false);
       setAttendanceData({});
       setAttendanceNotes({});
@@ -182,6 +398,8 @@ export const TeacherAttendance = () => {
     } catch (error) {
       console.error('Error saving attendance:', error);
       alert('Gagal menyimpan absensi');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -194,12 +412,18 @@ export const TeacherAttendance = () => {
     e.preventDefault();
     if (!selectedAttendance) return;
 
+    setIsSubmitting(true);
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await attendanceService.updateAttendance(
+        selectedAttendance.id,
+        selectedAttendance.status,
+        selectedAttendance.notes
+      );
 
-      // In real app, update via API
-      console.log('Updating attendance:', selectedAttendance.id);
+      // Reload attendances
+      const allAttendances = await attendanceService.getAttendance();
+      const teacherAttendances = allAttendances.filter(a => a.recordedBy === user?.id);
+      setAttendances(teacherAttendances);
 
       setShowEditModal(false);
       setSelectedAttendance(null);
@@ -210,26 +434,11 @@ export const TeacherAttendance = () => {
     }
   };
 
-  const getClassName = (classId: string) => {
-    return MOCK_CLASSES.find((c) => c.value === classId)?.label || classId;
-  };
-
-  const getSubjectName = (subjectId: string) => {
-    return MOCK_SUBJECTS.find((s) => s.value === subjectId)?.label || subjectId;
-  };
-
-  const getStudentName = (studentId: string) => {
-    return MOCK_STUDENTS.find((s) => s.id === studentId)?.fullName || studentId;
-  };
-
-  const getStudentNumber = (studentId: string) => {
-    return MOCK_STUDENTS.find((s) => s.id === studentId)?.studentNumber || '-';
-  };
-
   // Calculate statistics
-  const todayAttendances = attendances.filter(
-    (att) => att.date.toISOString().split('T')[0] === new Date().toISOString().split('T')[0]
-  );
+  const todayAttendances = attendances.filter((att) => {
+    const dateStr = typeof att.date === 'string' ? att.date : att.date.toISOString().split('T')[0];
+    return dateStr === new Date().toISOString().split('T')[0];
+  });
   const presentCount = todayAttendances.filter((att) => att.status === 'present').length;
   const absentCount = todayAttendances.filter((att) => att.status === 'absent').length;
   const lateCount = todayAttendances.filter((att) => att.status === 'late').length;
@@ -238,7 +447,7 @@ export const TeacherAttendance = () => {
     {
       key: 'date',
       header: 'Tanggal',
-      render: (item: Attendance) => formatDate(item.date),
+      render: (item: Attendance) => formatDate(new Date(item.date)),
     },
     {
       key: 'class',
@@ -356,7 +565,7 @@ export const TeacherAttendance = () => {
                   onChange={(e) => setSelectedClass(e.target.value)}
                   options={[
                     { value: '', label: 'Pilih kelas' },
-                    ...MOCK_CLASSES,
+                    ...classes,
                   ]}
                   required
                 />
@@ -366,7 +575,7 @@ export const TeacherAttendance = () => {
                   onChange={(e) => setSelectedSubject(e.target.value)}
                   options={[
                     { value: '', label: 'Pilih mata pelajaran' },
-                    ...MOCK_SUBJECTS,
+                    ...subjects,
                   ]}
                   required
                 />
@@ -404,7 +613,7 @@ export const TeacherAttendance = () => {
                   className="filter-select"
                 >
                   <option value="">Semua Kelas</option>
-                  {MOCK_CLASSES.map((cls) => (
+                  {classes.map((cls) => (
                     <option key={cls.value} value={cls.value}>
                       {cls.label}
                     </option>
@@ -421,7 +630,7 @@ export const TeacherAttendance = () => {
                   className="filter-select"
                 >
                   <option value="">Semua Mata Pelajaran</option>
-                  {MOCK_SUBJECTS.map((subj) => (
+                  {subjects.map((subj) => (
                     <option key={subj.value} value={subj.value}>
                       {subj.label}
                     </option>
@@ -442,7 +651,9 @@ export const TeacherAttendance = () => {
             </div>
 
             {/* Table */}
-            {paginatedData.length === 0 ? (
+            {isLoading ? (
+              <Loading />
+            ) : paginatedData.length === 0 ? (
               <EmptyState
                 icon="userGroup"
                 title="Tidak Ada Riwayat Absensi"
@@ -481,7 +692,7 @@ export const TeacherAttendance = () => {
               <strong>Tanggal:</strong> {formatDate(new Date(selectedDate))}
             </div>
             <div className="students-attendance-list">
-              {MOCK_STUDENTS.map((student) => (
+              {students.filter(s => (s as any).classId === selectedClass).map((student) => (
                 <div key={student.id} className="student-attendance-item">
                   <div className="student-info">
                     <strong>{student.fullName}</strong>
@@ -537,7 +748,7 @@ export const TeacherAttendance = () => {
               >
                 Batal
               </Button>
-              <Button type="submit">Simpan Absensi</Button>
+              <Button type="submit" isLoading={isSubmitting}>Simpan Absensi</Button>
             </div>
           </form>
         </Modal>
@@ -568,7 +779,7 @@ export const TeacherAttendance = () => {
               </div>
               <div className="form-group">
                 <label>Tanggal</label>
-                <div>{formatDate(selectedAttendance.date)}</div>
+                <div>{formatDate(new Date(selectedAttendance.date))}</div>
               </div>
               <FormSelect
                 label="Status"
@@ -607,7 +818,7 @@ export const TeacherAttendance = () => {
                 >
                   Batal
                 </Button>
-                <Button type="submit">Simpan Perubahan</Button>
+                <Button type="submit" isLoading={isSubmitting}>Simpan Perubahan</Button>
               </div>
             </form>
           )}

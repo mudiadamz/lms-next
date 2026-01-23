@@ -1,16 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button } from '../../components/common/Button';
-import { FormInput, FormSelect, FormTextarea, FileUpload, Modal } from '../../components/common';
+import { Button, FormInput, FormSelect, FormTextarea, FileUpload, Modal, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
+import { assignmentService, subjectService, classService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './CreateAssignment.css';
 
 export const CreateAssignment = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [subjects, setSubjects] = useState<Array<{ value: string; label: string }>>([]);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -21,13 +26,42 @@ export const CreateAssignment = () => {
   });
   const [files, setFiles] = useState<File[]>([]);
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [subjectsData, classesData] = await Promise.all([
+          subjectService.getSubjects(undefined, user?.id),
+          classService.getClasses(),
+        ]);
+        setSubjects(subjectsData.map(s => ({ value: s.id, label: s.name })));
+        setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // TODO: Call assignmentService.createAssignment
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
+      await assignmentService.createAssignment({
+        title: formData.title,
+        description: formData.description,
+        subjectId: formData.subjectId,
+        classId: formData.classId,
+        teacherId: user?.id || '',
+        dueDate: new Date(formData.dueDate).toISOString(),
+        maxScore: parseInt(formData.maxScore),
+        attachments: [], // TODO: Handle file uploads
+      });
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Error creating assignment:', error);
@@ -41,6 +75,14 @@ export const CreateAssignment = () => {
     setShowSuccessModal(false);
     navigate(ROUTES.TEACHER_ASSIGNMENTS);
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -73,8 +115,7 @@ export const CreateAssignment = () => {
                 onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
                 options={[
                   { value: '', label: 'Pilih mata pelajaran' },
-                  { value: '1', label: 'Matematika' },
-                  { value: '2', label: 'Bahasa Indonesia' },
+                  ...subjects,
                 ]}
                 required
               />
@@ -85,8 +126,7 @@ export const CreateAssignment = () => {
                 onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                 options={[
                   { value: '', label: 'Pilih kelas' },
-                  { value: '1', label: 'X IPA 1' },
-                  { value: '2', label: 'X IPA 2' },
+                  ...classes,
                 ]}
                 required
               />

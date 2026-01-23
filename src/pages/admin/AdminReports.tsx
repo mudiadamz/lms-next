@@ -1,22 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, FormSelect, Modal, Icon, Badge, FormInput } from '../../components/common';
+import { Button, FormSelect, Modal, Icon, Badge, FormInput, Loading } from '../../components/common';
 import { SCHOOL_LEVELS } from '../../constants';
+import { classService, academicYearService } from '../../services';
 import './AdminReports.css';
-
-// Mock data untuk dropdowns
-const MOCK_CLASSES = [
-  { value: 'class1', label: 'X IPA 1' },
-  { value: 'class2', label: 'X IPA 2' },
-  { value: 'class3', label: 'XI IPA 1' },
-  { value: 'all', label: 'Semua Kelas' },
-];
-
-const MOCK_ACADEMIC_YEARS = [
-  { value: '2024-2025', label: '2024-2025' },
-  { value: '2023-2024', label: '2023-2024' },
-];
 
 const REPORT_TYPES = [
   {
@@ -67,10 +55,13 @@ export const AdminReports = () => {
   const [selectedReport, setSelectedReport] = useState<string | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
+  const [academicYears, setAcademicYears] = useState<Array<{ value: string; label: string }>>([]);
   const [formData, setFormData] = useState({
     reportType: '',
     classId: 'all',
-    academicYear: '2024-2025',
+    academicYear: '',
     semester: '1',
     schoolLevel: '',
     startDate: '',
@@ -78,13 +69,36 @@ export const AdminReports = () => {
     format: 'pdf',
   });
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [classesData, academicYearsData] = await Promise.all([
+          classService.getClasses(),
+          academicYearService.getAcademicYears(),
+        ]);
+        setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
+        setAcademicYears(academicYearsData.map(ay => ({ value: ay.name, label: ay.name })));
+        
+        if (academicYearsData.length > 0) {
+          setFormData(prev => ({ ...prev, academicYear: academicYearsData[0].name }));
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
   const handleGenerate = (reportId: string) => {
     setSelectedReport(reportId);
-    const reportType = REPORT_TYPES.find((r) => r.id === reportId);
+    const defaultYear = academicYears.length > 0 ? academicYears[0].value : formData.academicYear || '';
     setFormData({
       reportType: reportId,
       classId: 'all',
-      academicYear: '2024-2025',
+      academicYear: defaultYear,
       semester: '1',
       schoolLevel: '',
       startDate: '',
@@ -99,10 +113,9 @@ export const AdminReports = () => {
     setIsGenerating(true);
 
     try {
-      // Simulate API call untuk generate report
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // In real app, this would download the report file
+      // Note: Report generation would typically call a backend API
+      // For now, we'll just show a success message
+      // In a real implementation, this would download the report file
       alert(`Laporan berhasil dibuat! Format: ${formData.format.toUpperCase()}`);
       setShowGenerateModal(false);
       setSelectedReport(null);
@@ -126,13 +139,13 @@ export const AdminReports = () => {
               label="Kelas"
               value={formData.classId}
               onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-              options={MOCK_CLASSES}
+              options={classes}
             />
             <FormSelect
               label="Tahun Ajaran"
               value={formData.academicYear}
               onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-              options={MOCK_ACADEMIC_YEARS}
+              options={academicYears}
             />
             <FormSelect
               label="Semester"
@@ -168,13 +181,19 @@ export const AdminReports = () => {
               label="Kelas"
               value={formData.classId}
               onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-              options={MOCK_CLASSES}
+              options={[
+                { value: 'all', label: 'Semua Kelas' },
+                ...classes,
+              ]}
             />
             <FormSelect
               label="Tahun Ajaran"
               value={formData.academicYear}
               onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-              options={MOCK_ACADEMIC_YEARS}
+              options={[
+                { value: '', label: 'Pilih tahun ajaran' },
+                ...academicYears,
+              ]}
             />
             <FormSelect
               label="Semester"
@@ -211,7 +230,10 @@ export const AdminReports = () => {
                 label="Kelas"
                 value={formData.classId}
                 onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
-                options={MOCK_CLASSES}
+                options={[
+                  { value: 'all', label: 'Semua Kelas' },
+                  ...classes,
+                ]}
               />
             )}
           </>
@@ -236,7 +258,10 @@ export const AdminReports = () => {
               label="Tahun Ajaran"
               value={formData.academicYear}
               onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-              options={MOCK_ACADEMIC_YEARS}
+              options={[
+                { value: '', label: 'Pilih tahun ajaran' },
+                ...academicYears,
+              ]}
             />
           </>
         );
@@ -253,7 +278,10 @@ export const AdminReports = () => {
           <h1>Laporan Sekolah</h1>
         </div>
 
-        <div className="reports-grid">
+        {isLoading ? (
+          <Loading />
+        ) : (
+          <div className="reports-grid">
           {REPORT_TYPES.map((report) => (
             <Card key={report.id} variant="elevated" className="report-card">
               <div className="report-card-header">
@@ -276,7 +304,8 @@ export const AdminReports = () => {
               </Button>
             </Card>
           ))}
-        </div>
+          </div>
+        )}
 
         {/* Generate Report Modal */}
         <Modal

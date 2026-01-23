@@ -1,29 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, FileUpload, FormTextarea, Modal } from '../../components/common';
+import { Button, Badge, FileUpload, FormTextarea, Modal, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, formatDateTime, isPast } from '../../utils';
+import { assignmentService, subjectService, userService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './AssignmentDetail.css';
-
-const mockAssignment = {
-  id: '1',
-  title: 'Tugas Matematika - Aljabar',
-  description: 'Kerjakan soal-soal aljabar berikut dengan benar. Upload jawaban dalam format PDF.',
-  subject: 'Matematika',
-  teacher: 'Ibu Siti',
-  dueDate: new Date('2024-01-20T23:59:59'),
-  maxScore: 100,
-  attachments: ['soal-aljabar.pdf'],
-};
-
-const mockSubmission = {
-  id: '1',
-  content: '',
-  submittedAt: null as Date | null,
-  score: null as number | null,
-};
 
 interface StudentAssignmentDetailProps {
   readOnly?: boolean;
@@ -32,22 +16,68 @@ interface StudentAssignmentDetailProps {
 export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentDetailProps = {} as StudentAssignmentDetailProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [submission, setSubmission] = useState(mockSubmission);
+  const { user } = useAuth();
+  const [assignment, setAssignment] = useState<any>(null);
+  const [submission, setSubmission] = useState<any>(null);
+  const [subjectName, setSubjectName] = useState('');
+  const [teacherName, setTeacherName] = useState('');
+  const [content, setContent] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!id || !user?.id) return;
+      
+      try {
+        setIsLoading(true);
+        const [assignmentData, submissionsData] = await Promise.all([
+          assignmentService.getAssignmentById(id),
+          assignmentService.getSubmissions(id).catch(() => []),
+        ]);
+
+        setAssignment(assignmentData);
+
+        // Find student's submission
+        const studentSubmission = submissionsData.find(s => s.studentId === user.id);
+        if (studentSubmission) {
+          setSubmission(studentSubmission);
+          setContent(studentSubmission.content || '');
+        }
+
+        // Get subject and teacher names
+        const [subjectInfo, teacherInfo] = await Promise.all([
+          subjectService.getSubjectById(assignmentData.subjectId),
+          userService.getUserById(assignmentData.teacherId),
+        ]);
+
+        setSubjectName(subjectInfo.name);
+        setTeacherName(teacherInfo.fullName);
+      } catch (error) {
+        console.error('Error loading assignment detail:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id, user?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!submission.content.trim() && files.length === 0) {
+    if (!id || !content.trim() && files.length === 0) {
       alert('Harap isi jawaban atau upload file');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // TODO: Call assignmentService.submitAssignment
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await assignmentService.submitAssignment(id, {
+        content,
+        attachments: [], // TODO: Handle file uploads
+      });
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Error submitting assignment:', error);
@@ -57,8 +87,24 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
     }
   };
 
-  const isOverdue = isPast(mockAssignment.dueDate);
-  const isSubmitted = submission.submittedAt !== null;
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!assignment) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="assignment" title="Tugas Tidak Ditemukan" message="Tugas yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
+
+  const isOverdue = isPast(new Date(assignment.dueDate));
+  const isSubmitted = submission !== null;
 
   return (
     <DashboardLayout>
@@ -69,44 +115,44 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
           </Button>
         </div>
 
-        <Card title={mockAssignment.title}>
+        <Card title={assignment.title}>
           <div className="assignment-info">
             <div className="info-item">
-              <strong>Mata Pelajaran:</strong> {mockAssignment.subject}
+              <strong>Mata Pelajaran:</strong> {subjectName}
             </div>
             <div className="info-item">
-              <strong>Guru:</strong> {mockAssignment.teacher}
+              <strong>Guru:</strong> {teacherName}
             </div>
             <div className="info-item">
               <strong>Deadline:</strong>{' '}
               <Badge variant={isOverdue ? 'danger' : 'warning'}>
-                {formatDateTime(mockAssignment.dueDate)}
+                {formatDateTime(new Date(assignment.dueDate))}
               </Badge>
             </div>
             <div className="info-item">
-              <strong>Nilai Maksimal:</strong> {mockAssignment.maxScore}
+              <strong>Nilai Maksimal:</strong> {assignment.maxScore}
             </div>
-            {submission.score !== null && (
+            {submission?.score !== null && submission?.score !== undefined && (
               <div className="info-item">
                 <strong>Nilai Anda:</strong>{' '}
-                <Badge variant="success">{submission.score}/{mockAssignment.maxScore}</Badge>
+                <Badge variant="success">{submission.score}/{assignment.maxScore}</Badge>
               </div>
             )}
           </div>
 
           <div className="assignment-description">
             <h3>Deskripsi</h3>
-            <p>{mockAssignment.description}</p>
+            <p>{assignment.description}</p>
           </div>
 
-          {mockAssignment.attachments && mockAssignment.attachments.length > 0 && (
+          {assignment.attachments && assignment.attachments.length > 0 && (
             <div className="assignment-attachments">
               <h3>Lampiran</h3>
               <ul>
-                {mockAssignment.attachments.map((file, index) => (
+                {assignment.attachments.map((file: string, index: number) => (
                   <li key={index}>
-                    <a href="#" download>
-                      📎 {file}
+                    <a href={file} download target="_blank" rel="noopener noreferrer">
+                      📎 {file.split('/').pop() || file}
                     </a>
                   </li>
                 ))}
@@ -126,8 +172,8 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
             <form onSubmit={handleSubmit} className="submission-form">
               <FormTextarea
                 label="Jawaban"
-                value={submission.content}
-                onChange={(e) => setSubmission({ ...submission, content: e.target.value })}
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
                 rows={10}
                 placeholder="Tulis jawaban Anda di sini..."
               />
@@ -154,12 +200,18 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
                 <strong>Status:</strong> <Badge variant="success">Sudah Dikumpulkan</Badge>
               </p>
               <p>
-                <strong>Waktu Submit:</strong> {formatDateTime(submission.submittedAt!)}
+                <strong>Waktu Submit:</strong> {formatDateTime(new Date(submission.submittedAt))}
               </p>
-              {submission.score !== null && (
+              {submission.score !== null && submission.score !== undefined && (
                 <p>
-                  <strong>Nilai:</strong> {submission.score}/{mockAssignment.maxScore}
+                  <strong>Nilai:</strong> {submission.score}/{assignment.maxScore}
                 </p>
+              )}
+              {submission.feedback && (
+                <div className="feedback-section">
+                  <h4>Feedback Guru:</h4>
+                  <p>{submission.feedback}</p>
+                </div>
               )}
             </div>
           </Card>

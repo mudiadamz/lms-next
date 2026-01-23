@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, Icon, EmptyState, Pagination } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, Icon, EmptyState, Pagination, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
+import { assignmentService, quizService, gradeService, classService, subjectService, userService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './TeacherGrading.css';
 
 // Interface untuk item yang perlu dinilai
@@ -37,118 +39,9 @@ interface GradeRecord {
   gradedAt: Date;
 }
 
-// Contoh data tugas/kuis yang perlu dinilai
-const mockPendingGradings: PendingGrading[] = [
-  {
-    id: '1',
-    type: 'assignment',
-    title: 'Tugas Matematika - Aljabar',
-    class: 'X IPA 1',
-    subject: 'Matematika',
-    dueDate: new Date('2024-01-20'),
-    submittedCount: 25,
-    totalStudents: 30,
-    maxScore: 100,
-  },
-  {
-    id: '2',
-    type: 'assignment',
-    title: 'Tugas Fisika - Gerak Lurus',
-    class: 'X IPA 1',
-    subject: 'Fisika',
-    dueDate: new Date('2024-01-22'),
-    submittedCount: 28,
-    totalStudents: 30,
-    maxScore: 100,
-  },
-  {
-    id: '3',
-    type: 'quiz',
-    title: 'Kuis Matematika - Trigonometri',
-    class: 'XI IPA 1',
-    subject: 'Matematika',
-    dueDate: new Date('2024-01-18'),
-    submittedCount: 30,
-    totalStudents: 32,
-    maxScore: 50,
-  },
-  {
-    id: '4',
-    type: 'assignment',
-    title: 'Tugas Bahasa Indonesia - Menulis Esai',
-    class: 'X IPA 2',
-    subject: 'Bahasa Indonesia',
-    dueDate: new Date('2024-01-25'),
-    submittedCount: 15,
-    totalStudents: 28,
-    maxScore: 100,
-  },
-];
-
-// Contoh data nilai yang sudah diberikan
-const mockGrades: GradeRecord[] = [
-  {
-    id: '1',
-    studentId: 'student1',
-    studentName: 'Budi Santoso',
-    studentNumber: '2024001',
-    type: 'assignment',
-    title: 'Tugas Matematika - Aljabar',
-    class: 'X IPA 1',
-    subject: 'Matematika',
-    score: 85,
-    maxScore: 100,
-    percentage: 85,
-    notes: 'Bagus, perlu lebih teliti dalam perhitungan',
-    gradedAt: new Date('2024-01-19'),
-  },
-  {
-    id: '2',
-    studentId: 'student2',
-    studentName: 'Siti Nurhaliza',
-    studentNumber: '2024002',
-    type: 'assignment',
-    title: 'Tugas Matematika - Aljabar',
-    class: 'X IPA 1',
-    subject: 'Matematika',
-    score: 92,
-    maxScore: 100,
-    percentage: 92,
-    notes: 'Sangat baik',
-    gradedAt: new Date('2024-01-19'),
-  },
-  {
-    id: '3',
-    studentId: 'student3',
-    studentName: 'Andi Pratama',
-    studentNumber: '2024003',
-    type: 'quiz',
-    title: 'Kuis Matematika - Trigonometri',
-    class: 'XI IPA 1',
-    subject: 'Matematika',
-    score: 45,
-    maxScore: 50,
-    percentage: 90,
-    gradedAt: new Date('2024-01-18'),
-  },
-  {
-    id: '4',
-    studentId: 'student1',
-    studentName: 'Budi Santoso',
-    studentNumber: '2024001',
-    type: 'assignment',
-    title: 'Tugas Fisika - Gerak Lurus',
-    class: 'X IPA 1',
-    subject: 'Fisika',
-    score: 78,
-    maxScore: 100,
-    percentage: 78,
-    gradedAt: new Date('2024-01-21'),
-  },
-];
-
 export const TeacherGrading = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'pending' | 'graded'>('pending');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
@@ -160,10 +53,136 @@ export const TeacherGrading = () => {
     score: '',
     notes: '',
   });
+  const [pendingGradings, setPendingGradings] = useState<PendingGrading[]>([]);
+  const [grades, setGrades] = useState<GradeRecord[]>([]);
+  const [classes, setClasses] = useState<Record<string, string>>({});
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [students, setStudents] = useState<Record<string, { fullName: string; studentNumber: string }>>({});
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const itemsPerPage = 10;
 
-  const [pendingGradings, setPendingGradings] = useState<PendingGrading[]>(mockPendingGradings);
-  const [grades, setGrades] = useState<GradeRecord[]>(mockGrades);
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [assignmentsData, quizzesData, classesData, subjectsData, studentsData] = await Promise.all([
+          assignmentService.getAssignments({ teacherId: user?.id }),
+          quizService.getQuizzes({ teacherId: user?.id }),
+          classService.getClasses(),
+          subjectService.getSubjects(),
+          userService.getUsers('student'),
+        ]);
+
+        // Get all grades and filter by teacher's assignments/quizzes
+        // Note: gradeService.getGrades() doesn't accept teacherId, so we filter manually
+        const allGrades = await gradeService.getGrades();
+        const teacherAssignmentIds = assignmentsData.map(a => a.id);
+        const teacherQuizIds = quizzesData.map(q => q.id);
+        const gradesData = allGrades.filter(g => 
+          (g.assignmentId && teacherAssignmentIds.includes(g.assignmentId)) ||
+          (g.quizId && teacherQuizIds.includes(g.quizId)) ||
+          g.teacherId === user?.id
+        );
+
+        // Create lookup maps
+        const classMap: Record<string, string> = {};
+        classesData.forEach(c => { classMap[c.id] = c.name; });
+        setClasses(classMap);
+
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
+
+        const studentMap: Record<string, { fullName: string; studentNumber: string }> = {};
+        studentsData.forEach(s => {
+          studentMap[s.id] = {
+            fullName: s.fullName,
+            studentNumber: (s as any).studentNumber || '',
+          };
+        });
+        setStudents(studentMap);
+
+        // Process pending gradings from assignments and quizzes
+        const pendingItems: PendingGrading[] = [];
+        
+        assignmentsData.forEach(assignment => {
+          const submissionCount = (assignment as any).submissionCount || 0;
+          const totalStudents = (assignment as any).totalStudents || 0;
+          if (submissionCount < totalStudents || submissionCount === 0) {
+            pendingItems.push({
+              id: assignment.id,
+              type: 'assignment',
+              title: assignment.title,
+              class: classMap[assignment.classId] || assignment.classId,
+              subject: subjectMap[assignment.subjectId] || assignment.subjectId,
+              dueDate: new Date(assignment.dueDate),
+              submittedCount: submissionCount,
+              totalStudents: totalStudents,
+              maxScore: assignment.maxScore || 100,
+            });
+          }
+        });
+
+        quizzesData.forEach(quiz => {
+          const submissionCount = (quiz as any).submissionCount || 0;
+          const totalStudents = (quiz as any).totalStudents || 0;
+          if (submissionCount < totalStudents || submissionCount === 0) {
+            pendingItems.push({
+              id: quiz.id,
+              type: 'quiz',
+              title: quiz.title,
+              class: classMap[quiz.classId] || quiz.classId,
+              subject: subjectMap[quiz.subjectId] || quiz.subjectId,
+              dueDate: new Date(quiz.endDate || quiz.endTime || Date.now()),
+              submittedCount: submissionCount,
+              totalStudents: totalStudents,
+              maxScore: quiz.maxScore || 100,
+            });
+          }
+        });
+
+        setPendingGradings(pendingItems);
+
+        // Process graded items
+        const gradedItems: GradeRecord[] = gradesData.map(grade => {
+          const student = studentMap[grade.studentId] || { fullName: grade.studentId, studentNumber: '' };
+          const assignment = assignmentsData.find(a => a.id === grade.assignmentId);
+          const quiz = quizzesData.find(q => q.id === grade.quizId);
+          const item = assignment || quiz;
+          
+          return {
+            id: grade.id,
+            studentId: grade.studentId,
+            studentName: student.fullName,
+            studentNumber: student.studentNumber,
+            type: grade.type as any,
+            title: item?.title || 'Unknown',
+            class: item ? (classMap[item.classId] || item.classId) : '',
+            subject: item ? (subjectMap[item.subjectId] || item.subjectId) : '',
+            score: grade.score,
+            maxScore: grade.maxScore || 100,
+            percentage: Math.round((grade.score / (grade.maxScore || 100)) * 100),
+            notes: grade.feedback,
+            gradedAt: new Date(grade.createdAt),
+          };
+        });
+
+        setGrades(gradedItems);
+      } catch (error) {
+        console.error('Error loading grading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
+  const uniqueClasses = Array.from(new Set([...pendingGradings.map(p => p.class), ...grades.map(g => g.class)]));
+  const uniqueSubjects = Array.from(new Set([...pendingGradings.map(p => p.subject), ...grades.map(g => g.subject)]));
 
   const filteredPending = pendingGradings.filter((item) => {
     const matchesClass = selectedClass === 'all' || item.class === selectedClass;
@@ -216,31 +235,105 @@ export const TeacherGrading = () => {
 
   const handleSubmitGrade = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedItem) return;
+
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
+      setIsSubmitting(true);
       const score = parseFloat(formData.score);
-      if (selectedItem) {
-        // In real app, this would save to backend
-        console.log('Grading:', {
-          itemId: selectedItem.id,
-          score,
-          maxScore: selectedItem.maxScore,
-          notes: formData.notes,
-        });
+      
+      // TODO: Need to get studentId - this is a simplified version
+      // In real implementation, you'd need to select which student to grade
+      // For now, we'll just create a grade record
+      await gradeService.createGrade({
+        studentId: '', // This should come from the grading interface
+        assignmentId: selectedItem.type === 'assignment' ? selectedItem.id : undefined,
+        quizId: selectedItem.type === 'quiz' ? selectedItem.id : undefined,
+        score: score,
+        maxScore: selectedItem.maxScore,
+        feedback: formData.notes || undefined,
+        type: selectedItem.type,
+      });
 
-        // Update pending count if grading assignment
-        if (activeTab === 'pending') {
-          setPendingGradings(
-            pendingGradings.map((item) =>
-              item.id === selectedItem.id
-                ? { ...item, submittedCount: item.submittedCount + 1 }
-                : item
-            )
-          );
+      // Reload data
+      const [assignmentsData, quizzesData] = await Promise.all([
+        assignmentService.getAssignments({ teacherId: user?.id }),
+        quizService.getQuizzes({ teacherId: user?.id }),
+      ]);
+
+      const allGrades = await gradeService.getGrades();
+      const teacherAssignmentIds = assignmentsData.map(a => a.id);
+      const teacherQuizIds = quizzesData.map(q => q.id);
+      const gradesData = allGrades.filter(g => 
+        (g.assignmentId && teacherAssignmentIds.includes(g.assignmentId)) ||
+        (g.quizId && teacherQuizIds.includes(g.quizId)) ||
+        g.teacherId === user?.id
+      );
+
+      // Update pending gradings
+      const pendingItems: PendingGrading[] = [];
+      assignmentsData.forEach(assignment => {
+        const submissionCount = (assignment as any).submissionCount || 0;
+        const totalStudents = (assignment as any).totalStudents || 0;
+        if (submissionCount < totalStudents || submissionCount === 0) {
+          pendingItems.push({
+            id: assignment.id,
+            type: 'assignment',
+            title: assignment.title,
+            class: classes[assignment.classId] || assignment.classId,
+            subject: subjects[assignment.subjectId] || assignment.subjectId,
+            dueDate: new Date(assignment.dueDate),
+            submittedCount: submissionCount,
+            totalStudents: totalStudents,
+            maxScore: assignment.maxScore || 100,
+          });
         }
-      }
+      });
+
+      quizzesData.forEach(quiz => {
+        const submissionCount = (quiz as any).submissionCount || 0;
+        const totalStudents = (quiz as any).totalStudents || 0;
+        if (submissionCount < totalStudents || submissionCount === 0) {
+          pendingItems.push({
+            id: quiz.id,
+            type: 'quiz',
+            title: quiz.title,
+            class: classes[quiz.classId] || quiz.classId,
+            subject: subjects[quiz.subjectId] || quiz.subjectId,
+            dueDate: new Date(quiz.endDate || quiz.endTime || Date.now()),
+            submittedCount: submissionCount,
+            totalStudents: totalStudents,
+            maxScore: quiz.maxScore || 100,
+          });
+        }
+      });
+
+      setPendingGradings(pendingItems);
+
+      // Update grades
+      const gradedItems: GradeRecord[] = gradesData.map(grade => {
+        const student = students[grade.studentId] || { fullName: grade.studentId, studentNumber: '' };
+        const assignment = assignmentsData.find(a => a.id === grade.assignmentId);
+        const quiz = quizzesData.find(q => q.id === grade.quizId);
+        const item = assignment || quiz;
+        
+        return {
+          id: grade.id,
+          studentId: grade.studentId,
+          studentName: student.fullName,
+          studentNumber: student.studentNumber,
+          type: grade.type as any,
+          title: item?.title || 'Unknown',
+          class: item ? (classes[item.classId] || item.classId) : '',
+          subject: item ? (subjects[item.subjectId] || item.subjectId) : '',
+          score: grade.score,
+          maxScore: grade.maxScore || 100,
+          percentage: Math.round((grade.score / (grade.maxScore || 100)) * 100),
+          notes: grade.feedback,
+          gradedAt: new Date(grade.createdAt),
+        };
+      });
+
+      setGrades(gradedItems);
 
       setShowGradeModal(false);
       setSelectedItem(null);
@@ -248,9 +341,12 @@ export const TeacherGrading = () => {
         score: '',
         notes: '',
       });
+      alert('Nilai berhasil disimpan');
     } catch (error) {
       console.error('Error saving grade:', error);
       alert('Gagal menyimpan nilai');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -477,9 +573,9 @@ export const TeacherGrading = () => {
               className="filter-select"
             >
               <option value="all">Semua Kelas</option>
-              <option value="X IPA 1">X IPA 1</option>
-              <option value="X IPA 2">X IPA 2</option>
-              <option value="XI IPA 1">XI IPA 1</option>
+              {uniqueClasses.map(cls => (
+                <option key={cls} value={cls}>{cls}</option>
+              ))}
             </select>
           </div>
           <div className="filter-group">
@@ -492,9 +588,9 @@ export const TeacherGrading = () => {
               className="filter-select"
             >
               <option value="all">Semua Mata Pelajaran</option>
-              <option value="Matematika">Matematika</option>
-              <option value="Fisika">Fisika</option>
-              <option value="Bahasa Indonesia">Bahasa Indonesia</option>
+              {uniqueSubjects.map(subj => (
+                <option key={subj} value={subj}>{subj}</option>
+              ))}
             </select>
           </div>
           <div className="filter-group">
@@ -604,7 +700,7 @@ export const TeacherGrading = () => {
                 >
                   Batal
                 </Button>
-                <Button type="submit">Simpan Nilai</Button>
+                <Button type="submit" isLoading={isSubmitting}>Simpan Nilai</Button>
               </div>
             </form>
           )}

@@ -433,7 +433,54 @@ export function createTables() {
       name TEXT NOT NULL UNIQUE,
       start_date DATE NOT NULL,
       end_date DATE NOT NULL,
-      is_active INTEGER DEFAULT 0
+      is_active INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Payments table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id TEXT PRIMARY KEY,
+      class_id TEXT NOT NULL,
+      month TEXT NOT NULL,
+      year INTEGER NOT NULL,
+      amount REAL NOT NULL,
+      due_date DATE NOT NULL,
+      status TEXT NOT NULL CHECK(status IN ('paid', 'pending', 'overdue')),
+      payment_method TEXT,
+      receipt_number TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (class_id) REFERENCES classes(id)
+    )
+  `);
+
+  // Curriculums table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS curriculums (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL,
+      school_level TEXT NOT NULL CHECK(school_level IN ('sd', 'smp', 'sma', 'all')),
+      is_active INTEGER DEFAULT 0,
+      start_date DATE NOT NULL,
+      end_date DATE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Audit Logs table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      user_name TEXT NOT NULL,
+      action TEXT NOT NULL,
+      details TEXT,
+      ip_address TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
     )
   `);
 

@@ -2,29 +2,77 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon } from '../../components/common';
+import { Button, Badge, Icon, Loading, EmptyState } from '../../components/common';
 import { ROUTES, SCHOOL_LEVELS } from '../../constants';
+import { classService, assignmentService, quizService, gradeService, materialService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './TeacherClasses.css';
-
-// Mock data
-const mockClassData = {
-  id: 'class1',
-  name: 'X IPA 1',
-  grade: 10,
-  schoolLevel: 'sma',
-  studentCount: 30,
-  maxStudents: 36,
-  academicYear: '2024-2025',
-  semester: 1,
-};
 
 export const TeacherClassManage = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [classData, setClassData] = useState<any>(null);
+  const [stats, setStats] = useState({
+    studentCount: 0,
+    activeAssignments: 0,
+    activeQuizzes: 0,
+    averageGrade: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Fetch class data from API based on id
+    const loadData = async () => {
+      if (!id) return;
+      
+      try {
+        setIsLoading(true);
+        const [classInfo, assignmentsData, quizzesData, gradesData] = await Promise.all([
+          classService.getClassById(id),
+          assignmentService.getAssignments(id),
+          quizService.getQuizzes(id),
+          gradeService.getGrades(),
+        ]);
+
+        setClassData(classInfo);
+        
+        // Calculate stats
+        const studentIds = (classInfo as any).studentIds || [];
+        const now = new Date();
+        
+        const activeAssignments = assignmentsData.filter(a => {
+          const dueDate = new Date(a.dueDate);
+          return dueDate > now;
+        }).length;
+
+        const activeQuizzes = quizzesData.filter(q => {
+          const endDate = new Date(q.endDate);
+          return endDate > now;
+        }).length;
+
+        // Calculate average grade for this class
+        const classGrades = gradesData.filter(g => 
+          studentIds.includes(g.studentId)
+        );
+        const averageGrade = classGrades.length > 0
+          ? Math.round((classGrades.reduce((sum, g) => sum + (g.score / g.maxScore) * 100, 0) / classGrades.length))
+          : 0;
+
+        setStats({
+          studentCount: studentIds.length,
+          activeAssignments,
+          activeQuizzes,
+          averageGrade,
+        });
+      } catch (error) {
+        console.error('Error loading class data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
   }, [id]);
 
   const tabs = [
@@ -37,11 +85,27 @@ export const TeacherClassManage = () => {
     { id: 'grades', label: 'Nilai' },
   ];
 
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!classData) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="class" title="Kelas Tidak Ditemukan" message="Kelas yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <div className="teacher-class-manage">
         <div className="page-header">
-          <h1>Kelola Kelas - {mockClassData.name}</h1>
+          <h1>Kelola Kelas - {classData.name}</h1>
         </div>
 
         <Card variant="elevated">
@@ -65,28 +129,28 @@ export const TeacherClassManage = () => {
                   <div className="overview-card">
                     <Icon name="users" size={24} />
                     <div>
-                      <div className="overview-value">{mockClassData.studentCount}</div>
+                      <div className="overview-value">{stats.studentCount}</div>
                       <div className="overview-label">Total Siswa</div>
                     </div>
                   </div>
                   <div className="overview-card">
                     <Icon name="assignment" size={24} />
                     <div>
-                      <div className="overview-value">12</div>
+                      <div className="overview-value">{stats.activeAssignments}</div>
                       <div className="overview-label">Tugas Aktif</div>
                     </div>
                   </div>
                   <div className="overview-card">
                     <Icon name="quiz" size={24} />
                     <div>
-                      <div className="overview-value">5</div>
+                      <div className="overview-value">{stats.activeQuizzes}</div>
                       <div className="overview-label">Kuis Aktif</div>
                     </div>
                   </div>
                   <div className="overview-card">
                     <Icon name="grade" size={24} />
                     <div>
-                      <div className="overview-value">85%</div>
+                      <div className="overview-value">{stats.averageGrade}%</div>
                       <div className="overview-label">Rata-rata Nilai</div>
                     </div>
                   </div>

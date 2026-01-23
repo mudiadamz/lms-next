@@ -1,60 +1,92 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge } from '../../components/common';
+import { Button, Badge, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDateTime, isPast } from '../../utils';
+import { quizService, subjectService, userService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './ParentQuizDetail.css';
-
-const mockQuiz = {
-  id: '1',
-  title: 'Kuis Matematika - Bab 1',
-  description: 'Kuis tentang aljabar dasar. Waktu pengerjaan 30 menit.',
-  subject: 'Matematika',
-  teacher: 'Ibu Siti',
-  timeLimit: 30,
-  questions: 10,
-  startDate: new Date('2024-01-18T08:00:00'),
-  endDate: new Date('2024-01-25T23:59:59'),
-  maxScore: 100,
-};
-
-const mockSubmission = {
-  id: '1',
-  submittedAt: new Date('2024-01-20T10:30:00'),
-  score: 85,
-  answers: {
-    '1': '5x',
-    '2': '3x + 6',
-  },
-};
-
-const mockQuestions = [
-  {
-    id: '1',
-    question: 'Berapakah hasil dari 2x + 3x?',
-    type: 'multiple_choice',
-    options: ['5x', '6x', '5', '6'],
-    correctAnswer: '5x',
-    studentAnswer: '5x',
-  },
-  {
-    id: '2',
-    question: 'Sederhanakan: 3(x + 2)',
-    type: 'multiple_choice',
-    options: ['3x + 2', '3x + 6', 'x + 6', '3x'],
-    correctAnswer: '3x + 6',
-    studentAnswer: '3x + 6',
-  },
-];
 
 export const ParentQuizDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [quiz, setQuiz] = useState<any>(null);
+  const [submission, setSubmission] = useState<any>(null);
+  const [questions, setQuestions] = useState<any[]>([]);
+  const [subjectName, setSubjectName] = useState('');
+  const [teacherName, setTeacherName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const isActive = new Date() >= mockQuiz.startDate && new Date() <= mockQuiz.endDate;
-  const isOverdue = isPast(mockQuiz.endDate);
-  const isSubmitted = mockSubmission.submittedAt !== null;
+  useEffect(() => {
+    const loadData = async () => {
+      if (!id || !user?.id) return;
+      
+      try {
+        setIsLoading(true);
+        const parentData = await userService.getUserById(user.id);
+        const studentIds = (parentData as any)?.studentIds || [];
+        
+        if (studentIds.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        const [quizData, submissionsData] = await Promise.all([
+          quizService.getQuizById(id),
+          quizService.getQuizSubmissions(id).catch(() => []),
+        ]);
+
+        setQuiz(quizData);
+
+        // Find submission for first child
+        const childSubmission = submissionsData.find(s => studentIds.includes(s.studentId));
+        setSubmission(childSubmission || null);
+
+        // Extract questions from quiz
+        if (quizData.questions) {
+          setQuestions(quizData.questions);
+        }
+
+        // Get subject and teacher names
+        const [subjectInfo, teacherInfo] = await Promise.all([
+          subjectService.getSubjectById(quizData.subjectId),
+          userService.getUserById(quizData.teacherId),
+        ]);
+
+        setSubjectName(subjectInfo.name);
+        setTeacherName(teacherInfo.fullName);
+      } catch (error) {
+        console.error('Error loading quiz detail:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id, user?.id]);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!quiz) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="quiz" title="Kuis Tidak Ditemukan" message="Kuis yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
+
+  const isActive = new Date() >= new Date(quiz.startDate) && new Date() <= new Date(quiz.endDate);
+  const isOverdue = isPast(new Date(quiz.endDate));
+  const isSubmitted = submission !== null;
 
   return (
     <DashboardLayout>
@@ -65,10 +97,10 @@ export const ParentQuizDetail = () => {
         <Card>
           <div className="quiz-header">
             <div>
-              <h1>{mockQuiz.title}</h1>
+              <h1>{quiz.title}</h1>
               <div className="quiz-meta">
-                <Badge variant="info">{mockQuiz.subject}</Badge>
-                <span>Guru: {mockQuiz.teacher}</span>
+                <Badge variant="info">{subjectName}</Badge>
+                <span>Guru: {teacherName}</span>
               </div>
             </div>
           </div>
@@ -76,24 +108,24 @@ export const ParentQuizDetail = () => {
           <div className="quiz-info">
             <div className="info-grid">
               <div className="info-item">
-                <strong>Waktu:</strong> {mockQuiz.timeLimit} menit
+                <strong>Waktu:</strong> {quiz.timeLimit} menit
               </div>
               <div className="info-item">
-                <strong>Jumlah Soal:</strong> {mockQuiz.questions}
+                <strong>Jumlah Soal:</strong> {questions.length}
               </div>
               <div className="info-item">
-                <strong>Nilai Maksimal:</strong> {mockQuiz.maxScore}
+                <strong>Nilai Maksimal:</strong> {quiz.maxScore}
               </div>
               <div className="info-item">
-                <strong>Batas Waktu:</strong> {formatDateTime(mockQuiz.endDate)}
+                <strong>Batas Waktu:</strong> {formatDateTime(new Date(quiz.endDate))}
               </div>
             </div>
           </div>
 
-          {mockQuiz.description && (
+          {quiz.description && (
             <div className="quiz-description">
               <h3>Deskripsi</h3>
-              <p>{mockQuiz.description}</p>
+              <p>{quiz.description}</p>
             </div>
           )}
 
@@ -102,11 +134,11 @@ export const ParentQuizDetail = () => {
               <div className="result-header">
                 <h3>Hasil Kuis Anak</h3>
                 <Badge variant="success" size="large">
-                  {mockSubmission.score}/{mockQuiz.maxScore}
+                  {submission.score || 0}/{quiz.maxScore}
                 </Badge>
               </div>
               <p>
-                <strong>Waktu Submit:</strong> {formatDateTime(mockSubmission.submittedAt)}
+                <strong>Waktu Submit:</strong> {formatDateTime(new Date(submission.submittedAt))}
               </p>
             </div>
           ) : (
@@ -124,18 +156,19 @@ export const ParentQuizDetail = () => {
                     ? 'Anak Anda belum mengerjakan kuis ini.'
                     : isActive
                     ? 'Anak Anda dapat mengerjakan kuis ini.'
-                    : `Kuis akan dimulai pada ${formatDateTime(mockQuiz.startDate)}`}
+                    : `Kuis akan dimulai pada ${formatDateTime(new Date(quiz.startDate))}`}
                 </p>
               )}
             </div>
           )}
         </Card>
 
-        {isSubmitted && (
+        {isSubmitted && submission.answers && questions.length > 0 && (
           <Card title="Jawaban Anak">
             <div className="quiz-questions">
-              {mockQuestions.map((question, index) => {
-                const isCorrect = question.studentAnswer === question.correctAnswer;
+              {questions.map((question, index) => {
+                const studentAnswer = submission.answers[question.id];
+                const isCorrect = studentAnswer === question.correctAnswer;
                 return (
                   <div key={question.id} className="question-item">
                     <div className="question-header">
@@ -147,8 +180,8 @@ export const ParentQuizDetail = () => {
                       </Badge>
                     </div>
                     <div className="question-options">
-                      {question.options.map((option, optIndex) => {
-                        const isSelected = question.studentAnswer === option;
+                      {question.options?.map((option: string, optIndex: number) => {
+                        const isSelected = studentAnswer === option;
                         const isCorrectAnswer = question.correctAnswer === option;
                         return (
                           <div

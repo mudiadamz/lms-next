@@ -1,37 +1,85 @@
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge } from '../../components/common';
+import { Button, Badge, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, formatDateTime, isPast } from '../../utils';
+import { assignmentService, subjectService, userService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './ParentAssignmentDetail.css';
-
-const mockAssignment = {
-  id: '1',
-  title: 'Tugas Matematika - Aljabar',
-  description: 'Kerjakan soal-soal aljabar berikut dengan benar. Upload jawaban dalam format PDF.',
-  subject: 'Matematika',
-  teacher: 'Ibu Siti',
-  dueDate: new Date('2024-01-20T23:59:59'),
-  maxScore: 100,
-  attachments: ['soal-aljabar.pdf'],
-};
-
-const mockSubmission = {
-  id: '1',
-  content: 'Saya sudah mengerjakan tugas ini dengan baik. Berikut adalah jawaban saya...',
-  submittedAt: new Date('2024-01-19T14:30:00'),
-  score: 85,
-  feedback: 'Kerja bagus! Perlu lebih teliti dalam perhitungan.',
-  attachments: ['jawaban-aljabar.pdf'],
-};
 
 export const ParentAssignmentDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const [assignment, setAssignment] = useState<any>(null);
+  const [submission, setSubmission] = useState<any>(null);
+  const [subjectName, setSubjectName] = useState('');
+  const [teacherName, setTeacherName] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
-  const isOverdue = isPast(mockAssignment.dueDate);
-  const isSubmitted = mockSubmission.submittedAt !== null;
+  useEffect(() => {
+    const loadData = async () => {
+      if (!id || !user?.id) return;
+      
+      try {
+        setIsLoading(true);
+        const parentData = await userService.getUserById(user.id);
+        const studentIds = (parentData as any)?.studentIds || [];
+        
+        if (studentIds.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        const [assignmentData, submissionsData] = await Promise.all([
+          assignmentService.getAssignmentById(id),
+          assignmentService.getSubmissions(id).catch(() => []),
+        ]);
+
+        setAssignment(assignmentData);
+
+        // Find submission for first child
+        const childSubmission = submissionsData.find(s => studentIds.includes(s.studentId));
+        setSubmission(childSubmission || null);
+
+        // Get subject and teacher names
+        const [subjectInfo, teacherInfo] = await Promise.all([
+          subjectService.getSubjectById(assignmentData.subjectId),
+          userService.getUserById(assignmentData.teacherId),
+        ]);
+
+        setSubjectName(subjectInfo.name);
+        setTeacherName(teacherInfo.fullName);
+      } catch (error) {
+        console.error('Error loading assignment detail:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id, user?.id]);
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!assignment) {
+    return (
+      <DashboardLayout>
+        <EmptyState icon="assignment" title="Tugas Tidak Ditemukan" message="Tugas yang Anda cari tidak ditemukan." />
+      </DashboardLayout>
+    );
+  }
+
+  const isOverdue = isPast(new Date(assignment.dueDate));
+  const isSubmitted = submission !== null;
 
   return (
     <DashboardLayout>
@@ -39,44 +87,44 @@ export const ParentAssignmentDetail = () => {
         <div className="detail-header">
         </div>
 
-        <Card title={mockAssignment.title}>
+        <Card title={assignment.title}>
           <div className="assignment-info">
             <div className="info-item">
-              <strong>Mata Pelajaran:</strong> {mockAssignment.subject}
+              <strong>Mata Pelajaran:</strong> {subjectName}
             </div>
             <div className="info-item">
-              <strong>Guru:</strong> {mockAssignment.teacher}
+              <strong>Guru:</strong> {teacherName}
             </div>
             <div className="info-item">
               <strong>Deadline:</strong>{' '}
               <Badge variant={isOverdue ? 'danger' : 'warning'}>
-                {formatDateTime(mockAssignment.dueDate)}
+                {formatDateTime(new Date(assignment.dueDate))}
               </Badge>
             </div>
             <div className="info-item">
-              <strong>Nilai Maksimal:</strong> {mockAssignment.maxScore}
+              <strong>Nilai Maksimal:</strong> {assignment.maxScore}
             </div>
-            {mockSubmission.score !== null && (
+            {submission?.score !== null && submission?.score !== undefined && (
               <div className="info-item">
                 <strong>Nilai Anak:</strong>{' '}
-                <Badge variant="success">{mockSubmission.score}/{mockAssignment.maxScore}</Badge>
+                <Badge variant="success">{submission.score}/{assignment.maxScore}</Badge>
               </div>
             )}
           </div>
 
           <div className="assignment-description">
             <h3>Deskripsi</h3>
-            <p>{mockAssignment.description}</p>
+            <p>{assignment.description}</p>
           </div>
 
-          {mockAssignment.attachments && mockAssignment.attachments.length > 0 && (
+          {assignment.attachments && assignment.attachments.length > 0 && (
             <div className="assignment-attachments">
               <h3>Lampiran Tugas</h3>
               <ul>
-                {mockAssignment.attachments.map((file, index) => (
+                {assignment.attachments.map((file: string, index: number) => (
                   <li key={index}>
-                    <a href="#" download>
-                      📎 {file}
+                    <a href={file} download target="_blank" rel="noopener noreferrer">
+                      📎 {file.split('/').pop() || file}
                     </a>
                   </li>
                 ))}
@@ -92,33 +140,33 @@ export const ParentAssignmentDetail = () => {
                 <strong>Status:</strong> <Badge variant="success">Sudah Dikumpulkan</Badge>
               </p>
               <p>
-                <strong>Waktu Submit:</strong> {formatDateTime(mockSubmission.submittedAt!)}
+                <strong>Waktu Submit:</strong> {formatDateTime(new Date(submission.submittedAt))}
               </p>
-              {mockSubmission.score !== null && (
+              {submission.score !== null && submission.score !== undefined && (
                 <p>
-                  <strong>Nilai:</strong> {mockSubmission.score}/{mockAssignment.maxScore}
+                  <strong>Nilai:</strong> {submission.score}/{assignment.maxScore}
                 </p>
               )}
-              {mockSubmission.feedback && (
+              {submission.feedback && (
                 <div className="feedback-section">
                   <h4>Feedback Guru:</h4>
-                  <p>{mockSubmission.feedback}</p>
+                  <p>{submission.feedback}</p>
                 </div>
               )}
-              {mockSubmission.content && (
+              {submission.content && (
                 <div className="submission-content">
                   <h4>Jawaban Anak:</h4>
-                  <p>{mockSubmission.content}</p>
+                  <p>{submission.content}</p>
                 </div>
               )}
-              {mockSubmission.attachments && mockSubmission.attachments.length > 0 && (
+              {submission.attachments && submission.attachments.length > 0 && (
                 <div className="submission-attachments">
                   <h4>File Jawaban:</h4>
                   <ul>
-                    {mockSubmission.attachments.map((file, index) => (
+                    {submission.attachments.map((file: string, index: number) => (
                       <li key={index}>
-                        <a href="#" download>
-                          📎 {file}
+                        <a href={file} download target="_blank" rel="noopener noreferrer">
+                          📎 {file.split('/').pop() || file}
                         </a>
                       </li>
                     ))}

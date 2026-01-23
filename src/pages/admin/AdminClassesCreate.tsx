@@ -1,24 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, FormInput, FormSelect, Icon } from '../../components/common';
+import { Button, FormInput, FormSelect, Icon, Loading, EmptyState } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
+import { classService, userService, academicYearService } from '../../services';
 import './AdminClasses.css';
-
-// Mock data untuk dropdowns
-const MOCK_TEACHERS = [
-  { value: 'teacher1', label: 'Ibu Siti' },
-  { value: 'teacher2', label: 'Bapak Budi' },
-  { value: 'teacher3', label: 'Ibu Rina' },
-  { value: 'teacher4', label: 'Bapak Andi' },
-];
-
-const MOCK_ACADEMIC_YEARS = [
-  { value: '2024-2025', label: '2024-2025' },
-  { value: '2023-2024', label: '2023-2024' },
-  { value: '2022-2023', label: '2022-2023' },
-];
 
 const GRADE_OPTIONS = [
   { value: '1', label: 'Kelas 1' },
@@ -38,6 +25,9 @@ const GRADE_OPTIONS = [
 export const AdminClassesCreate = () => {
   const navigate = useNavigate();
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [teachers, setTeachers] = useState<Array<{ value: string; label: string }>>([]);
+  const [academicYears, setAcademicYears] = useState<Array<{ value: string; label: string }>>([]);
   const [formData, setFormData] = useState({
     name: '',
     grade: '',
@@ -48,16 +38,31 @@ export const AdminClassesCreate = () => {
     maxStudents: '36',
   });
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [teachersData, academicYearsData] = await Promise.all([
+          userService.getUsers('teacher'),
+          academicYearService.getAcademicYears(),
+        ]);
+        setTeachers(teachersData.map(t => ({ value: t.id, label: t.fullName })));
+        setAcademicYears(academicYearsData.map(ay => ({ value: ay.name, label: ay.name })));
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
   const handleCreateClass = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      const newClass = {
-        id: Date.now().toString(),
+      await classService.createClass({
         name: formData.name,
         grade: parseInt(formData.grade),
         schoolLevel: formData.schoolLevel as 'sd' | 'smp' | 'sma',
@@ -66,12 +71,8 @@ export const AdminClassesCreate = () => {
         semester: parseInt(formData.semester),
         studentIds: [],
         subjectIds: [],
-      };
+      });
 
-      // TODO: Call classService.createClass
-      console.log('Creating class:', newClass);
-
-      // Navigate back to classes list
       navigate(ROUTES.ADMIN_CLASSES);
     } catch (error) {
       console.error('Error creating class:', error);
@@ -80,6 +81,14 @@ export const AdminClassesCreate = () => {
       setIsCreating(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -136,7 +145,7 @@ export const AdminClassesCreate = () => {
               onChange={(e) => setFormData({ ...formData, homeroomTeacherId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih wali kelas' },
-                ...MOCK_TEACHERS,
+                ...teachers,
               ]}
               required
             />
@@ -147,7 +156,7 @@ export const AdminClassesCreate = () => {
               onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
               options={[
                 { value: '', label: 'Pilih tahun ajaran' },
-                ...MOCK_ACADEMIC_YEARS,
+                ...academicYears,
               ]}
               required
             />

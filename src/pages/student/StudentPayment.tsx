@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Badge, Table, EmptyState, Icon } from '../../components/common';
+import { Badge, Table, EmptyState, Icon, Loading } from '../../components/common';
 import { formatDate } from '../../utils/dateUtils';
+import { userService } from '../../services';
 import './StudentPayment.css';
 
 interface Payment {
@@ -13,37 +14,11 @@ interface Payment {
   month: string;
   year: number;
   amount: number;
-  dueDate: Date;
+  dueDate: Date | string;
   status: 'paid' | 'pending' | 'overdue';
   paymentMethod?: string;
   receiptNumber?: string;
 }
-
-// Mock payments untuk kelas class1 (X IPA 1) - sesuai dengan user mock di AuthContext
-const mockPayments: Payment[] = [
-  {
-    id: '1',
-    classId: 'class1',
-    className: 'X IPA 1',
-    month: 'Januari',
-    year: 2024,
-    amount: 500000,
-    dueDate: new Date('2024-01-10'),
-    status: 'paid',
-    paymentMethod: 'Transfer Bank',
-    receiptNumber: 'RCP-2024-001',
-  },
-  {
-    id: '2',
-    classId: 'class1',
-    className: 'X IPA 1',
-    month: 'Februari',
-    year: 2024,
-    amount: 500000,
-    dueDate: new Date('2024-02-10'),
-    status: 'pending',
-  },
-];
 
 const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('id-ID', {
@@ -68,10 +43,33 @@ const getStatusBadge = (status: Payment['status']) => {
 
 export const StudentPayment = () => {
   const { user } = useAuth();
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'all' | 'paid' | 'pending'>('all');
 
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        // TODO: Implement paymentService when available
+        // For now, using empty array
+        const studentData = user?.id ? await userService.getUserById(user.id) : null;
+        // const paymentsData = await paymentService.getPayments({ studentId: user?.id });
+        setPayments([]);
+      } catch (error) {
+        console.error('Error loading payments:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
   // Filter payments berdasarkan kelas siswa
-  const studentPayments = mockPayments.filter((p) => p.classId === user?.classId);
+  const studentPayments = payments.filter((p) => p.classId === (user as any)?.classId);
   
   const paidPayments = studentPayments.filter((p) => p.status === 'paid');
   const pendingPayments = studentPayments.filter((p) => p.status === 'pending' || p.status === 'overdue');
@@ -106,7 +104,7 @@ export const StudentPayment = () => {
     {
       key: 'dueDate',
       header: 'Jatuh Tempo',
-      render: (item: Payment) => formatDate(item.dueDate),
+      render: (item: Payment) => formatDate(new Date(item.dueDate)),
     },
     {
       key: 'status',
@@ -152,7 +150,7 @@ export const StudentPayment = () => {
             className={`tab-button ${activeTab === 'all' ? 'tab-button--active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
-            Semua
+            Semua ({studentPayments.length})
           </button>
           <button
             className={`tab-button ${activeTab === 'paid' ? 'tab-button--active' : ''}`}
@@ -169,29 +167,22 @@ export const StudentPayment = () => {
         </div>
 
         {/* Payment Table */}
-        {displayedPayments.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : displayedPayments.length === 0 ? (
           <EmptyState
-            icon="checkCircle"
+            icon="analytics"
             title="Tidak Ada Data Pembayaran"
             message={
               activeTab === 'paid'
                 ? 'Belum ada pembayaran yang telah dilakukan.'
                 : activeTab === 'pending'
-                ? 'Semua pembayaran sudah lunas.'
-                : 'Belum ada data pembayaran yang tersedia.'
+                ? 'Tidak ada pembayaran yang belum dibayar.'
+                : 'Belum ada data pembayaran SPP.'
             }
           />
         ) : (
-          <Card
-            title={
-              activeTab === 'paid'
-                ? `Pembayaran yang Sudah Dibayar (${paidPayments.length})`
-                : activeTab === 'pending'
-                ? `Pembayaran yang Belum Dibayar (${pendingPayments.length})`
-                : `Riwayat Pembayaran SPP (${displayedPayments.length})`
-            }
-            variant="elevated"
-          >
+          <Card title="Riwayat Pembayaran" variant="elevated">
             <Table columns={columns} data={displayedPayments} />
           </Card>
         )}

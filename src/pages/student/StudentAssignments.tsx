@@ -1,74 +1,77 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, FormSelect, EmptyState } from '../../components/common';
+import { Button, Badge, FormSelect, EmptyState, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, isPast } from '../../utils';
+import { assignmentService, subjectService, userService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './StudentAssignments.css';
-
-const mockAssignments = [
-  {
-    id: '1',
-    title: 'Tugas Matematika - Aljabar',
-    subject: 'Matematika',
-    teacher: 'Ibu Siti',
-    dueDate: new Date('2024-01-20T23:59:59'),
-    status: 'not_started',
-    score: null,
-  },
-  {
-    id: '2',
-    title: 'Tugas Bahasa Indonesia - Menulis Esai',
-    subject: 'Bahasa Indonesia',
-    teacher: 'Bapak Budi',
-    dueDate: new Date('2024-01-25T23:59:59'),
-    status: 'submitted',
-    score: 85,
-  },
-  {
-    id: '3',
-    title: 'Tugas Fisika - Hukum Newton',
-    subject: 'Fisika',
-    teacher: 'Bapak Andi',
-    dueDate: new Date('2024-01-28T23:59:59'),
-    status: 'not_started',
-    score: null,
-  },
-];
-
-// Get unique subjects from assignments
-const getUniqueSubjects = () => {
-  const subjects = new Set(mockAssignments.map((a) => a.subject));
-  return Array.from(subjects).sort();
-};
 
 interface StudentAssignmentsProps {
   readOnly?: boolean;
 }
 
 export const StudentAssignments = ({ readOnly = false }: StudentAssignmentsProps = {} as StudentAssignmentsProps) => {
+  const { user } = useAuth();
+  const [assignments, setAssignments] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
 
-  const uniqueSubjects = getUniqueSubjects();
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const studentData = user?.id ? await userService.getUserById(user.id) : null;
+        const classId = (studentData as any)?.classId;
+
+        const [assignmentsData, subjectsData, teachersData] = await Promise.all([
+          assignmentService.getAssignments(classId ? { classId } : {}),
+          subjectService.getSubjects(),
+          userService.getUsers('teacher'),
+        ]);
+
+        setAssignments(assignmentsData);
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
+        const teacherMap: Record<string, string> = {};
+        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        setTeachers(teacherMap);
+      } catch (error) {
+        console.error('Error loading assignments:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
+  const uniqueSubjects = Array.from(new Set(assignments.map(a => a.subjectId).filter(Boolean)));
   const subjectOptions = [
     { value: 'all', label: 'Semua Mata Pelajaran' },
-    ...uniqueSubjects.map((subject) => ({ value: subject, label: subject })),
+    ...uniqueSubjects.map((subjectId) => ({ value: subjectId, label: subjects[subjectId] || subjectId })),
   ];
 
   const filteredAssignments =
     selectedSubject === 'all'
-      ? mockAssignments
-      : mockAssignments.filter((assignment) => assignment.subject === selectedSubject);
+      ? assignments
+      : assignments.filter((assignment) => assignment.subjectId === selectedSubject);
 
-  const getStatusBadge = (assignment: typeof mockAssignments[0]) => {
-    if (assignment.score !== null) {
+  const getStatusBadge = (assignment: any) => {
+    if (assignment.score !== null && assignment.score !== undefined) {
       return <Badge variant="success">Sudah Dinilai</Badge>;
     }
     if (assignment.status === 'submitted') {
       return <Badge variant="warning">Menunggu Penilaian</Badge>;
     }
-    if (isPast(assignment.dueDate)) {
+    if (isPast(new Date(assignment.dueDate))) {
       return <Badge variant="danger">Terlambat</Badge>;
     }
     return <Badge variant="secondary">Belum Dikerjakan</Badge>;
@@ -87,44 +90,49 @@ export const StudentAssignments = ({ readOnly = false }: StudentAssignmentsProps
           />
         </div>
 
-        {filteredAssignments.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : filteredAssignments.length === 0 ? (
           <EmptyState
             icon="📝"
             title="Tidak Ada Tugas"
             message={
               selectedSubject !== 'all'
-                ? `Tidak ada tugas untuk mata pelajaran ${selectedSubject}.`
+                ? `Tidak ada tugas untuk mata pelajaran ${subjects[selectedSubject] || selectedSubject}.`
                 : 'Belum ada tugas yang diberikan untuk Anda saat ini.'
             }
           />
         ) : (
-          <div className="assignments-grid">
+          <div className="assignments-list">
             {filteredAssignments.map((assignment) => (
-              <Card key={assignment.id} title={assignment.title} variant="elevated">
-                <div className="assignment-card-info">
-                  <p>
-                    <strong>Mata Pelajaran:</strong> {assignment.subject}
-                  </p>
-                  <p>
-                    <strong>Guru:</strong> {assignment.teacher}
-                  </p>
-                  <p>
-                    <strong>Deadline:</strong> {formatDate(assignment.dueDate)}
-                  </p>
-                  <div className="assignment-status">
-                    <strong>Status:</strong> {getStatusBadge(assignment)}
+              <Card key={assignment.id} variant="elevated" className="assignment-card">
+                <div className="assignment-header">
+                  <div>
+                    <h3 className="assignment-title">{assignment.title}</h3>
+                    <div className="assignment-meta">
+                      <span>{subjects[assignment.subjectId] || assignment.subjectId}</span>
+                      <span>•</span>
+                      <span>{teachers[assignment.teacherId] || assignment.teacherId}</span>
+                      <span>•</span>
+                      <span>Deadline: {formatDate(new Date(assignment.dueDate))}</span>
+                    </div>
                   </div>
-                  {assignment.score !== null && (
-                    <p>
-                      <strong>Nilai:</strong> {assignment.score}/100
-                    </p>
-                  )}
+                  {getStatusBadge(assignment)}
                 </div>
-                <Link to={`${readOnly ? ROUTES.PARENT_ASSIGNMENTS : ROUTES.STUDENT_ASSIGNMENTS}/${assignment.id}`}>
-                  <Button variant={readOnly ? "outline" : "primary"} className="assignment-action-button">
-                    {readOnly ? 'Lihat Detail' : (assignment.status === 'submitted' ? 'Lihat Detail' : 'Kerjakan Tugas')}
-                  </Button>
-                </Link>
+                {assignment.description && (
+                  <p className="assignment-description">{assignment.description}</p>
+                )}
+                <div className="assignment-footer">
+                  <Link
+                    to={readOnly
+                      ? ROUTES.PARENT_ASSIGNMENT_DETAIL.replace(':id', assignment.id)
+                      : ROUTES.STUDENT_ASSIGNMENT_DETAIL.replace(':id', assignment.id)}
+                  >
+                    <Button variant="outline" size="small">
+                      {assignment.status === 'submitted' || assignment.score !== null ? 'Lihat Detail' : 'Kerjakan Tugas'}
+                    </Button>
+                  </Link>
+                </div>
               </Card>
             ))}
           </div>

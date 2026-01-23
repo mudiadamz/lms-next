@@ -1,11 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Dropdown, Modal, FormInput, FormSelect, FormTextarea, Icon, EmptyState, Pagination, Table, FileUpload } from '../../components/common';
+import { Button, Badge, Dropdown, Modal, FormInput, FormSelect, FormTextarea, Icon, EmptyState, Pagination, Table, FileUpload, Loading } from '../../components/common';
 import { QuestionType, QuizQuestion } from '../../types';
 import { QUESTION_TYPE_LABELS } from '../../constants';
 import { formatDate } from '../../utils';
+import { quizService, subjectService } from '../../services';
 import './TeacherQuestionBank.css';
 
 interface QuestionBankItem {
@@ -22,98 +23,6 @@ interface QuestionBankItem {
   createdAt: Date;
   updatedAt: Date;
 }
-
-const MOCK_SUBJECTS = [
-  { value: 'subject1', label: 'Matematika' },
-  { value: 'subject2', label: 'Fisika' },
-  { value: 'subject3', label: 'Kimia' },
-  { value: 'subject4', label: 'Biologi' },
-];
-
-const MOCK_TOPICS = [
-  'Aljabar',
-  'Geometri',
-  'Trigonometri',
-  'Kalkulus',
-  'Statistika',
-  'Mekanika',
-  'Termodinamika',
-  'Optik',
-];
-
-// Contoh data bank soal
-const mockQuestions: QuestionBankItem[] = [
-  {
-    id: '1',
-    question: 'Berapakah hasil dari 2x + 3x?',
-    type: 'multiple_choice',
-    options: ['5x', '6x', '5x²', '6x²'],
-    correctAnswer: '5x',
-    points: 1,
-    subjectId: 'subject1',
-    subjectName: 'Matematika',
-    topic: 'Aljabar',
-    difficulty: 'easy',
-    createdAt: new Date('2024-01-15'),
-    updatedAt: new Date('2024-01-15'),
-  },
-  {
-    id: '2',
-    question: 'Jelaskan konsep persamaan kuadrat dan berikan contohnya!',
-    type: 'essay',
-    options: [],
-    correctAnswer: '',
-    points: 5,
-    subjectId: 'subject1',
-    subjectName: 'Matematika',
-    topic: 'Aljabar',
-    difficulty: 'medium',
-    createdAt: new Date('2024-01-16'),
-    updatedAt: new Date('2024-01-16'),
-  },
-  {
-    id: '3',
-    question: 'Apakah 2 + 2 = 4?',
-    type: 'true_false',
-    options: ['Benar', 'Salah'],
-    correctAnswer: 'Benar',
-    points: 1,
-    subjectId: 'subject1',
-    subjectName: 'Matematika',
-    topic: 'Aljabar',
-    difficulty: 'easy',
-    createdAt: new Date('2024-01-17'),
-    updatedAt: new Date('2024-01-17'),
-  },
-  {
-    id: '4',
-    question: 'Apa yang dimaksud dengan gaya?',
-    type: 'short_answer',
-    options: [],
-    correctAnswer: 'Gaya adalah dorongan atau tarikan yang dapat menyebabkan perubahan gerak atau bentuk benda',
-    points: 2,
-    subjectId: 'subject2',
-    subjectName: 'Fisika',
-    topic: 'Mekanika',
-    difficulty: 'medium',
-    createdAt: new Date('2024-01-18'),
-    updatedAt: new Date('2024-01-18'),
-  },
-  {
-    id: '5',
-    question: 'Hitunglah nilai dari ∫(2x + 3)dx',
-    type: 'essay',
-    options: [],
-    correctAnswer: 'x² + 3x + C',
-    points: 5,
-    subjectId: 'subject1',
-    subjectName: 'Matematika',
-    topic: 'Kalkulus',
-    difficulty: 'hard',
-    createdAt: new Date('2024-01-19'),
-    updatedAt: new Date('2024-01-19'),
-  },
-];
 
 const DIFFICULTY_LABELS = {
   easy: 'Mudah',
@@ -140,7 +49,9 @@ export const TeacherQuestionBank = () => {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<QuestionBankItem[]>([]);
   const [isImporting, setIsImporting] = useState(false);
-  const [questions, setQuestions] = useState<QuestionBankItem[]>(mockQuestions);
+  const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [formData, setFormData] = useState({
@@ -153,6 +64,60 @@ export const TeacherQuestionBank = () => {
     topic: '',
     difficulty: 'medium' as 'easy' | 'medium' | 'hard',
   });
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [quizzesData, subjectsData] = await Promise.all([
+          quizService.getQuizzes({ teacherId: user?.id }),
+          subjectService.getSubjects(),
+        ]);
+
+        // Extract questions from all quizzes
+        const allQuestions: QuestionBankItem[] = [];
+        quizzesData.forEach(quiz => {
+          if (quiz.questions && Array.isArray(quiz.questions)) {
+            quiz.questions.forEach((q: QuizQuestion, index: number) => {
+              allQuestions.push({
+                id: `${quiz.id}-${q.id || index}`,
+                question: q.question,
+                type: q.type,
+                options: q.options || [],
+                correctAnswer: Array.isArray(q.correctAnswer) ? q.correctAnswer[0] : q.correctAnswer,
+                points: q.points,
+                subjectId: quiz.subjectId,
+                subjectName: '',
+                topic: '',
+                difficulty: 'medium',
+                createdAt: quiz.createdAt,
+                updatedAt: quiz.createdAt,
+              });
+            });
+          }
+        });
+
+        setQuestions(allQuestions);
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
+
+        // Update subject names in questions
+        setQuestions(prev => prev.map(q => ({
+          ...q,
+          subjectName: subjectMap[q.subjectId] || q.subjectId,
+        })));
+      } catch (error) {
+        console.error('Error loading question bank:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
 
   const filteredQuestions = questions.filter((q) => {
     const matchesSubject = selectedSubject === 'all' || q.subjectId === selectedSubject;
@@ -218,7 +183,7 @@ export const TeacherQuestionBank = () => {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      const subjectName = MOCK_SUBJECTS.find((s) => s.value === formData.subjectId)?.label || '';
+      const subjectName = subjects[formData.subjectId] || '';
 
       if (selectedQuestion) {
         // Update existing question
@@ -276,8 +241,8 @@ export const TeacherQuestionBank = () => {
   const confirmDelete = async () => {
     if (!selectedQuestion) return;
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Note: Question deletion would need API support
+      // For now, just update local state
       setQuestions(questions.filter((q) => q.id !== selectedQuestion.id));
       setShowDeleteDialog(false);
       setSelectedQuestion(null);
@@ -467,9 +432,9 @@ export const TeacherQuestionBank = () => {
               className="filter-select"
             >
               <option value="all">Semua Mata Pelajaran</option>
-              {MOCK_SUBJECTS.map((subj) => (
-                <option key={subj.value} value={subj.value}>
-                  {subj.label}
+              {Object.entries(subjects).map(([id, name]) => (
+                <option key={id} value={id}>
+                  {name}
                 </option>
               ))}
             </select>
@@ -536,7 +501,9 @@ export const TeacherQuestionBank = () => {
           </Card>
         </div>
 
-        {paginatedQuestions.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : paginatedQuestions.length === 0 ? (
           <EmptyState
             icon="quiz"
             title="Tidak Ada Soal"
@@ -588,7 +555,7 @@ export const TeacherQuestionBank = () => {
               onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih mata pelajaran' },
-                ...MOCK_SUBJECTS,
+                ...Object.entries(subjects).map(([id, name]) => ({ value: id, label: name })),
               ]}
               required
             />

@@ -15,36 +15,6 @@ export const TeacherMessages = () => {
   const [parents, setParents] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  {
-    id: '1',
-    participantId: 'student1',
-    participantName: 'Budi Santoso',
-    participantRole: 'student',
-    participantClass: 'X IPA 1',
-    lastMessage: 'Terima kasih Bu, saya akan coba lagi.',
-    lastMessageTime: new Date('2024-01-18T10:30:00'),
-    unreadCount: 0,
-  },
-  {
-    id: '2',
-    participantId: 'parent1',
-    participantName: 'Bapak Santoso',
-    participantRole: 'parent',
-    participantClass: 'X IPA 1',
-    lastMessage: 'Baik Bu, terima kasih atas informasinya.',
-    lastMessageTime: new Date('2024-01-17T15:20:00'),
-    unreadCount: 2,
-  },
-  {
-    id: '3',
-    participantId: 'student2',
-    participantName: 'Siti Nurhaliza',
-    participantRole: 'student',
-    participantClass: 'X IPA 1',
-    lastMessage: 'Saya sudah mengerjakan tugas yang diberikan.',
-    lastMessageTime: new Date('2024-01-18T09:15:00'),
-    unreadCount: 1,
-  },
   const [filterRole, setFilterRole] = useState<'all' | 'student' | 'parent'>('all');
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [newMessageData, setNewMessageData] = useState({
@@ -248,7 +218,7 @@ export const TeacherMessages = () => {
                   value: '', 
                   label: newMessageData.recipientType === 'student' ? 'Pilih siswa' : 'Pilih orang tua'
                 },
-                ...(newMessageData.recipientType === 'student' ? MOCK_STUDENTS : MOCK_PARENTS),
+                ...(newMessageData.recipientType === 'student' ? students : parents),
               ]}
               required
             />
