@@ -1,52 +1,62 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Badge, FormSelect } from '../../components/common';
+import { Badge, FormSelect, Loading, EmptyState } from '../../components/common';
 import { DAYS_OF_WEEK } from '../../constants';
 import { formatTime } from '../../utils/dateUtils';
+import { useAuth } from '../../contexts/AuthContext';
+import { scheduleService, classService, subjectService } from '../../services';
+import { Schedule } from '../../types';
 import './TeacherSchedule.css';
 
-const mockSchedule = [
-  {
-    id: '1',
-    dayOfWeek: 1,
-    startTime: '08:00',
-    endTime: '09:30',
-    subject: 'Matematika',
-    class: 'X IPA 1',
-    room: 'A101',
-  },
-  {
-    id: '2',
-    dayOfWeek: 1,
-    startTime: '10:00',
-    endTime: '11:30',
-    subject: 'Matematika',
-    class: 'X IPA 2',
-    room: 'A102',
-  },
-  {
-    id: '3',
-    dayOfWeek: 3,
-    startTime: '08:00',
-    endTime: '09:30',
-    subject: 'Matematika',
-    class: 'XI IPA 1',
-    room: 'A101',
-  },
-];
-
 export const TeacherSchedule = () => {
+  const { user } = useAuth();
   const [selectedWeek, setSelectedWeek] = useState('current');
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [classes, setClasses] = useState<Record<string, string>>({});
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-  const scheduleByDay = mockSchedule.reduce((acc, schedule) => {
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [schedulesData, classesData, subjectsData] = await Promise.all([
+          scheduleService.getSchedules({ teacherId: user?.id }),
+          classService.getClasses(),
+          subjectService.getSubjects(),
+        ]);
+
+        setSchedules(schedulesData);
+        
+        // Create lookup maps
+        const classMap: Record<string, string> = {};
+        classesData.forEach(c => { classMap[c.id] = c.name; });
+        setClasses(classMap);
+
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
+      } catch (error) {
+        console.error('Error loading schedule:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
+  const scheduleByDay = schedules.reduce((acc, schedule) => {
     const day = DAYS_OF_WEEK[schedule.dayOfWeek];
     if (!acc[day]) {
       acc[day] = [];
     }
     acc[day].push(schedule);
     return acc;
-  }, {} as Record<string, typeof mockSchedule>);
+  }, {} as Record<string, Schedule[]>);
 
   return (
     <DashboardLayout>
@@ -67,22 +77,26 @@ export const TeacherSchedule = () => {
         <div className="schedule-week">
           {DAYS_OF_WEEK.slice(1, 6).map((day) => (
             <Card key={day} title={day} variant="elevated" className="schedule-day-card">
-              {scheduleByDay[day] && scheduleByDay[day].length > 0 ? (
+              {isLoading ? (
+                <Loading />
+              ) : scheduleByDay[day] && scheduleByDay[day].length > 0 ? (
                 <div className="schedule-items">
-                  {scheduleByDay[day].map((item) => (
-                    <div key={item.id} className="schedule-item">
-                      <div className="schedule-time">
-                        {formatTime(item.startTime)} - {formatTime(item.endTime)}
-                      </div>
-                      <div className="schedule-details">
-                        <strong>{item.subject}</strong>
-                        <div className="schedule-meta">
-                          <Badge variant="primary">{item.class}</Badge>
-                          <span>{item.room}</span>
+                  {scheduleByDay[day]
+                    .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                    .map((item) => (
+                      <div key={item.id} className="schedule-item">
+                        <div className="schedule-time">
+                          {formatTime(item.startTime)} - {formatTime(item.endTime)}
+                        </div>
+                        <div className="schedule-details">
+                          <strong>{subjects[item.subjectId] || item.subjectId}</strong>
+                          <div className="schedule-meta">
+                            <Badge variant="primary">{classes[item.classId] || item.classId}</Badge>
+                            {item.room && <span>{item.room}</span>}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               ) : (
                 <p className="no-schedule">Tidak ada jadwal</p>

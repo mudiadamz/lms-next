@@ -1,224 +1,76 @@
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Badge, Icon, EmptyState } from '../../components/common';
+import { Badge, Icon, EmptyState, Loading } from '../../components/common';
 import { Schedule } from '../../types';
 import { DAYS_OF_WEEK } from '../../constants';
+import { scheduleService, classService, subjectService, userService } from '../../services';
 import './StudentSchedule.css';
 
-// Mock data untuk mata pelajaran
-const MOCK_SUBJECTS: Record<string, string> = {
-  subject1: 'Matematika',
-  subject2: 'Fisika',
-  subject3: 'Kimia',
-  subject4: 'Biologi',
-  subject5: 'Bahasa Indonesia',
-  subject6: 'Bahasa Inggris',
-  subject7: 'Sejarah',
-  subject8: 'Pendidikan Jasmani',
-};
+export const StudentSchedule = () => {
+  const { user } = useAuth();
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [classes, setClasses] = useState<Record<string, string>>({});
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(true);
 
-// Mock data untuk guru
-const MOCK_TEACHERS: Record<string, string> = {
-  teacher1: 'Ibu Siti',
-  teacher2: 'Bapak Budi',
-  teacher3: 'Ibu Rina',
-  teacher4: 'Bapak Andi',
-  teacher5: 'Ibu Dewi',
-  teacher6: 'Bapak Eko',
-};
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get student's class first
+        const studentData = user?.id ? await userService.getUserById(user.id) : null;
+        const classId = (studentData as any)?.classId;
+        
+        const [schedulesData, classesData, subjectsData, teachersData] = await Promise.all([
+          scheduleService.getSchedules(classId ? { classId } : {}),
+          classService.getClasses(),
+          subjectService.getSubjects(),
+          userService.getUsers('teacher'),
+        ]);
 
-// Contoh data jadwal untuk siswa
-const mockSchedules: Schedule[] = [
-  {
-    id: '1',
-    classId: 'class1',
-    subjectId: 'subject1',
-    teacherId: 'teacher1',
-    dayOfWeek: 1, // Senin
-    startTime: '07:00',
-    endTime: '08:30',
-    room: 'A101',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '2',
-    classId: 'class1',
-    subjectId: 'subject5',
-    teacherId: 'teacher3',
-    dayOfWeek: 1, // Senin
-    startTime: '08:30',
-    endTime: '10:00',
-    room: 'A102',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '3',
-    classId: 'class1',
-    subjectId: 'subject2',
-    teacherId: 'teacher2',
-    dayOfWeek: 1, // Senin
-    startTime: '10:30',
-    endTime: '12:00',
-    room: 'Lab Fisika',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '4',
-    classId: 'class1',
-    subjectId: 'subject6',
-    teacherId: 'teacher4',
-    dayOfWeek: 2, // Selasa
-    startTime: '07:00',
-    endTime: '08:30',
-    room: 'A103',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '5',
-    classId: 'class1',
-    subjectId: 'subject3',
-    teacherId: 'teacher5',
-    dayOfWeek: 2, // Selasa
-    startTime: '08:30',
-    endTime: '10:00',
-    room: 'Lab Kimia',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '6',
-    classId: 'class1',
-    subjectId: 'subject4',
-    teacherId: 'teacher6',
-    dayOfWeek: 2, // Selasa
-    startTime: '10:30',
-    endTime: '12:00',
-    room: 'Lab Biologi',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '7',
-    classId: 'class1',
-    subjectId: 'subject1',
-    teacherId: 'teacher1',
-    dayOfWeek: 3, // Rabu
-    startTime: '07:00',
-    endTime: '08:30',
-    room: 'A101',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '8',
-    classId: 'class1',
-    subjectId: 'subject7',
-    teacherId: 'teacher3',
-    dayOfWeek: 3, // Rabu
-    startTime: '08:30',
-    endTime: '10:00',
-    room: 'A104',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '9',
-    classId: 'class1',
-    subjectId: 'subject8',
-    teacherId: 'teacher2',
-    dayOfWeek: 3, // Rabu
-    startTime: '10:30',
-    endTime: '12:00',
-    room: 'Lapangan',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '10',
-    classId: 'class1',
-    subjectId: 'subject2',
-    teacherId: 'teacher2',
-    dayOfWeek: 4, // Kamis
-    startTime: '07:00',
-    endTime: '08:30',
-    room: 'A101',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '11',
-    classId: 'class1',
-    subjectId: 'subject5',
-    teacherId: 'teacher3',
-    dayOfWeek: 4, // Kamis
-    startTime: '08:30',
-    endTime: '10:00',
-    room: 'A102',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '12',
-    classId: 'class1',
-    subjectId: 'subject3',
-    teacherId: 'teacher5',
-    dayOfWeek: 4, // Kamis
-    startTime: '10:30',
-    endTime: '12:00',
-    room: 'Lab Kimia',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '13',
-    classId: 'class1',
-    subjectId: 'subject6',
-    teacherId: 'teacher4',
-    dayOfWeek: 5, // Jumat
-    startTime: '07:00',
-    endTime: '08:30',
-    room: 'A103',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '14',
-    classId: 'class1',
-    subjectId: 'subject4',
-    teacherId: 'teacher6',
-    dayOfWeek: 5, // Jumat
-    startTime: '08:30',
-    endTime: '10:00',
-    room: 'Lab Biologi',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-];
+        setSchedules(schedulesData);
+        
+        // Create lookup maps
+        const classMap: Record<string, string> = {};
+        classesData.forEach(c => { classMap[c.id] = c.name; });
+        setClasses(classMap);
+
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
+
+        const teacherMap: Record<string, string> = {};
+        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        setTeachers(teacherMap);
+      } catch (error) {
+        console.error('Error loading schedule:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
+
+  // Mock data removed - now using API
 
 const formatTime = (time: string) => {
   return time; // Already in HH:mm format
 };
 
-const getSubjectName = (subjectId: string) => {
-  return MOCK_SUBJECTS[subjectId] || subjectId;
-};
-
-const getTeacherName = (teacherId: string) => {
-  return MOCK_TEACHERS[teacherId] || teacherId;
-};
-
 export const StudentSchedule = () => {
   const { user } = useAuth();
 
-  // Filter schedules berdasarkan kelas siswa (dalam real app, ambil dari user.classId)
-  const studentClassId = user?.classId || 'class1';
-  const filteredSchedules = mockSchedules.filter(
-    (schedule) => schedule.classId === studentClassId
+  // Filter schedules berdasarkan kelas siswa
+  const studentClassId = (user as any)?.classId;
+  const filteredSchedules = schedules.filter(
+    (schedule) => !studentClassId || schedule.classId === studentClassId
   );
 
   // Group schedules by day
@@ -253,7 +105,9 @@ export const StudentSchedule = () => {
           <h1>Jadwal Pelajaran</h1>
         </div>
 
-        {!hasAnySchedule ? (
+        {isLoading ? (
+          <Loading />
+        ) : !hasAnySchedule ? (
           <EmptyState
             icon="schedule"
             title="Tidak Ada Jadwal"
@@ -292,12 +146,12 @@ export const StudentSchedule = () => {
                           </div>
                           <div className="schedule-details">
                             <div className="schedule-subject">
-                              <strong>{getSubjectName(schedule.subjectId)}</strong>
+                              <strong>{subjects[schedule.subjectId] || schedule.subjectId}</strong>
                             </div>
                             <div className="schedule-meta">
                               <div className="schedule-teacher">
                                 <Icon name="user" size={12} />
-                                <span>{getTeacherName(schedule.teacherId)}</span>
+                                <span>{teachers[schedule.teacherId] || schedule.teacherId}</span>
                               </div>
                               {schedule.room && (
                                 <div className="schedule-room">
