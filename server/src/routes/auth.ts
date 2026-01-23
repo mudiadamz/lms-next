@@ -10,28 +10,55 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
+    console.log('🔐 Login attempt:', { username, passwordLength: password?.length });
+
     if (!username || !password) {
+      console.log('❌ Missing credentials');
       return res.status(400).json({ success: false, error: 'Username and password required' });
     }
 
-    // Find user by username
+    // Trim username to handle any whitespace issues
+    const trimmedUsername = username.trim().toLowerCase();
+
+    // Find user by username (case-insensitive search)
     const user = db.prepare(`
       SELECT id, username, password, full_name, email, role, school_level, class_id, student_id,
              student_number, teacher_number, admin_number, avatar, phone_number, birth_place,
              birth_date, kk_file, ktp_file, photo_file, address, created_at, updated_at
       FROM users
-      WHERE username = ?
-    `).get(username) as any;
+      WHERE LOWER(TRIM(username)) = LOWER(?)
+    `).get(trimmedUsername) as any;
 
     if (!user) {
+      console.log('❌ User not found:', trimmedUsername);
+      // List available users for debugging
+      const allUsers = db.prepare('SELECT username FROM users LIMIT 5').all() as any[];
+      console.log('Available users:', allUsers.map(u => u.username));
       return res.status(401).json({ success: false, error: 'Invalid username or password' });
     }
 
+    console.log('✅ User found:', user.username, 'Role:', user.role);
+    console.log('🔍 Password hash check:', {
+      hashLength: user.password?.length,
+      hashStart: user.password?.substring(0, 10),
+      isBcrypt: user.password?.startsWith('$2a$') || user.password?.startsWith('$2b$')
+    });
+
     // Verify password
-    const isValidPassword = await bcrypt.compare(password, user.password);
-    if (!isValidPassword) {
+    if (!user.password) {
+      console.log('❌ User has no password set');
       return res.status(401).json({ success: false, error: 'Invalid username or password' });
     }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    console.log('🔐 Password comparison result:', isValidPassword);
+    
+    if (!isValidPassword) {
+      console.log('❌ Password mismatch');
+      return res.status(401).json({ success: false, error: 'Invalid username or password' });
+    }
+
+    console.log('✅ Login successful for:', user.username);
 
     // Generate JWT token
     const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
