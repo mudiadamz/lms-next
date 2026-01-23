@@ -20,14 +20,25 @@ router.post('/login', async (req, res) => {
     // Trim username to handle any whitespace issues
     const trimmedUsername = username.trim().toLowerCase();
 
-    // Find user by username (case-insensitive search)
-    const user = db.prepare(`
+    // Find user by username (exact match first, then case-insensitive)
+    let user = db.prepare(`
       SELECT id, username, password, full_name, email, role, school_level, class_id, student_id,
              student_number, teacher_number, admin_number, avatar, phone_number, birth_place,
              birth_date, kk_file, ktp_file, photo_file, address, created_at, updated_at
       FROM users
-      WHERE LOWER(TRIM(username)) = LOWER(?)
+      WHERE username = ?
     `).get(trimmedUsername) as any;
+
+    // If not found, try case-insensitive
+    if (!user) {
+      user = db.prepare(`
+        SELECT id, username, password, full_name, email, role, school_level, class_id, student_id,
+               student_number, teacher_number, admin_number, avatar, phone_number, birth_place,
+               birth_date, kk_file, ktp_file, photo_file, address, created_at, updated_at
+        FROM users
+        WHERE LOWER(TRIM(username)) = LOWER(?)
+      `).get(trimmedUsername) as any;
+    }
 
     if (!user) {
       console.log('❌ User not found:', trimmedUsername);

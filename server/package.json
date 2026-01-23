@@ -14,6 +14,7 @@
     "seed": "tsx src/database/seed.ts",
     "fix-passwords": "tsx src/database/fix-passwords.ts",
     "test-login": "tsx src/database/test-login.ts",
+    "ensure-seed": "tsx src/database/ensure-seed.ts",
     "postbuild": "echo 'Build completed successfully'",
     "prestart": "echo 'Starting server...'"
   },
