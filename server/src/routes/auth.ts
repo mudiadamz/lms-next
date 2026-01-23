@@ -17,8 +17,8 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Username and password required' });
     }
 
-    // Trim username to handle any whitespace issues
-    const trimmedUsername = username.trim().toLowerCase();
+    // Trim username to handle any whitespace issues (keep original case)
+    const trimmedUsername = username.trim();
 
     // Find user by username (exact match first, then case-insensitive)
     let user = db.prepare(`
