@@ -1,21 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState, Pagination } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState, Pagination, Loading } from '../../components/common';
 import { Announcement, UserRole } from '../../types';
 import { ROLE_LABELS } from '../../constants';
+import { announcementService, classService } from '../../services';
+import { useAuth } from '../../contexts/AuthContext';
 import './AdminAnnouncements.css';
 
-// Mock data untuk dropdowns
-const MOCK_CLASSES = [
-  { value: 'class1', label: 'X IPA 1' },
-  { value: 'class2', label: 'X IPA 2' },
-  { value: 'class3', label: 'XI IPA 1' },
-  { value: 'all', label: 'Semua Kelas' },
-];
-
-// Contoh data pengumuman
-const mockAnnouncements: Announcement[] = [
+export const AdminAnnouncements = () => {
+  const { user } = useAuth();
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   {
     id: '1',
     title: 'Pengumuman Ujian Nasional 2024',
@@ -47,44 +45,12 @@ const mockAnnouncements: Announcement[] = [
     createdAt: new Date('2024-01-20'),
     endDate: new Date('2024-01-25'),
   },
-  {
-    id: '4',
-    title: 'Workshop untuk Guru',
-    content: 'Workshop peningkatan kompetensi guru akan dilaksanakan pada tanggal 5 Februari 2024. Diharapkan kehadiran semua guru.',
-    authorId: 'admin1',
-    targetAudience: ['teacher'],
-    isPinned: false,
-    createdAt: new Date('2024-01-22'),
-    endDate: new Date('2024-02-05'),
-  },
-];
-
-const getAuthorName = (authorId: string) => {
-  // In real app, fetch from API
-  return 'Admin Sekolah';
-};
-
-const formatDate = (date: Date | undefined | null) => {
-  if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
-    return '-';
-  }
-  return new Intl.DateTimeFormat('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-};
-
-export const AdminAnnouncements = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAudience, setSelectedAudience] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-  const [announcements, setAnnouncements] = useState<Announcement[]>(mockAnnouncements);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [formData, setFormData] = useState({
@@ -95,6 +61,42 @@ export const AdminAnnouncements = () => {
     isPinned: false,
     endDate: '',
   });
+
+  // Load initial data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [announcementsData, classesData] = await Promise.all([
+          announcementService.getAnnouncements(),
+          classService.getClasses(),
+        ]);
+
+        setAnnouncements(announcementsData);
+        setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
+      } catch (error) {
+        console.error('Error loading data:', error);
+        alert('Gagal memuat data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const formatDate = (date: Date | undefined | null) => {
+    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+      return '-';
+    }
+    return new Intl.DateTimeFormat('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
+  };
 
   const filteredAnnouncements = announcements.filter((announcement) => {
     const matchesSearch =
@@ -155,54 +157,48 @@ export const AdminAnnouncements = () => {
 
   const handleTogglePin = async (announcement: Announcement) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      setIsSubmitting(true);
+      const updated = await announcementService.updateAnnouncement(announcement.id, {
+        isPinned: !announcement.isPinned,
+      });
       setAnnouncements(
         announcements.map((a) =>
-          a.id === announcement.id ? { ...a, isPinned: !a.isPinned } : a
+          a.id === announcement.id ? updated : a
         )
       );
     } catch (error) {
       console.error('Error toggling pin:', error);
-      alert('Gagal mengubah status pin');
+      alert(error instanceof Error ? error.message : 'Gagal mengubah status pin');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsSubmitting(true);
+
+      const announcementData = {
+        title: formData.title,
+        content: formData.content,
+        targetAudience: formData.targetAudience,
+        classId: formData.classId || undefined,
+        isPinned: formData.isPinned,
+        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
+      };
 
       if (showEditModal && selectedAnnouncement) {
         // Update existing announcement
-        const updatedAnnouncement: Announcement = {
-          ...selectedAnnouncement,
-          title: formData.title,
-          content: formData.content,
-          targetAudience: formData.targetAudience,
-          classId: formData.classId || undefined,
-          isPinned: formData.isPinned,
-          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
-        };
+        const updated = await announcementService.updateAnnouncement(selectedAnnouncement.id, announcementData);
         setAnnouncements(
           announcements.map((a) =>
-            a.id === selectedAnnouncement.id ? updatedAnnouncement : a
+            a.id === selectedAnnouncement.id ? updated : a
           )
         );
       } else {
         // Create new announcement
-        const newAnnouncement: Announcement = {
-          id: Date.now().toString(),
-          title: formData.title,
-          content: formData.content,
-          authorId: 'admin1', // In real app, get from auth context
-          targetAudience: formData.targetAudience,
-          classId: formData.classId || undefined,
-          isPinned: formData.isPinned,
-          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
-          createdAt: new Date(),
-        };
+        const newAnnouncement = await announcementService.createAnnouncement(announcementData);
         setAnnouncements([...announcements, newAnnouncement]);
       }
 
@@ -219,21 +215,25 @@ export const AdminAnnouncements = () => {
       setSelectedAnnouncement(null);
     } catch (error) {
       console.error('Error saving announcement:', error);
-      alert('Gagal menyimpan pengumuman');
+      alert(error instanceof Error ? error.message : 'Gagal menyimpan pengumuman');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const confirmDelete = async () => {
     if (!selectedAnnouncement) return;
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsSubmitting(true);
+      await announcementService.deleteAnnouncement(selectedAnnouncement.id);
       setAnnouncements(announcements.filter((a) => a.id !== selectedAnnouncement.id));
       setShowDeleteDialog(false);
       setSelectedAnnouncement(null);
     } catch (error) {
       console.error('Error deleting announcement:', error);
-      alert('Gagal menghapus pengumuman');
+      alert(error instanceof Error ? error.message : 'Gagal menghapus pengumuman');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -326,7 +326,9 @@ export const AdminAnnouncements = () => {
           </div>
         </div>
 
-        {paginatedAnnouncements.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : paginatedAnnouncements.length === 0 ? (
           <EmptyState
             icon="announcement"
             title="Tidak Ada Pengumuman"
@@ -416,7 +418,7 @@ export const AdminAnnouncements = () => {
                 onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                 options={[
                   { value: '', label: 'Semua Kelas' },
-                  ...MOCK_CLASSES.filter((c) => c.value !== 'all'),
+                  ...classes,
                 ]}
               />
             )}
@@ -437,10 +439,12 @@ export const AdminAnnouncements = () => {
               </label>
             </div>
             <div className="modal-footer">
-              <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>
+              <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)} disabled={isSubmitting}>
                 Batal
               </Button>
-              <Button type="submit">Publikasikan</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Menyimpan...' : 'Publikasikan'}
+              </Button>
             </div>
           </form>
         </Modal>
@@ -501,7 +505,7 @@ export const AdminAnnouncements = () => {
                 onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                 options={[
                   { value: '', label: 'Semua Kelas' },
-                  ...MOCK_CLASSES.filter((c) => c.value !== 'all'),
+                  ...classes,
                 ]}
               />
             )}
@@ -522,10 +526,12 @@ export const AdminAnnouncements = () => {
               </label>
             </div>
             <div className="modal-footer">
-              <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>
+              <Button variant="outline" type="button" onClick={() => setShowEditModal(false)} disabled={isSubmitting}>
                 Batal
               </Button>
-              <Button type="submit">Simpan Perubahan</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </Button>
             </div>
           </form>
         </Modal>
