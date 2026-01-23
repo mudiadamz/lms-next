@@ -1,39 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Modal, FormInput, FormSelect, ConfirmDialog, Icon, EmptyState } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormSelect, ConfirmDialog, Icon, EmptyState, Loading } from '../../components/common';
 import { ROUTES, SCHOOL_LEVELS, DAYS_OF_WEEK } from '../../constants';
 import { Schedule } from '../../types';
+import { scheduleService, classService, subjectService, userService, academicYearService } from '../../services';
 import './AdminSchedule.css';
 
-// Mock data
-const MOCK_CLASSES = [
-  { value: 'class1', label: 'X IPA 1' },
-  { value: 'class2', label: 'X IPA 2' },
-  { value: 'class3', label: 'XI IPA 1' },
-  { value: 'class4', label: 'XI IPA 2' },
-  { value: 'class5', label: 'XII IPA 1' },
-];
-
-const MOCK_SUBJECTS = [
-  { value: 'subject1', label: 'Matematika' },
-  { value: 'subject2', label: 'Fisika' },
-  { value: 'subject3', label: 'Kimia' },
-  { value: 'subject4', label: 'Bahasa Indonesia' },
-  { value: 'subject5', label: 'Bahasa Inggris' },
-];
-
-const MOCK_TEACHERS = [
-  { value: 'teacher1', label: 'Ibu Siti' },
-  { value: 'teacher2', label: 'Bapak Budi' },
-  { value: 'teacher3', label: 'Ibu Rina' },
-  { value: 'teacher4', label: 'Bapak Andi' },
-];
-
-const MOCK_ACADEMIC_YEARS = [
-  { value: '2024-2025', label: '2024-2025' },
-  { value: '2023-2024', label: '2023-2024' },
-];
+// Mock data removed - now using API services
 
 // Convert DAYS_OF_WEEK constant to form options format
 const DAYS_OF_WEEK_OPTIONS = DAYS_OF_WEEK.map((day, index) => ({
@@ -41,109 +15,30 @@ const DAYS_OF_WEEK_OPTIONS = DAYS_OF_WEEK.map((day, index) => ({
   label: day,
 }));
 
-// Contoh data jadwal
-const mockSchedules: Schedule[] = [
-  {
-    id: '1',
-    classId: 'class1',
-    subjectId: 'subject1',
-    teacherId: 'teacher1',
-    dayOfWeek: 1, // Senin
-    startTime: '07:00',
-    endTime: '08:30',
-    room: 'A101',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '2',
-    classId: 'class1',
-    subjectId: 'subject2',
-    teacherId: 'teacher2',
-    dayOfWeek: 1, // Senin
-    startTime: '08:30',
-    endTime: '10:00',
-    room: 'Lab Fisika',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '3',
-    classId: 'class1',
-    subjectId: 'subject3',
-    teacherId: 'teacher3',
-    dayOfWeek: 1, // Senin
-    startTime: '10:30',
-    endTime: '12:00',
-    room: 'Lab Kimia',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '4',
-    classId: 'class1',
-    subjectId: 'subject4',
-    teacherId: 'teacher4',
-    dayOfWeek: 2, // Selasa
-    startTime: '07:00',
-    endTime: '08:30',
-    room: 'A101',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '5',
-    classId: 'class2',
-    subjectId: 'subject1',
-    teacherId: 'teacher1',
-    dayOfWeek: 1, // Senin
-    startTime: '13:00',
-    endTime: '14:30',
-    room: 'A102',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-  {
-    id: '6',
-    classId: 'class2',
-    subjectId: 'subject5',
-    teacherId: 'teacher4',
-    dayOfWeek: 2, // Selasa
-    startTime: '08:30',
-    endTime: '10:00',
-    room: 'A102',
-    academicYear: '2024-2025',
-    semester: 1,
-  },
-];
+// Mock data removed - now using API services
 
-// Helper function untuk mendapatkan nama kelas, mata pelajaran, dan guru
-const getClassName = (classId: string) => {
-  return MOCK_CLASSES.find((c) => c.value === classId)?.label || classId;
-};
-
-const getSubjectName = (subjectId: string) => {
-  return MOCK_SUBJECTS.find((s) => s.value === subjectId)?.label || subjectId;
-};
-
-const getTeacherName = (teacherId: string) => {
-  return MOCK_TEACHERS.find((t) => t.value === teacherId)?.label || teacherId;
-};
+// Helper functions will use data from state
 
 const getDayName = (dayOfWeek: number) => {
   return DAYS_OF_WEEK[dayOfWeek] || `Hari ${dayOfWeek}`;
 };
 
 export const AdminSchedule = () => {
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
+  const [subjects, setSubjects] = useState<Array<{ value: string; label: string }>>([]);
+  const [teachers, setTeachers] = useState<Array<{ value: string; label: string }>>([]);
+  const [academicYears, setAcademicYears] = useState<Array<{ value: string; label: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedDay, setSelectedDay] = useState<string>('all');
-  const [selectedYear, setSelectedYear] = useState<string>('2024-2025');
+  const [selectedYear, setSelectedYear] = useState<string>('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule | null>(null);
-  const [schedules, setSchedules] = useState<Schedule[]>(mockSchedules);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     classId: '',
     subjectId: '',
@@ -152,15 +47,18 @@ export const AdminSchedule = () => {
     startTime: '',
     endTime: '',
     room: '',
-    academicYear: '2024-2025',
+    academicYear: '',
     semester: '1',
   });
 
   const filteredSchedules = schedules.filter((schedule) => {
     const matchesClass = selectedClass === 'all' || schedule.classId === selectedClass;
     const matchesDay = selectedDay === 'all' || schedule.dayOfWeek.toString() === selectedDay;
-    const matchesYear = schedule.academicYear === selectedYear;
-    return matchesClass && matchesDay && matchesYear;
+    const matchesYear = !selectedYear || schedule.academicYear === selectedYear;
+    const matchesSearch = !searchTerm || 
+      (schedule.classId && classes.find(c => c.value === schedule.classId)?.label.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (schedule.subjectId && subjects.find(s => s.value === schedule.subjectId)?.label.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesClass && matchesDay && matchesYear && matchesSearch;
   });
 
   // Group schedules by day for better display
@@ -174,6 +72,7 @@ export const AdminSchedule = () => {
   }, {} as Record<number, Schedule[]>);
 
   const handleCreate = () => {
+    const defaultYear = academicYears.find(ay => ay.value === selectedYear)?.value || academicYears[0]?.value || '';
     setFormData({
       classId: '',
       subjectId: '',
@@ -182,7 +81,7 @@ export const AdminSchedule = () => {
       startTime: '',
       endTime: '',
       room: '',
-      academicYear: '2024-2025',
+      academicYear: defaultYear,
       semester: '1',
     });
     setShowCreateModal(true);
@@ -212,40 +111,34 @@ export const AdminSchedule = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsSubmitting(true);
+
+      const scheduleData = {
+        classId: formData.classId,
+        subjectId: formData.subjectId,
+        teacherId: formData.teacherId,
+        dayOfWeek: parseInt(formData.dayOfWeek),
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        room: formData.room || undefined,
+        academicYear: formData.academicYear,
+        semester: parseInt(formData.semester),
+      };
 
       if (showEditModal && selectedSchedule) {
         // Update existing schedule
-        const updatedSchedule: Schedule = {
-          ...selectedSchedule,
-          classId: formData.classId,
-          subjectId: formData.subjectId,
-          teacherId: formData.teacherId,
-          dayOfWeek: parseInt(formData.dayOfWeek),
-          startTime: formData.startTime,
-          endTime: formData.endTime,
-          room: formData.room || undefined,
-          academicYear: formData.academicYear,
-          semester: parseInt(formData.semester),
-        };
-        setSchedules(schedules.map((s) => (s.id === selectedSchedule.id ? updatedSchedule : s)));
+        await scheduleService.updateSchedule(selectedSchedule.id, scheduleData);
       } else {
         // Create new schedule
-        const newSchedule: Schedule = {
-          id: Date.now().toString(),
-          classId: formData.classId,
-          subjectId: formData.subjectId,
-          teacherId: formData.teacherId,
-          dayOfWeek: parseInt(formData.dayOfWeek),
-          startTime: formData.startTime,
-          endTime: formData.endTime,
-          room: formData.room || undefined,
-          academicYear: formData.academicYear,
-          semester: parseInt(formData.semester),
-        };
-        setSchedules([...schedules, newSchedule]);
+        await scheduleService.createSchedule(scheduleData);
       }
+
+      // Reload schedules
+      const filters: any = { academicYear: selectedYear };
+      if (selectedClass !== 'all') filters.classId = selectedClass;
+      if (selectedDay !== 'all') filters.dayOfWeek = parseInt(selectedDay);
+      const updatedSchedules = await scheduleService.getSchedules(filters);
+      setSchedules(updatedSchedules);
 
       setShowCreateModal(false);
       setShowEditModal(false);
@@ -257,27 +150,38 @@ export const AdminSchedule = () => {
         startTime: '',
         endTime: '',
         room: '',
-        academicYear: '2024-2025',
+        academicYear: selectedYear || '2024-2025',
         semester: '1',
       });
       setSelectedSchedule(null);
     } catch (error) {
       console.error('Error saving schedule:', error);
-      alert('Gagal menyimpan jadwal');
+      alert(error instanceof Error ? error.message : 'Gagal menyimpan jadwal');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const confirmDelete = async () => {
     if (!selectedSchedule) return;
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setSchedules(schedules.filter((s) => s.id !== selectedSchedule.id));
+      setIsSubmitting(true);
+      await scheduleService.deleteSchedule(selectedSchedule.id);
+      
+      // Reload schedules
+      const filters: any = { academicYear: selectedYear };
+      if (selectedClass !== 'all') filters.classId = selectedClass;
+      if (selectedDay !== 'all') filters.dayOfWeek = parseInt(selectedDay);
+      const updatedSchedules = await scheduleService.getSchedules(filters);
+      setSchedules(updatedSchedules);
+      
       setShowDeleteDialog(false);
       setSelectedSchedule(null);
     } catch (error) {
       console.error('Error deleting schedule:', error);
-      alert('Gagal menghapus jadwal');
+      alert(error instanceof Error ? error.message : 'Gagal menghapus jadwal');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -301,17 +205,26 @@ export const AdminSchedule = () => {
     {
       key: 'class',
       header: 'Kelas',
-      render: (item: Schedule) => getClassName(item.classId),
+      render: (item: Schedule) => {
+        const cls = classes.find(c => c.value === item.classId);
+        return cls?.label || item.classId;
+      },
     },
     {
       key: 'subject',
       header: 'Mata Pelajaran',
-      render: (item: Schedule) => getSubjectName(item.subjectId),
+      render: (item: Schedule) => {
+        const subject = subjects.find(s => s.value === item.subjectId);
+        return subject?.label || item.subjectId;
+      },
     },
     {
       key: 'teacher',
       header: 'Guru',
-      render: (item: Schedule) => getTeacherName(item.teacherId),
+      render: (item: Schedule) => {
+        const teacher = teachers.find(t => t.value === item.teacherId);
+        return teacher?.label || item.teacherId;
+      },
     },
     {
       key: 'room',
@@ -340,7 +253,7 @@ export const AdminSchedule = () => {
       <div className="admin-schedule">
         <div className="page-header">
           <h1>Manajemen Jadwal</h1>
-          <Button onClick={handleCreate}>
+          <Button onClick={handleCreate} disabled={isLoading}>
             <Icon name="plus" size={16} style={{ marginRight: '0.5rem' }} />
             Tambah Jadwal
           </Button>
@@ -348,13 +261,22 @@ export const AdminSchedule = () => {
 
         <div className="page-filters">
           <div className="filter-group">
+            <input
+              type="text"
+              placeholder="Cari jadwal..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="filter-input"
+            />
+          </div>
+          <div className="filter-group">
             <select
               value={selectedClass}
               onChange={(e) => setSelectedClass(e.target.value)}
               className="filter-select"
             >
               <option value="all">Semua Kelas</option>
-              {MOCK_CLASSES.map((cls) => (
+              {classes.map((cls) => (
                 <option key={cls.value} value={cls.value}>
                   {cls.label}
                 </option>
@@ -381,7 +303,7 @@ export const AdminSchedule = () => {
               onChange={(e) => setSelectedYear(e.target.value)}
               className="filter-select"
             >
-              {MOCK_ACADEMIC_YEARS.map((year) => (
+              {academicYears.map((year) => (
                 <option key={year.value} value={year.value}>
                   {year.label}
                 </option>
@@ -390,7 +312,9 @@ export const AdminSchedule = () => {
           </div>
         </div>
 
-        {filteredSchedules.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : filteredSchedules.length === 0 ? (
           <EmptyState
             icon="calendar"
             title="Tidak Ada Jadwal"
@@ -429,9 +353,11 @@ export const AdminSchedule = () => {
                                   {schedule.startTime} - {schedule.endTime}
                                 </div>
                                 <div className="schedule-content">
-                                  <div className="schedule-subject">{getSubjectName(schedule.subjectId)}</div>
+                                  <div className="schedule-subject">
+                                    {(schedule as any).subjectName || subjects.find(s => s.value === schedule.subjectId)?.label || schedule.subjectId}
+                                  </div>
                                   <div className="schedule-details">
-                                    {getClassName(schedule.classId)} • {getTeacherName(schedule.teacherId)}
+                                    {(schedule as any).className || classes.find(c => c.value === schedule.classId)?.label || schedule.classId} • {(schedule as any).teacherName || teachers.find(t => t.value === schedule.teacherId)?.label || schedule.teacherId}
                                     {schedule.room && ` • ${schedule.room}`}
                                   </div>
                                 </div>
@@ -452,17 +378,18 @@ export const AdminSchedule = () => {
           isOpen={showCreateModal}
           onClose={() => {
             setShowCreateModal(false);
-            setFormData({
-              classId: '',
-              subjectId: '',
-              teacherId: '',
-              dayOfWeek: '',
-              startTime: '',
-              endTime: '',
-              room: '',
-              academicYear: '2024-2025',
-              semester: '1',
-            });
+      const defaultYear = academicYears.find(ay => ay.value === selectedYear)?.value || academicYears[0]?.value || '';
+      setFormData({
+        classId: '',
+        subjectId: '',
+        teacherId: '',
+        dayOfWeek: '',
+        startTime: '',
+        endTime: '',
+        room: '',
+        academicYear: defaultYear,
+        semester: '1',
+      });
           }}
           title="Tambah Jadwal"
           size="medium"
@@ -474,7 +401,7 @@ export const AdminSchedule = () => {
               onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih kelas' },
-                ...MOCK_CLASSES,
+                ...classes,
               ]}
               required
             />
@@ -484,7 +411,7 @@ export const AdminSchedule = () => {
               onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih mata pelajaran' },
-                ...MOCK_SUBJECTS,
+                ...subjects,
               ]}
               required
             />
@@ -494,7 +421,7 @@ export const AdminSchedule = () => {
               onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih guru' },
-                ...MOCK_TEACHERS,
+                ...teachers,
               ]}
               required
             />
@@ -534,7 +461,7 @@ export const AdminSchedule = () => {
               label="Tahun Ajaran"
               value={formData.academicYear}
               onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-              options={MOCK_ACADEMIC_YEARS}
+              options={academicYears}
               required
             />
             <FormSelect
@@ -548,10 +475,12 @@ export const AdminSchedule = () => {
               required
             />
             <div className="modal-footer">
-              <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>
+              <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)} disabled={isSubmitting}>
                 Batal
               </Button>
-              <Button type="submit">Simpan</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+              </Button>
             </div>
           </form>
         </Modal>
@@ -573,7 +502,7 @@ export const AdminSchedule = () => {
               onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih kelas' },
-                ...MOCK_CLASSES,
+                ...classes,
               ]}
               required
             />
@@ -583,7 +512,7 @@ export const AdminSchedule = () => {
               onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih mata pelajaran' },
-                ...MOCK_SUBJECTS,
+                ...subjects,
               ]}
               required
             />
@@ -593,7 +522,7 @@ export const AdminSchedule = () => {
               onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih guru' },
-                ...MOCK_TEACHERS,
+                ...teachers,
               ]}
               required
             />
@@ -633,7 +562,7 @@ export const AdminSchedule = () => {
               label="Tahun Ajaran"
               value={formData.academicYear}
               onChange={(e) => setFormData({ ...formData, academicYear: e.target.value })}
-              options={MOCK_ACADEMIC_YEARS}
+              options={academicYears}
               required
             />
             <FormSelect
