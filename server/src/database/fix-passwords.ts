@@ -2,7 +2,7 @@ import db from './db.js';
 import bcrypt from 'bcryptjs';
 
 async function fixPasswords() {
-  console.log('🔧 Fixing password hashes...');
+  console.log('🔧 Fixing password hashes...\n');
 
   const users = db.prepare('SELECT id, username, password FROM users WHERE username IN (?, ?, ?, ?)').all('student', 'teacher', 'admin', 'parent') as any[];
 
@@ -14,26 +14,49 @@ async function fixPasswords() {
   const correctPassword = 'password';
   const hashedPassword = await bcrypt.hash(correctPassword, 10);
 
-  console.log('✅ Generated password hash:', hashedPassword.substring(0, 30) + '...');
+  console.log('✅ Generated password hash:', hashedPassword.substring(0, 30) + '...\n');
 
   for (const user of users) {
+    console.log(`Checking user: ${user.username}`);
+    console.log(`  Current hash start: ${user.password ? user.password.substring(0, 10) : 'NULL'}`);
+    
     // Check if password is already a bcrypt hash
     const isBcryptHash = user.password && (user.password.startsWith('$2a$') || user.password.startsWith('$2b$') || user.password.startsWith('$2y$'));
     
     if (!isBcryptHash) {
-      console.log(`⚠️  User ${user.username} has invalid password hash. Updating...`);
+      console.log(`  ⚠️  Invalid hash format. Updating...`);
       db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, user.id);
-      console.log(`✅ Updated password for ${user.username}`);
+      console.log(`  ✅ Updated password for ${user.username}\n`);
     } else {
       // Verify the hash works
-      const isValid = await bcrypt.compare(correctPassword, user.password);
-      if (!isValid) {
-        console.log(`⚠️  User ${user.username} password hash doesn't match. Updating...`);
+      try {
+        const isValid = await bcrypt.compare(correctPassword, user.password);
+        if (!isValid) {
+          console.log(`  ⚠️  Hash doesn't match "password". Updating...`);
+          db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, user.id);
+          console.log(`  ✅ Updated password for ${user.username}\n`);
+        } else {
+          console.log(`  ✅ Password hash is valid\n`);
+        }
+      } catch (error: any) {
+        console.log(`  ❌ Error verifying hash: ${error.message}`);
+        console.log(`  ⚠️  Updating hash...`);
         db.prepare('UPDATE users SET password = ? WHERE id = ?').run(hashedPassword, user.id);
-        console.log(`✅ Updated password for ${user.username}`);
-      } else {
-        console.log(`✅ User ${user.username} password hash is valid`);
+        console.log(`  ✅ Updated password for ${user.username}\n`);
       }
+    }
+  }
+
+  // Verify all passwords after update
+  console.log('🔍 Verifying all passwords after update...\n');
+  for (const user of users) {
+    const updatedUser = db.prepare('SELECT password FROM users WHERE id = ?').get(user.id) as any;
+    try {
+      const isValid = await bcrypt.compare(correctPassword, updatedUser.password);
+      const status = isValid ? '✅' : '❌';
+      console.log(`  ${status} ${user.username}: ${isValid ? 'Valid' : 'Invalid'}`);
+    } catch (error: any) {
+      console.log(`  ❌ ${user.username}: Error - ${error.message}`);
     }
   }
 
@@ -43,6 +66,8 @@ async function fixPasswords() {
   console.log('Test login with:');
   console.log('- Username: student');
   console.log('- Password: password');
+  console.log('');
+  console.log('Or run: npm run test-login');
 }
 
 fixPasswords().catch(console.error);
