@@ -47,68 +47,7 @@ export const StudentAttendance = () => {
       loadData();
     }
   }, [user?.id]);
-  {
-    id: '1',
-    studentId: 'student1',
-    classId: 'class1',
-    subjectId: 'subject1',
-    date: new Date('2024-01-15'),
-    status: 'present',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-15'),
-  },
-  {
-    id: '2',
-    studentId: 'student1',
-    classId: 'class1',
-    subjectId: 'subject1',
-    date: new Date('2024-01-16'),
-    status: 'present',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-16'),
-  },
-  {
-    id: '3',
-    studentId: 'student1',
-    classId: 'class1',
-    subjectId: 'subject2',
-    date: new Date('2024-01-17'),
-    status: 'late',
-    notes: 'Terlambat 10 menit',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-17'),
-  },
-  {
-    id: '4',
-    studentId: 'student1',
-    classId: 'class1',
-    subjectId: 'subject3',
-    date: new Date('2024-01-18'),
-    status: 'present',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-18'),
-  },
-  {
-    id: '5',
-    studentId: 'student1',
-    classId: 'class1',
-    subjectId: 'subject1',
-    date: new Date('2024-01-19'),
-    status: 'absent',
-    notes: 'Sakit',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-19'),
-  },
-  {
-    id: '6',
-    studentId: 'student1',
-    classId: 'class1',
-    subjectId: 'subject4',
-    date: new Date('2024-01-20'),
-    status: 'present',
-    recordedBy: 'teacher1',
-    createdAt: new Date('2024-01-20'),
-  },
+
   // Sort by date (newest first)
   const sortedAttendances = [...attendances].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()

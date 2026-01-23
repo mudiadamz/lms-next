@@ -204,6 +204,7 @@ export const ParentDashboard = () => {
           </div>
         )}
 
+        {!isLoading && (
           <Card title="Jadwal Hari Ini" variant="elevated">
             <div className="today-schedule">
               <div className="schedule-item">
@@ -221,7 +222,7 @@ export const ParentDashboard = () => {
               </Button>
             </Link>
           </Card>
-        </div>
+        )}
       </div>
     </DashboardLayout>
   );

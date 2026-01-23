@@ -55,7 +55,8 @@ export const StudentMessagesChat = () => {
 
     setIsSending(true);
     try {
-      const sentMessage = await messageService.sendMessage(id, {
+      const sentMessage = await messageService.sendMessage({
+        receiverId: id,
         content: newMessage,
       });
       setMessages([...messages, sentMessage]);
@@ -88,37 +89,38 @@ export const StudentMessagesChat = () => {
           <Card className="chat-container">
             <div className="messages-list">
               {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`message-item ${isOwnMessage(message) ? 'message-item--own' : ''}`}
-              >
-                <div className="message-content">
-                  {!isOwnMessage(message) && (
-                    <div className="message-sender">{message.senderName || message.userName || 'Unknown'}</div>
-                  )}
-                  <div className="message-bubble">{message.content}</div>
-                  <div className="message-time">
-                    {getRelativeTime(new Date(message.createdAt || message.date || Date.now()))}
+                <div
+                  key={message.id}
+                  className={`message-item ${isOwnMessage(message) ? 'message-item--own' : ''}`}
+                >
+                  <div className="message-content">
+                    {!isOwnMessage(message) && (
+                      <div className="message-sender">{message.senderName || message.userName || 'Unknown'}</div>
+                    )}
+                    <div className="message-bubble">{message.content}</div>
+                    <div className="message-time">
+                      {getRelativeTime(new Date(message.createdAt || message.date || Date.now()))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
 
-          <form onSubmit={handleSend} className="chat-input-form">
-            <FormTextarea
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Tulis pesan..."
-              rows={2}
-              className="chat-input"
-            />
-            <Button type="submit" isLoading={isSending} disabled={!newMessage.trim()}>
-              Kirim
-            </Button>
-          </form>
-        </Card>
+            <form onSubmit={handleSend} className="chat-input-form">
+              <FormTextarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Tulis pesan..."
+                rows={2}
+                className="chat-input"
+              />
+              <Button type="submit" isLoading={isSending} disabled={!newMessage.trim()}>
+                Kirim
+              </Button>
+            </form>
+          </Card>
+        )}
       </div>
     </DashboardLayout>
   );

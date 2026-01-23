@@ -6,7 +6,7 @@ import { authenticateToken, requireRole, AuthRequest } from '../middleware/auth.
 const router = express.Router();
 
 // Get audit logs
-router.get('/', authenticateToken, requireRole(['admin']), (req: AuthRequest, res) => {
+router.get('/', authenticateToken, requireRole('admin'), (req: AuthRequest, res) => {
   try {
     const { userId, action, page = '1', limit = '50' } = req.query;
     const pageNum = parseInt(page as string);
@@ -80,7 +80,7 @@ router.get('/', authenticateToken, requireRole(['admin']), (req: AuthRequest, re
 });
 
 // Get audit log by ID
-router.get('/:id', authenticateToken, requireRole(['admin']), (req: AuthRequest, res) => {
+router.get('/:id', authenticateToken, requireRole('admin'), (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 

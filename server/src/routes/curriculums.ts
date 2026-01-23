@@ -79,7 +79,7 @@ router.get('/:id', authenticateToken, (req, res) => {
 });
 
 // Create curriculum
-router.post('/', authenticateToken, requireRole(['admin']), (req: AuthRequest, res) => {
+router.post('/', authenticateToken, requireRole('admin'), (req: AuthRequest, res) => {
   try {
     const { name, description, schoolLevel, startDate, endDate } = req.body;
 
@@ -127,7 +127,7 @@ router.post('/', authenticateToken, requireRole(['admin']), (req: AuthRequest, r
 });
 
 // Update curriculum
-router.put('/:id', authenticateToken, requireRole(['admin']), (req: AuthRequest, res) => {
+router.put('/:id', authenticateToken, requireRole('admin'), (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { name, description, schoolLevel, startDate, endDate } = req.body;
@@ -177,7 +177,7 @@ router.put('/:id', authenticateToken, requireRole(['admin']), (req: AuthRequest,
 });
 
 // Activate curriculum
-router.post('/:id/activate', authenticateToken, requireRole(['admin']), (req: AuthRequest, res) => {
+router.post('/:id/activate', authenticateToken, requireRole('admin'), (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
@@ -218,7 +218,7 @@ router.post('/:id/activate', authenticateToken, requireRole(['admin']), (req: Au
 });
 
 // Delete curriculum
-router.delete('/:id', authenticateToken, requireRole(['admin']), (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireRole('admin'), (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 

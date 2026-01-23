@@ -17,30 +17,6 @@ export const TeacherForum = () => {
   const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  {
-    id: '1',
-    classId: 'class1',
-    authorId: 'teacher1',
-    authorName: 'Ibu Siti',
-    authorRole: 'teacher',
-    title: 'Diskusi Matematika - Soal Aljabar',
-    content: 'Halo semua, ada yang bisa bantu menjelaskan cara menyelesaikan soal aljabar di halaman 25? Silakan diskusikan di sini.',
-    isPinned: true,
-    createdAt: new Date('2024-01-15T10:00:00'),
-    updatedAt: new Date('2024-01-15T10:00:00'),
-  },
-  {
-    id: '2',
-    classId: 'class1',
-    authorId: 'student1',
-    authorName: 'Budi Santoso',
-    authorRole: 'student',
-    title: 'Pertanyaan tentang Tugas Bahasa Indonesia',
-    content: 'Saya ingin bertanya tentang tugas menulis esai yang diberikan minggu lalu. Apakah ada batasan jumlah kata?',
-    isPinned: false,
-    createdAt: new Date('2024-01-16T14:30:00'),
-    updatedAt: new Date('2024-01-16T14:30:00'),
-  },
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);

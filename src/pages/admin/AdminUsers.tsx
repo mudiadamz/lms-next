@@ -95,62 +95,6 @@ export const AdminUsers = () => {
         return 'Tambah Pengguna';
     }
   };
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // Read role from URL query parameter
-  useEffect(() => {
-    const role = searchParams.get('role') || 'admin';
-    setSelectedSubMenu(role);
-  }, [searchParams]);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [isImporting, setIsImporting] = useState(false);
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const itemsPerPage = 10;
-
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.studentNumber && user.studentNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.teacherNumber && user.teacherNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.adminNumber && user.adminNumber.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesSubMenu = user.role === selectedSubMenu;
-    return matchesSearch && matchesSubMenu;
-  });
-
-  const paginatedUsers = filteredUsers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-
-  const handleDelete = (user: any) => {
-    setSelectedUser(user);
-    setShowDeleteDialog(true);
-  };
-
-  const handleAddUser = () => {
-    // Navigate to create page
-    navigate(`${ROUTES.ADMIN_USERS}/create/${selectedSubMenu}`);
-  };
-
-  const getButtonLabel = () => {
-    switch (selectedSubMenu) {
-      case 'admin':
-        return 'Tambah Admin';
-      case 'student':
-        return 'Tambah Murid';
-      case 'teacher':
-        return 'Tambah Guru';
-      default:
-        return 'Tambah Pengguna';
-    }
-  };
 
   const getPageTitle = () => {
     switch (selectedSubMenu) {
@@ -169,8 +113,6 @@ export const AdminUsers = () => {
     if (files.length > 0) {
       const file = files[0];
       setImportFile(file);
-      // Simulate parsing Excel file
-      // In real implementation, use library like xlsx or exceljs
       handleParseExcel(file);
     }
   };
@@ -206,66 +148,14 @@ export const AdminUsers = () => {
       // TODO: Call API to import users
       // await userService.importUsers(importPreview);
       alert('Fitur import Excel belum diimplementasikan. Silakan gunakan form manual.');
-      
-      // Add imported users to the list
-      const newUsers = importPreview.map((user, index) => {
-        // Get nomor induk berdasarkan role
-        let numberInduk = '';
-        if (user.role === 'student' && user.studentNumber) {
-          numberInduk = user.studentNumber;
-        } else if (user.role === 'teacher' && user.teacherNumber) {
-          numberInduk = user.teacherNumber;
-        } else if (user.role === 'admin' && user.adminNumber) {
-          numberInduk = user.adminNumber;
-        }
-
-        const newUser: any = {
-          id: Date.now().toString() + index,
-          fullName: user.fullName,
-          role: user.role,
-          schoolLevel: user.schoolLevel,
-          classId: user.role === 'student' ? 'class1' : undefined,
-          // Password default sama dengan nomor induk
-          password: numberInduk,
-        };
-        
-        // Set nomor induk berdasarkan role
-        if (user.role === 'student' && user.studentNumber) {
-          newUser.studentNumber = user.studentNumber;
-        } else if (user.role === 'teacher' && user.teacherNumber) {
-          newUser.teacherNumber = user.teacherNumber;
-        } else if (user.role === 'admin' && user.adminNumber) {
-          newUser.adminNumber = user.adminNumber;
-        }
-        
-        return newUser;
-      });
-
-      setUsers([...users, ...newUsers]);
       setShowImportModal(false);
       setImportFile(null);
       setImportPreview([]);
-      alert(`Berhasil mengimpor ${newUsers.length} user`);
     } catch (error) {
       console.error('Error importing users:', error);
       alert('Gagal mengimpor user');
     } finally {
       setIsImporting(false);
-    }
-  };
-
-
-  const confirmDelete = async () => {
-    if (!selectedUser) return;
-    // TODO: Call userService.deleteUser
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setUsers(users.filter((u) => u.id !== selectedUser.id));
-      setShowDeleteDialog(false);
-      setSelectedUser(null);
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      alert('Gagal menghapus user');
     }
   };
 
@@ -276,43 +166,26 @@ export const AdminUsers = () => {
       render: (item: any) => (
         <div>
           <strong>{item.fullName}</strong>
+          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            {item.email}
+          </div>
         </div>
       ),
     },
     {
-      key: 'number',
-      header: 'Nomor Induk',
-      render: (item: any) => {
-        if (item.role === 'student' && 'studentNumber' in item) {
-          return item.studentNumber || '-';
-        } else if (item.role === 'teacher' && 'teacherNumber' in item) {
-          return item.teacherNumber || '-';
-        } else if (item.role === 'admin' && 'adminNumber' in item) {
-          return item.adminNumber || '-';
-        }
-        return '-';
-      },
-    },
-    {
       key: 'role',
       header: 'Role',
-      render: (item: any) => (
-        <Badge variant={item.role === 'admin' ? 'danger' : item.role === 'teacher' ? 'primary' : 'secondary'}>
-          {ROLE_LABELS[item.role]}
-        </Badge>
-      ),
+      render: (item: any) => <Badge variant="secondary">{ROLE_LABELS[item.role] || item.role}</Badge>,
+    },
+    {
+      key: 'number',
+      header: 'Nomor Induk',
+      render: (item: any) => item.studentNumber || item.teacherNumber || item.adminNumber || '-',
     },
     {
       key: 'schoolLevel',
       header: 'Tingkat',
-      render: (item: any) => {
-        const levels: Record<string, string> = {
-          sd: 'SD',
-          smp: 'SMP',
-          sma: 'SMA',
-        };
-        return levels[item.schoolLevel] || '-';
-      },
+      render: (item: any) => item.schoolLevel ? SCHOOL_LEVELS[item.schoolLevel] : '-',
     },
     {
       key: 'actions',

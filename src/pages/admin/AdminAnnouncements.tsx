@@ -14,37 +14,6 @@ export const AdminAnnouncements = () => {
   const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  {
-    id: '1',
-    title: 'Pengumuman Ujian Nasional 2024',
-    content: 'Diberitahukan kepada seluruh siswa bahwa Ujian Nasional akan dilaksanakan pada tanggal 15-20 April 2024. Harap mempersiapkan diri dengan baik.',
-    authorId: 'admin1',
-    targetAudience: 'all',
-    isPinned: true,
-    createdAt: new Date('2024-01-10'),
-    endDate: new Date('2024-04-20'),
-  },
-  {
-    id: '2',
-    title: 'Libur Semester Genap',
-    content: 'Libur semester genap akan dimulai pada tanggal 1 Juli 2024 sampai dengan 15 Juli 2024. Selamat berlibur!',
-    authorId: 'admin1',
-    targetAudience: ['student'],
-    isPinned: false,
-    createdAt: new Date('2024-01-15'),
-    endDate: new Date('2024-07-15'),
-  },
-  {
-    id: '3',
-    title: 'Rapat Orang Tua Siswa',
-    content: 'Diharapkan kehadiran orang tua siswa kelas X untuk menghadiri rapat pada tanggal 25 Januari 2024 pukul 09:00 WIB.',
-    authorId: 'admin1',
-    targetAudience: ['parent'],
-    classId: 'class1',
-    isPinned: false,
-    createdAt: new Date('2024-01-20'),
-    endDate: new Date('2024-01-25'),
-  },
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAudience, setSelectedAudience] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);

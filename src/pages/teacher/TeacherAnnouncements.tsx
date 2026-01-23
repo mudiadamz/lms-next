@@ -14,42 +14,6 @@ export const TeacherAnnouncements = () => {
   const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  {
-    id: '1',
-    title: 'Pengumuman Ujian Tengah Semester',
-    content: 'Ujian Tengah Semester akan dilaksanakan pada tanggal 20-25 Februari 2024. Silakan persiapkan diri dengan baik dan jangan lupa membawa alat tulis lengkap.',
-    authorId: 'teacher1',
-    targetAudience: ['student'],
-    classId: 'class1',
-    isPinned: true,
-    startDate: new Date('2024-01-20'),
-    endDate: new Date('2024-02-25'),
-    createdAt: new Date('2024-01-20T09:00:00'),
-  },
-  {
-    id: '2',
-    title: 'Pengumpulan Tugas Matematika',
-    content: 'Tugas matematika bab aljabar harus dikumpulkan paling lambat hari Jumat, 26 Januari 2024. Silakan submit melalui sistem LMS.',
-    authorId: 'teacher1',
-    targetAudience: ['student'],
-    classId: 'class1',
-    isPinned: false,
-    startDate: new Date('2024-01-22'),
-    endDate: new Date('2024-01-26'),
-    createdAt: new Date('2024-01-22T10:00:00'),
-  },
-  {
-    id: '3',
-    title: 'Rapat Orang Tua Siswa',
-    content: 'Diharapkan kehadiran orang tua siswa kelas X IPA 1 untuk menghadiri rapat pada tanggal 30 Januari 2024 pukul 09:00 WIB di aula sekolah.',
-    authorId: 'teacher1',
-    targetAudience: ['parent'],
-    classId: 'class1',
-    isPinned: true,
-    startDate: new Date('2024-01-25'),
-    endDate: new Date('2024-01-30'),
-    createdAt: new Date('2024-01-25T08:00:00'),
-  },
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);

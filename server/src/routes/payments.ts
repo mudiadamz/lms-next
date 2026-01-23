@@ -128,7 +128,7 @@ router.get('/:id', authenticateToken, (req: AuthRequest, res) => {
 });
 
 // Create payment
-router.post('/', authenticateToken, requireRole(['admin']), (req: AuthRequest, res) => {
+router.post('/', authenticateToken, requireRole('admin'), (req: AuthRequest, res) => {
   try {
     const { classIds, month, year, amount, dueDate, notes } = req.body;
 
@@ -201,7 +201,7 @@ router.post('/', authenticateToken, requireRole(['admin']), (req: AuthRequest, r
 });
 
 // Update payment
-router.put('/:id', authenticateToken, requireRole(['admin']), (req: AuthRequest, res) => {
+router.put('/:id', authenticateToken, requireRole('admin'), (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
     const { classId, month, year, amount, dueDate, status, paymentMethod, receiptNumber, notes } = req.body;
@@ -262,7 +262,7 @@ router.put('/:id', authenticateToken, requireRole(['admin']), (req: AuthRequest,
 });
 
 // Delete payment
-router.delete('/:id', authenticateToken, requireRole(['admin']), (req: AuthRequest, res) => {
+router.delete('/:id', authenticateToken, requireRole('admin'), (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
 
