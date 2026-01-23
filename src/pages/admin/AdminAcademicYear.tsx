@@ -1,34 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Modal, FormInput, FormSelect, ConfirmDialog, Icon, EmptyState } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormSelect, ConfirmDialog, Icon, EmptyState, Loading } from '../../components/common';
 import { AcademicYear } from '../../types';
+import { academicYearService } from '../../services';
 import './AdminAcademicYear.css';
-
-// Contoh data tahun ajaran
-const mockAcademicYears: AcademicYear[] = [
-  {
-    id: '1',
-    name: '2024-2025',
-    startDate: new Date('2024-07-01'),
-    endDate: new Date('2025-06-30'),
-    isActive: true,
-  },
-  {
-    id: '2',
-    name: '2023-2024',
-    startDate: new Date('2023-07-01'),
-    endDate: new Date('2024-06-30'),
-    isActive: false,
-  },
-  {
-    id: '3',
-    name: '2022-2023',
-    startDate: new Date('2022-07-01'),
-    endDate: new Date('2023-06-30'),
-    isActive: false,
-  },
-];
 
 export const AdminAcademicYear = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -36,7 +12,26 @@ export const AdminAcademicYear = () => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showActivateDialog, setShowActivateDialog] = useState(false);
   const [selectedAcademicYear, setSelectedAcademicYear] = useState<AcademicYear | null>(null);
-  const [academicYears, setAcademicYears] = useState<AcademicYear[]>(mockAcademicYears);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await academicYearService.getAcademicYears();
+        setAcademicYears(data);
+      } catch (error) {
+        console.error('Error loading academic years:', error);
+        alert('Gagal memuat data tahun ajaran');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
   const [formData, setFormData] = useState({
     name: '',
     startDate: '',
@@ -83,45 +78,32 @@ export const AdminAcademicYear = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsSubmitting(true);
+
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(formData.endDate);
+      
+      // Validate dates
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        alert('Tanggal tidak valid');
+        return;
+      }
 
       if (showEditModal && selectedAcademicYear) {
         // Update existing academic year
-        const startDate = new Date(formData.startDate);
-        const endDate = new Date(formData.endDate);
-        
-        // Validate dates
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          alert('Tanggal tidak valid');
-          return;
-        }
-        
-        const updatedYear: AcademicYear = {
-          ...selectedAcademicYear,
+        const updated = await academicYearService.updateAcademicYear(selectedAcademicYear.id, {
           name: formData.name,
-          startDate: startDate,
-          endDate: endDate,
-        };
-        setAcademicYears(academicYears.map((y) => (y.id === selectedAcademicYear.id ? updatedYear : y)));
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        });
+        setAcademicYears(academicYears.map((y) => (y.id === selectedAcademicYear.id ? updated : y)));
       } else {
         // Create new academic year
-        const startDate = new Date(formData.startDate);
-        const endDate = new Date(formData.endDate);
-        
-        // Validate dates
-        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-          alert('Tanggal tidak valid');
-          return;
-        }
-        
-        const newYear: AcademicYear = {
-          id: Date.now().toString(),
+        const newYear = await academicYearService.createAcademicYear({
           name: formData.name,
-          startDate: startDate,
-          endDate: endDate,
-          isActive: false,
-        };
+          startDate: startDate.toISOString(),
+          endDate: endDate.toISOString(),
+        });
         setAcademicYears([...academicYears, newYear]);
       }
 
@@ -135,41 +117,43 @@ export const AdminAcademicYear = () => {
       setSelectedAcademicYear(null);
     } catch (error) {
       console.error('Error saving academic year:', error);
-      alert('Gagal menyimpan tahun ajaran');
+      alert(error instanceof Error ? error.message : 'Gagal menyimpan tahun ajaran');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const confirmDelete = async () => {
     if (!selectedAcademicYear) return;
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsSubmitting(true);
+      await academicYearService.deleteAcademicYear(selectedAcademicYear.id);
       setAcademicYears(academicYears.filter((y) => y.id !== selectedAcademicYear.id));
       setShowDeleteDialog(false);
       setSelectedAcademicYear(null);
     } catch (error) {
       console.error('Error deleting academic year:', error);
-      alert('Gagal menghapus tahun ajaran');
+      alert(error instanceof Error ? error.message : 'Gagal menghapus tahun ajaran');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const confirmActivate = async () => {
     if (!selectedAcademicYear) return;
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      // Deactivate all years first, then activate selected one
-      setAcademicYears(
-        academicYears.map((y) => ({
-          ...y,
-          isActive: y.id === selectedAcademicYear.id,
-        }))
-      );
+      setIsSubmitting(true);
+      await academicYearService.activateAcademicYear(selectedAcademicYear.id);
+      // Reload data to get updated state
+      const updated = await academicYearService.getAcademicYears();
+      setAcademicYears(updated);
       setShowActivateDialog(false);
       setSelectedAcademicYear(null);
     } catch (error) {
       console.error('Error activating academic year:', error);
-      alert('Gagal mengaktifkan tahun ajaran');
+      alert(error instanceof Error ? error.message : 'Gagal mengaktifkan tahun ajaran');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -269,13 +253,13 @@ export const AdminAcademicYear = () => {
         )}
 
 
-        {filteredAcademicYears.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : filteredAcademicYears.length === 0 ? (
           <EmptyState
             icon="calendar"
             title="Tidak Ada Tahun Ajaran"
-            message={searchTerm
-              ? 'Tidak ada tahun ajaran yang sesuai dengan pencarian.'
-              : 'Belum ada tahun ajaran yang terdaftar.'}
+            message="Belum ada tahun ajaran yang terdaftar."
             action={{
               label: 'Tambah Tahun Ajaran',
               onClick: handleCreate,
@@ -326,10 +310,12 @@ export const AdminAcademicYear = () => {
               />
             </div>
             <div className="modal-footer">
-              <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>
+              <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)} disabled={isSubmitting}>
                 Batal
               </Button>
-              <Button type="submit">Simpan</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+              </Button>
             </div>
           </form>
         </Modal>

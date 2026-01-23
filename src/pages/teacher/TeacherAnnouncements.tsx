@@ -1,20 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, Icon, EmptyState, Pagination } from '../../components/common';
+import { Button, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, Icon, EmptyState, Pagination, Loading } from '../../components/common';
 import { Announcement } from '../../types';
 import { formatDate, getRelativeTime } from '../../utils';
+import { announcementService, classService } from '../../services';
 import './TeacherAnnouncements.css';
 
-const MOCK_CLASSES = [
-  { value: 'class1', label: 'X IPA 1' },
-  { value: 'class2', label: 'X IPA 2' },
-  { value: 'class3', label: 'XI IPA 1' },
-];
-
-// Contoh data pengumuman
-const mockAnnouncements: Announcement[] = [
+export const TeacherAnnouncements = () => {
+  const { user } = useAuth();
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   {
     id: '1',
     title: 'Pengumuman Ujian Tengah Semester',
@@ -51,28 +50,11 @@ const mockAnnouncements: Announcement[] = [
     endDate: new Date('2024-01-30'),
     createdAt: new Date('2024-01-25T08:00:00'),
   },
-  {
-    id: '4',
-    title: 'Remedial Test',
-    content: 'Bagi siswa yang nilai UTS di bawah KKM, akan diadakan remedial test pada tanggal 5 Maret 2024. Silakan persiapkan diri.',
-    authorId: 'teacher1',
-    targetAudience: ['student'],
-    classId: 'class2',
-    isPinned: false,
-    startDate: new Date('2024-01-28'),
-    endDate: new Date('2024-03-05'),
-    createdAt: new Date('2024-01-28T14:00:00'),
-  },
-];
-
-export const TeacherAnnouncements = () => {
-  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-  const [announcements, setAnnouncements] = useState<Announcement[]>(mockAnnouncements);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [formData, setFormData] = useState({
@@ -83,6 +65,35 @@ export const TeacherAnnouncements = () => {
     isPinned: false,
     endDate: '',
   });
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [announcementsData, classesData] = await Promise.all([
+          announcementService.getAnnouncements({ targetAudience: 'student' }),
+          classService.getClasses(),
+        ]);
+
+        // Filter announcements by teacher's classes
+        const teacherClasses = classesData.map(c => c.id);
+        const filtered = announcementsData.filter(a => 
+          a.authorId === user?.id || (a.classId && teacherClasses.includes(a.classId))
+        );
+
+        setAnnouncements(filtered);
+        setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id]);
 
   const filteredAnnouncements = announcements.filter((announcement) => {
     const matchesSearch =
@@ -141,60 +152,53 @@ export const TeacherAnnouncements = () => {
 
   const handleTogglePin = async (announcement: Announcement) => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      setIsSubmitting(true);
+      const updated = await announcementService.updateAnnouncement(announcement.id, {
+        isPinned: !announcement.isPinned,
+      });
       setAnnouncements(
         announcements.map((a) =>
-          a.id === announcement.id ? { ...a, isPinned: !a.isPinned } : a
+          a.id === announcement.id ? updated : a
         )
       );
     } catch (error) {
       console.error('Error toggling pin:', error);
-      alert('Gagal mengubah status pin');
+      alert(error instanceof Error ? error.message : 'Gagal mengubah status pin');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsSubmitting(true);
 
       const targetAudience: 'student'[] | 'parent'[] | 'all' =
         formData.targetAudience === 'all'
           ? 'all'
           : ([formData.targetAudience] as 'student'[] | 'parent'[]);
 
+      const announcementData = {
+        title: formData.title,
+        content: formData.content,
+        classId: formData.classId || undefined,
+        targetAudience,
+        isPinned: formData.isPinned,
+        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
+      };
+
       if (selectedAnnouncement) {
         // Update existing announcement
-        const updatedAnnouncement: Announcement = {
-          ...selectedAnnouncement,
-          title: formData.title,
-          content: formData.content,
-          classId: formData.classId || undefined,
-          targetAudience,
-          isPinned: formData.isPinned,
-          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
-        };
+        const updated = await announcementService.updateAnnouncement(selectedAnnouncement.id, announcementData);
         setAnnouncements(
           announcements.map((a) =>
-            a.id === selectedAnnouncement.id ? updatedAnnouncement : a
+            a.id === selectedAnnouncement.id ? updated : a
           )
         );
       } else {
         // Create new announcement
-        const newAnnouncement: Announcement = {
-          id: Date.now().toString(),
-          title: formData.title,
-          content: formData.content,
-          authorId: user?.id || 'teacher1',
-          targetAudience,
-          classId: formData.classId || undefined,
-          isPinned: formData.isPinned,
-          startDate: new Date(),
-          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
-          createdAt: new Date(),
-        };
+        const newAnnouncement = await announcementService.createAnnouncement(announcementData);
         setAnnouncements([newAnnouncement, ...announcements]);
       }
 
@@ -210,27 +214,31 @@ export const TeacherAnnouncements = () => {
       setSelectedAnnouncement(null);
     } catch (error) {
       console.error('Error saving announcement:', error);
-      alert('Gagal menyimpan pengumuman');
+      alert(error instanceof Error ? error.message : 'Gagal menyimpan pengumuman');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const confirmDelete = async () => {
     if (!selectedAnnouncement) return;
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsSubmitting(true);
+      await announcementService.deleteAnnouncement(selectedAnnouncement.id);
       setAnnouncements(announcements.filter((a) => a.id !== selectedAnnouncement.id));
       setShowDeleteDialog(false);
       setSelectedAnnouncement(null);
     } catch (error) {
       console.error('Error deleting announcement:', error);
-      alert('Gagal menghapus pengumuman');
+      alert(error instanceof Error ? error.message : 'Gagal menghapus pengumuman');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const getClassName = (classId?: string) => {
     if (!classId) return 'Semua Kelas';
-    return MOCK_CLASSES.find((c) => c.value === classId)?.label || classId;
+    return classes.find((c) => c.value === classId)?.label || classId;
   };
 
   const getTargetAudienceLabel = (audience: Announcement['targetAudience']) => {
@@ -264,7 +272,7 @@ export const TeacherAnnouncements = () => {
               className="filter-select"
             >
               <option value="all">Semua Kelas</option>
-              {MOCK_CLASSES.map((cls) => (
+              {classes.map((cls) => (
                 <option key={cls.value} value={cls.value}>
                   {cls.label}
                 </option>
@@ -273,7 +281,9 @@ export const TeacherAnnouncements = () => {
           </div>
         </div>
 
-        {paginatedAnnouncements.length === 0 ? (
+        {isLoading ? (
+          <Loading />
+        ) : paginatedAnnouncements.length === 0 ? (
           <EmptyState
             icon="announcement"
             title="Tidak Ada Pengumuman"
@@ -381,7 +391,7 @@ export const TeacherAnnouncements = () => {
               onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
               options={[
                 { value: '', label: 'Pilih kelas' },
-                ...MOCK_CLASSES,
+                ...classes,
               ]}
               required
             />
@@ -441,8 +451,8 @@ export const TeacherAnnouncements = () => {
               >
                 Batal
               </Button>
-              <Button type="submit">
-                {selectedAnnouncement ? 'Simpan Perubahan' : 'Publikasikan'}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Menyimpan...' : (selectedAnnouncement ? 'Simpan Perubahan' : 'Publikasikan')}
               </Button>
             </div>
           </form>

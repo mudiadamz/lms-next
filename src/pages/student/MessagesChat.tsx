@@ -2,47 +2,20 @@ import { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, FormTextarea, Badge } from '../../components/common';
+import { Button, FormTextarea, Badge, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDateTime, getRelativeTime } from '../../utils';
 import { useAuth } from '../../contexts/AuthContext';
+import { messageService, userService } from '../../services';
 import './MessagesChat.css';
-
-const mockMessages = [
-  {
-    id: '1',
-    senderId: '2',
-    senderName: 'Ibu Siti',
-    senderRole: 'teacher',
-    content: 'Halo Budi, bagaimana progress tugas matematika?',
-    createdAt: new Date('2024-01-18T09:00:00'),
-    isRead: true,
-  },
-  {
-    id: '2',
-    senderId: '1',
-    senderName: 'Budi Santoso',
-    senderRole: 'student',
-    content: 'Halo Bu, saya sudah mengerjakan setengahnya. Ada yang ingin saya tanyakan.',
-    createdAt: new Date('2024-01-18T09:15:00'),
-    isRead: true,
-  },
-  {
-    id: '3',
-    senderId: '2',
-    senderName: 'Ibu Siti',
-    senderRole: 'teacher',
-    content: 'Baik, silakan tanyakan. Saya siap membantu.',
-    createdAt: new Date('2024-01-18T09:20:00'),
-    isRead: true,
-  },
-];
 
 export const StudentMessagesChat = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [messages, setMessages] = useState(mockMessages);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [participant, setParticipant] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -52,37 +25,50 @@ export const StudentMessagesChat = () => {
   };
 
   useEffect(() => {
+    const loadMessages = async () => {
+      if (!id) return;
+      try {
+        setIsLoading(true);
+        const [messagesData, participantData] = await Promise.all([
+          messageService.getMessages(id),
+          userService.getUserById(id),
+        ]);
+        setMessages(messagesData);
+        setParticipant(participantData);
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMessages();
+  }, [id]);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || !id) return;
 
     setIsSending(true);
     try {
-      // TODO: Call messageService.sendMessage
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const message = {
-        id: Date.now().toString(),
-        senderId: user?.id || '1',
-        senderName: user?.fullName || 'You',
-        senderRole: user?.role || 'student',
+      const sentMessage = await messageService.sendMessage(id, {
         content: newMessage,
-        createdAt: new Date(),
-        isRead: false,
-      };
-      setMessages([...messages, message]);
+      });
+      setMessages([...messages, sentMessage]);
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Gagal mengirim pesan');
+      alert(error instanceof Error ? error.message : 'Gagal mengirim pesan');
     } finally {
       setIsSending(false);
     }
   };
 
-  const isOwnMessage = (message: typeof mockMessages[0]) => {
+  const isOwnMessage = (message: any) => {
     return message.senderId === user?.id;
   };
 
@@ -91,24 +77,29 @@ export const StudentMessagesChat = () => {
       <div className="messages-chat">
         <div className="chat-header">
           <div className="chat-info">
-            <h2>Ibu Siti</h2>
-            <Badge variant="primary">Guru</Badge>
+            <h2>{participant?.fullName || 'Loading...'}</h2>
+            <Badge variant="primary">{participant?.role === 'teacher' ? 'Guru' : participant?.role || 'User'}</Badge>
           </div>
         </div>
 
-        <Card className="chat-container">
-          <div className="messages-list">
-            {messages.map((message) => (
+        {isLoading ? (
+          <Loading />
+        ) : (
+          <Card className="chat-container">
+            <div className="messages-list">
+              {messages.map((message) => (
               <div
                 key={message.id}
                 className={`message-item ${isOwnMessage(message) ? 'message-item--own' : ''}`}
               >
                 <div className="message-content">
                   {!isOwnMessage(message) && (
-                    <div className="message-sender">{message.senderName}</div>
+                    <div className="message-sender">{message.senderName || message.userName || 'Unknown'}</div>
                   )}
                   <div className="message-bubble">{message.content}</div>
-                  <div className="message-time">{getRelativeTime(message.createdAt)}</div>
+                  <div className="message-time">
+                    {getRelativeTime(new Date(message.createdAt || message.date || Date.now()))}
+                  </div>
                 </div>
               </div>
             ))}

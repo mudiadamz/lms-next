@@ -1,40 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, FormTextarea } from '../../components/common';
+import { Button, Badge, FormTextarea, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDateTime, getRelativeTime } from '../../utils';
 import { useAuth } from '../../contexts/AuthContext';
+import { forumService } from '../../services';
+import { ForumPost } from '../../types';
 import './ForumDetail.css';
-
-const mockPost = {
-  id: '1',
-  title: 'Diskusi Matematika - Soal Aljabar',
-  content: 'Halo semua, ada yang bisa bantu menjelaskan cara menyelesaikan soal aljabar di halaman 25?',
-  authorName: 'Ibu Siti',
-  authorRole: 'teacher',
-  createdAt: new Date('2024-01-15T10:00:00'),
-  isPinned: true,
-  attachments: [],
-};
-
-const mockComments = [
-  {
-    id: '1',
-    content: 'Saya bisa bantu, Bu. Soal tersebut menggunakan konsep distributif.',
-    authorName: 'Budi Santoso',
-    authorRole: 'student',
-    createdAt: new Date('2024-01-15T10:30:00'),
-  },
-  {
-    id: '2',
-    content: 'Terima kasih Budi. Bisa dijelaskan lebih detail?',
-    authorName: 'Siti Nurhaliza',
-    authorRole: 'student',
-    createdAt: new Date('2024-01-15T11:00:00'),
-  },
-];
 
 interface StudentForumDetailProps {
   readOnly?: boolean;
@@ -44,34 +18,71 @@ export const StudentForumDetail = ({ readOnly = false }: StudentForumDetailProps
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [post, setPost] = useState<ForumPost | null>(null);
+  const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState('');
-  const [comments, setComments] = useState(mockComments);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!id) return;
+      try {
+        setIsLoading(true);
+        const [postData, commentsData] = await Promise.all([
+          forumService.getPost(id),
+          forumService.getComments(id),
+        ]);
+        setPost(postData);
+        setComments(commentsData);
+      } catch (error) {
+        console.error('Error loading forum post:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [id]);
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || !id) return;
 
     setIsSubmitting(true);
     try {
-      // TODO: Call forumService.addComment
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      const comment = {
-        id: Date.now().toString(),
+      const comment = await forumService.addComment(id, {
         content: newComment,
-        authorName: user?.fullName || 'Anonymous',
-        authorRole: user?.role || 'student',
-        createdAt: new Date(),
-      };
+      });
       setComments([...comments, comment]);
       setNewComment('');
     } catch (error) {
       console.error('Error submitting comment:', error);
-      alert('Gagal mengirim komentar');
+      alert(error instanceof Error ? error.message : 'Gagal mengirim komentar');
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Loading />
+      </DashboardLayout>
+    );
+  }
+
+  if (!post) {
+    return (
+      <DashboardLayout>
+        <div className="forum-detail">
+          <Card>
+            <p>Post tidak ditemukan</p>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -80,19 +91,19 @@ export const StudentForumDetail = ({ readOnly = false }: StudentForumDetailProps
         <Card>
           <div className="post-header">
             <div>
-              {mockPost.isPinned && <Badge variant="warning">📌 Pinned</Badge>}
-              <h1>{mockPost.title}</h1>
+              {post.isPinned && <Badge variant="warning">📌 Pinned</Badge>}
+              <h1>{post.title}</h1>
               <div className="post-meta">
                 <span className="author">
-                  {mockPost.authorRole === 'teacher' ? '👨‍🏫' : '👨‍🎓'} {mockPost.authorName}
+                  {post.authorRole === 'teacher' ? '👨‍🏫' : '👨‍🎓'} {post.authorName || 'Unknown'}
                 </span>
-                <span className="date">{getRelativeTime(mockPost.createdAt)}</span>
+                <span className="date">{getRelativeTime(post.createdAt)}</span>
               </div>
             </div>
           </div>
 
           <div className="post-content">
-            <p>{mockPost.content}</p>
+            <p>{post.content}</p>
           </div>
         </Card>
 
@@ -104,7 +115,9 @@ export const StudentForumDetail = ({ readOnly = false }: StudentForumDetailProps
                   <span className="comment-author">
                     {comment.authorRole === 'teacher' ? '👨‍🏫' : '👨‍🎓'} {comment.authorName}
                   </span>
-                  <span className="comment-date">{getRelativeTime(comment.createdAt)}</span>
+                  <span className="comment-date">
+                    {getRelativeTime(new Date(comment.createdAt || comment.date || Date.now()))}
+                  </span>
                 </div>
                 <div className="comment-content">{comment.content}</div>
               </div>

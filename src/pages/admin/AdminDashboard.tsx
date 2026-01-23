@@ -1,40 +1,76 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../constants';
-import { Icon } from '../../components/common';
+import { Icon, Loading } from '../../components/common';
+import { userService, classService, subjectService } from '../../services';
 import './AdminDashboard.css';
 
 export const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    totalTeachers: 0,
+    totalClasses: 0,
+    totalSubjects: 0,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [studentsData, teachersData, classesData, subjectsData] = await Promise.all([
+          userService.getUsers('student'),
+          userService.getUsers('teacher'),
+          classService.getClasses(),
+          subjectService.getSubjects(),
+        ]);
+
+        setStats({
+          totalStudents: studentsData.length,
+          totalTeachers: teachersData.length,
+          totalClasses: classesData.length,
+          totalSubjects: subjectsData.length,
+        });
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
 
   const dashboardCards = [
     {
       title: 'Total Siswa',
-      value: '500',
+      value: stats.totalStudents.toString(),
       color: 'blue',
       icon: 'userGroup',
       route: `${ROUTES.ADMIN_USERS}?role=student`,
     },
     {
       title: 'Total Guru',
-      value: '50',
+      value: stats.totalTeachers.toString(),
       color: 'green',
       icon: 'user',
       route: `${ROUTES.ADMIN_USERS}?role=teacher`,
     },
     {
       title: 'Total Kelas',
-      value: '25',
+      value: stats.totalClasses.toString(),
       color: 'purple',
       icon: 'userGroup',
       route: ROUTES.ADMIN_CLASSES,
     },
     {
       title: 'Total Mata Pelajaran',
-      value: '15',
+      value: stats.totalSubjects.toString(),
       color: 'orange',
       icon: 'book',
       route: ROUTES.ADMIN_SUBJECT_MANAGEMENT,
@@ -70,7 +106,8 @@ export const AdminDashboard = () => {
               </div>
             </Card>
           ))}
-        </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
