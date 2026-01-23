@@ -41,10 +41,17 @@ router.post('/login', async (req, res) => {
     }
 
     if (!user) {
-      console.log('❌ User not found:', trimmedUsername);
-      // List available users for debugging
-      const allUsers = db.prepare('SELECT username FROM users LIMIT 5').all() as any[];
-      console.log('Available users:', allUsers.map(u => u.username));
+      console.log('❌ User not found after all attempts');
+      console.log('   Searched for:', trimmedUsername);
+      console.log('   Original input:', username);
+      
+      // List available users with details for debugging
+      const allUsers = db.prepare('SELECT username, LENGTH(username) as len FROM users LIMIT 10').all() as any[];
+      console.log('📋 Available users in database:');
+      allUsers.forEach(u => {
+        console.log(`   - "${u.username}" (length: ${u.len})`);
+      });
+      
       return res.status(401).json({ success: false, error: 'Invalid username or password' });
     }
 
