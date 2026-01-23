@@ -103,9 +103,15 @@ router.post('/login', async (req, res) => {
         token,
       },
     });
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ success: false, error: 'Internal server error' });
+  } catch (error: any) {
+    console.error('❌ Login error:', error);
+    console.error('Error message:', error?.message);
+    console.error('Error stack:', error?.stack);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+    });
   }
 });
 
