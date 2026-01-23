@@ -8,4 +8,5 @@ export * from './gradeService';
 export * from './attendanceService';
 export * from './userService';
 export * from './classService';
+export * from './subjectService';
 

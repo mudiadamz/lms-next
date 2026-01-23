@@ -10,17 +10,35 @@ const dbPath = process.env.DB_PATH || path.join(__dirname, '../../database/lms.d
 const dbDir = path.dirname(dbPath);
 
 // Create database directory if it doesn't exist
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
+try {
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+} catch (error) {
+  console.error('Error creating database directory:', error);
 }
 
-const db = new Database(dbPath);
+let db: any;
 
-// Enable foreign keys
-db.pragma('foreign_keys = ON');
-
-// Enable WAL mode for better concurrency
-db.pragma('journal_mode = WAL');
+try {
+  db = new Database(dbPath);
+  
+  // Enable foreign keys
+  db.pragma('foreign_keys = ON');
+  
+  // Enable WAL mode for better concurrency
+  db.pragma('journal_mode = WAL');
+  
+  console.log('Database connected:', dbPath);
+} catch (error: any) {
+  console.error('Database connection error:', error);
+  console.error('Error details:', error.message);
+  console.error('Stack:', error.stack);
+  // In Railway, better-sqlite3 should be compiled during build
+  // If it fails, we need to see the error but might want to continue
+  // For now, throw to see the error in logs
+  throw error;
+}
 
 // Export database instance
 // Using any to avoid TypeScript export type error with better-sqlite3

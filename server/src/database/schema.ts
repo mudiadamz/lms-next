@@ -1,6 +1,7 @@
 import db from './db.js';
 
 export function createTables() {
+  try {
   // Users table
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -436,5 +437,15 @@ export function createTables() {
     )
   `);
 
-  console.log('Database tables created successfully');
+    console.log('Database tables created successfully');
+  } catch (error: any) {
+    // If tables already exist, that's okay
+    if (error.message && error.message.includes('already exists')) {
+      console.log('Tables already exist, skipping creation');
+      return;
+    }
+    // Re-throw other errors
+    console.error('Error creating tables:', error);
+    throw error;
+  }
 }
