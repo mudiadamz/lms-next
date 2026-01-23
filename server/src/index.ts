@@ -11,6 +11,13 @@ import quizRoutes from './routes/quizzes.js';
 import materialRoutes from './routes/materials.js';
 import attendanceRoutes from './routes/attendance.js';
 import gradeRoutes from './routes/grades.js';
+import scheduleRoutes from './routes/schedules.js';
+import forumRoutes from './routes/forums.js';
+import messageRoutes from './routes/messages.js';
+import notificationRoutes from './routes/notifications.js';
+import announcementRoutes from './routes/announcements.js';
+import reportCardRoutes from './routes/report-cards.js';
+import academicYearRoutes from './routes/academic-years.js';
 
 dotenv.config();
 
@@ -86,6 +93,13 @@ app.use('/api/quizzes', quizRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/grades', gradeRoutes);
+app.use('/api/schedules', scheduleRoutes);
+app.use('/api/forums', forumRoutes);
+app.use('/api/messages', messageRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/report-cards', reportCardRoutes);
+app.use('/api/academic-years', academicYearRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {
