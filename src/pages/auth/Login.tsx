@@ -62,6 +62,7 @@ export const Login = () => {
     await performLogin(username, password);
   };
 
+
   return (
     <div className="login-page">
       <Card className="login-card">
@@ -77,13 +78,13 @@ export const Login = () => {
           {error && <div className="login-error">{error}</div>}
           
           <Input
-            label="Nomor Induk"
+            label="Username"
             type="text"
             value={studentNumber}
             onChange={(e) => setStudentNumber(e.target.value)}
             required
             autoFocus
-            placeholder="Masukkan nomor induk (NIS/NIP/Nomor Admin)"
+            placeholder="Masukkan username (student/teacher/admin/parent)"
           />
           
           <Input
@@ -106,7 +107,7 @@ export const Login = () => {
             <button
               type="button"
               className="login-quick-button login-quick-button--admin"
-              onClick={() => handleQuickLogin('ADM001', 'password')}
+              onClick={() => handleQuickLogin('admin', 'password')}
               disabled={isLoading}
             >
               <Icon name="users" size={18} />
@@ -115,7 +116,7 @@ export const Login = () => {
             <button
               type="button"
               className="login-quick-button login-quick-button--teacher"
-              onClick={() => handleQuickLogin('1985001', 'password')}
+              onClick={() => handleQuickLogin('teacher', 'password')}
               disabled={isLoading}
             >
               <Icon name="user" size={18} />
@@ -124,7 +125,7 @@ export const Login = () => {
             <button
               type="button"
               className="login-quick-button login-quick-button--student"
-              onClick={() => handleQuickLogin('2024001', 'password')}
+              onClick={() => handleQuickLogin('student', 'password')}
               disabled={isLoading}
             >
               <Icon name="userGroup" size={18} />
@@ -133,7 +134,7 @@ export const Login = () => {
             <button
               type="button"
               className="login-quick-button login-quick-button--parent"
-              onClick={() => handleQuickLogin('2024001', 'password')}
+              onClick={() => handleQuickLogin('parent', 'password')}
               disabled={isLoading}
             >
               <Icon name="users" size={18} />

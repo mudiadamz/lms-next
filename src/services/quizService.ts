@@ -1,45 +1,98 @@
 import { Quiz, QuizSubmission } from '../types';
-// import { apiClient } from './api';
+import { apiClient } from './api';
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
 
 export const quizService = {
-  async getQuizzes(_classId?: string): Promise<Quiz[]> {
-    // TODO: Replace with actual API call
-    return [];
+  async getQuizzes(classId?: string): Promise<Quiz[]> {
+    const params = classId ? { classId } : undefined;
+    const response = await apiClient.get<ApiResponse<Quiz[]>>('/quizzes', params);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch quizzes');
+    }
+    
+    return response.data;
   },
 
-  async getQuizById(_id: string): Promise<Quiz> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async getQuizById(id: string): Promise<Quiz> {
+    const response = await apiClient.get<ApiResponse<Quiz>>(`/quizzes/${id}`);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Quiz not found');
+    }
+    
+    return response.data;
   },
 
-  async createQuiz(_quiz: Omit<Quiz, 'id' | 'createdAt'>): Promise<Quiz> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async createQuiz(quiz: Omit<Quiz, 'id' | 'createdAt'>): Promise<Quiz> {
+    const response = await apiClient.post<ApiResponse<Quiz>>('/quizzes', quiz);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to create quiz');
+    }
+    
+    return response.data;
   },
 
-  async updateQuiz(_id: string, _quiz: Partial<Quiz>): Promise<Quiz> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async updateQuiz(id: string, quiz: Partial<Quiz>): Promise<Quiz> {
+    const response = await apiClient.put<ApiResponse<Quiz>>(`/quizzes/${id}`, quiz);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to update quiz');
+    }
+    
+    return response.data;
   },
 
-  async deleteQuiz(_id: string): Promise<void> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async deleteQuiz(id: string): Promise<void> {
+    const response = await apiClient.delete<ApiResponse<void>>(`/quizzes/${id}`);
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete quiz');
+    }
   },
 
-  async submitQuiz(_quizId: string, _answers: Record<string, string | string[]>): Promise<QuizSubmission> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async submitQuiz(quizId: string, answers: Record<string, string | string[]>): Promise<QuizSubmission> {
+    const response = await apiClient.post<ApiResponse<QuizSubmission>>(
+      `/quizzes/${quizId}/submit`,
+      { answers }
+    );
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to submit quiz');
+    }
+    
+    return response.data;
   },
 
-  async getQuizSubmissions(_quizId: string): Promise<QuizSubmission[]> {
-    // TODO: Replace with actual API call
-    return [];
+  async getQuizSubmissions(quizId: string): Promise<QuizSubmission[]> {
+    const response = await apiClient.get<ApiResponse<QuizSubmission[]>>(
+      `/quizzes/${quizId}/submissions`
+    );
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch quiz submissions');
+    }
+    
+    return response.data;
   },
 
-  async gradeQuizSubmission(_submissionId: string): Promise<QuizSubmission> {
-    // TODO: Replace with actual API call (auto-grade for multiple choice)
-    throw new Error('Not implemented');
+  async gradeQuizSubmission(submissionId: string): Promise<QuizSubmission> {
+    // Auto-grading is handled on submission, but we can fetch the graded submission
+    const response = await apiClient.get<ApiResponse<QuizSubmission>>(
+      `/quizzes/submissions/${submissionId}`
+    );
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch quiz submission');
+    }
+    
+    return response.data;
   },
 };
 

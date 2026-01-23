@@ -1,54 +1,98 @@
 import { Assignment, AssignmentSubmission } from '../types';
-// import { apiClient } from './api';
-// import { PaginatedResponse } from '../types';
+import { apiClient } from './api';
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
 
 export const assignmentService = {
-  async getAssignments(_classId?: string): Promise<Assignment[]> {
-    // TODO: Replace with actual API call
-    // return apiClient.get<Assignment[]>('/assignments', { classId });
-    return [];
+  async getAssignments(classId?: string): Promise<Assignment[]> {
+    const params = classId ? { classId } : undefined;
+    const response = await apiClient.get<ApiResponse<Assignment[]>>('/assignments', params);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch assignments');
+    }
+    
+    return response.data;
   },
 
-  async getAssignmentById(_id: string): Promise<Assignment> {
-    // TODO: Replace with actual API call
-    // return apiClient.get<Assignment>(`/assignments/${id}`);
-    throw new Error('Not implemented');
+  async getAssignmentById(id: string): Promise<Assignment> {
+    const response = await apiClient.get<ApiResponse<Assignment>>(`/assignments/${id}`);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Assignment not found');
+    }
+    
+    return response.data;
   },
 
-  async createAssignment(_assignment: Omit<Assignment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Assignment> {
-    // TODO: Replace with actual API call
-    // return apiClient.post<Assignment>('/assignments', assignment);
-    throw new Error('Not implemented');
+  async createAssignment(assignment: Omit<Assignment, 'id' | 'createdAt' | 'updatedAt'>): Promise<Assignment> {
+    const response = await apiClient.post<ApiResponse<Assignment>>('/assignments', assignment);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to create assignment');
+    }
+    
+    return response.data;
   },
 
-  async updateAssignment(_id: string, _assignment: Partial<Assignment>): Promise<Assignment> {
-    // TODO: Replace with actual API call
-    // return apiClient.put<Assignment>(`/assignments/${id}`, assignment);
-    throw new Error('Not implemented');
+  async updateAssignment(id: string, assignment: Partial<Assignment>): Promise<Assignment> {
+    const response = await apiClient.put<ApiResponse<Assignment>>(`/assignments/${id}`, assignment);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to update assignment');
+    }
+    
+    return response.data;
   },
 
-  async deleteAssignment(_id: string): Promise<void> {
-    // TODO: Replace with actual API call
-    // return apiClient.delete(`/assignments/${id}`);
-    throw new Error('Not implemented');
+  async deleteAssignment(id: string): Promise<void> {
+    const response = await apiClient.delete<ApiResponse<void>>(`/assignments/${id}`);
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete assignment');
+    }
   },
 
-  async submitAssignment(_assignmentId: string, _submission: Omit<AssignmentSubmission, 'id' | 'submittedAt'>): Promise<AssignmentSubmission> {
-    // TODO: Replace with actual API call
-    // return apiClient.post<AssignmentSubmission>(`/assignments/${assignmentId}/submissions`, submission);
-    throw new Error('Not implemented');
+  async submitAssignment(assignmentId: string, submission: Omit<AssignmentSubmission, 'id' | 'submittedAt'>): Promise<AssignmentSubmission> {
+    const response = await apiClient.post<ApiResponse<AssignmentSubmission>>(
+      `/assignments/${assignmentId}/submissions`,
+      submission
+    );
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to submit assignment');
+    }
+    
+    return response.data;
   },
 
-  async getSubmissions(_assignmentId: string): Promise<AssignmentSubmission[]> {
-    // TODO: Replace with actual API call
-    // return apiClient.get<AssignmentSubmission[]>(`/assignments/${assignmentId}/submissions`);
-    return [];
+  async getSubmissions(assignmentId: string): Promise<AssignmentSubmission[]> {
+    const response = await apiClient.get<ApiResponse<AssignmentSubmission[]>>(
+      `/assignments/${assignmentId}/submissions`
+    );
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch submissions');
+    }
+    
+    return response.data;
   },
 
-  async gradeSubmission(_submissionId: string, _score: number, _feedback?: string): Promise<AssignmentSubmission> {
-    // TODO: Replace with actual API call
-    // return apiClient.patch<AssignmentSubmission>(`/submissions/${submissionId}`, { score, feedback });
-    throw new Error('Not implemented');
+  async gradeSubmission(submissionId: string, score: number, feedback?: string): Promise<AssignmentSubmission> {
+    const response = await apiClient.patch<ApiResponse<AssignmentSubmission>>(
+      `/assignments/submissions/${submissionId}`,
+      { score, feedback }
+    );
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to grade submission');
+    }
+    
+    return response.data;
   },
 };
 

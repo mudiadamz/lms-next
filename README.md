@@ -1,134 +1,218 @@
 # Learning Management System (LMS)
 
-Sistem Manajemen Pembelajaran untuk semua jenis sekolah (SD, SMP, SMA) dengan fitur lengkap untuk siswa, guru, admin, dan orang tua.
+Sistem Manajemen Pembelajaran untuk semua jenis sekolah (SD, SMP, SMA) dengan React + TypeScript dan Express.js + SQLite.
 
 ## Tech Stack
 
-- **React 18+** dengan TypeScript
-- **Vite** sebagai build tool
-- **React Router DOM** untuk routing
-- **CSS** untuk styling
+### Frontend
+- React 18+ dengan TypeScript
+- Vite sebagai build tool
+- React Router DOM untuk routing
 
-## Fitur Utama
+### Backend
+- Express.js
+- SQLite dengan better-sqlite3
+- JWT untuk authentication
+- bcryptjs untuk password hashing
 
-### 👨‍🎓 Siswa
-- Dashboard dengan ringkasan aktivitas
-- Materi pembelajaran, tugas, dan kuis
-- Nilai dan rapor digital
-- Jadwal pelajaran dan absensi
-- Forum diskusi dan pesan
-- Portofolio tugas
+## 🚀 Quick Deploy
 
-### 👨‍🏫 Guru
-- Dashboard dengan statistik kelas
-- Manajemen kelas dan materi
-- Buat dan kelola tugas & kuis
-- Penilaian dan input absensi
-- Analitik performa siswa
-- Bank soal
+### Frontend → Vercel
+Lihat [QUICK_DEPLOY.md](./QUICK_DEPLOY.md)
 
-### 👨‍💼 Admin
-- Dashboard dengan statistik sekolah
-- Manajemen user, kelas, dan mata pelajaran
-- Manajemen jadwal dan tahun ajaran
-- Laporan sekolah
-- Pengaturan sistem
-- Audit log
-
-### 👨‍👩‍👧 Orang Tua
-- Dashboard dengan ringkasan anak
-- Monitoring nilai dan absensi
-- Lihat tugas dan deadline
-- Progress belajar anak
-- Komunikasi dengan guru
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js 18+ dan npm
-
-### Installation
-
+**TL;DR:**
 ```bash
-# Install dependencies
+vercel login
+vercel --prod
+```
+
+### Backend API → Railway
+Lihat [QUICK_DEPLOY_API.md](./QUICK_DEPLOY_API.md) atau [server/README_DEPLOY.md](./server/README_DEPLOY.md)
+
+**TL;DR:**
+```bash
+npm i -g @railway/cli
+railway login
+cd server
+railway init
+railway up
+railway domain  # Copy URL ini
+```
+
+**Setelah deploy:**
+1. Copy backend URL dari Railway
+2. Set `VITE_API_BASE_URL` di Vercel Dashboard
+3. Redeploy frontend
+4. Done! 🎉
+
+## Setup
+
+### 1. Install Dependencies
+
+**Frontend:**
+```bash
 npm install
+```
 
-# Run development server
+**Backend:**
+```bash
+cd server
+npm install
+```
+
+### 2. Setup Backend
+
+1. Copy `.env.example` ke `.env` di folder `server/`:
+```bash
+cd server
+cp .env.example .env
+```
+
+2. Edit `.env` dan sesuaikan konfigurasi:
+```
+PORT=3000
+JWT_SECRET=your-secret-key-change-in-production
+DB_PATH=./database/lms.db
+NODE_ENV=development
+```
+
+3. Initialize database:
+```bash
+npm run migrate
+npm run seed
+```
+
+4. Jalankan backend server:
+```bash
 npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
 ```
 
-### Login Credentials (Demo)
+Backend akan berjalan di `http://localhost:3000`
 
-- **Siswa**: username: `student`, password: `password`
-- **Guru**: username: `teacher`, password: `password`
-- **Admin**: username: `admin`, password: `password`
-- **Orang Tua**: username: `parent`, password: `password`
+### 3. Setup Frontend
 
-## Struktur Proyek
+1. Pastikan `VITE_API_BASE_URL` di `.env` mengarah ke backend:
+```bash
+# Buat file .env di root project
+echo "VITE_API_BASE_URL=http://localhost:3000/api" > .env
+```
+
+2. Jalankan frontend:
+```bash
+npm run dev
+```
+
+Frontend akan berjalan di `http://localhost:5173`
+
+## Default Credentials
+
+Setelah menjalankan seed database:
+
+- **Student**: username=`student`, password=`password`
+- **Teacher**: username=`teacher`, password=`password`
+- **Admin**: username=`admin`, password=`password`
+- **Parent**: username=`parent`, password=`password`
+
+## Features
+
+### Student
+- Dashboard dengan ringkasan aktivitas
+- Daftar mata pelajaran
+- Materi pembelajaran
+- Tugas dan kuis
+- Nilai dan rapor
+- Absensi
+- Forum diskusi
+- Pesan dengan guru
+
+### Teacher
+- Dashboard dengan statistik kelas
+- Manajemen kelas dan mata pelajaran
+- Upload materi pembelajaran
+- Buat dan kelola tugas
+- Buat dan kelola kuis
+- Penilaian tugas dan kuis
+- Input absensi
+- Forum diskusi
+
+### Admin
+- Dashboard dengan statistik sekolah
+- Manajemen user (siswa, guru, admin, orang tua)
+- Manajemen kelas dan jurusan
+- Manajemen mata pelajaran
+- Manajemen jadwal pelajaran
+- Manajemen tahun ajaran
+- Laporan sekolah
+
+### Parent
+- Dashboard dengan ringkasan anak
+- Lihat nilai dan rapor anak
+- Lihat absensi anak
+- Lihat tugas dan deadline
+- Pesan dengan wali kelas/guru
+
+## Project Structure
 
 ```
-src/
-├── components/          # Reusable components
-│   ├── common/         # Button, Input, Card, Form components
-│   └── layout/         # Header, Sidebar, DashboardLayout
-├── pages/              # Page components
-│   ├── auth/           # Login
-│   ├── student/        # 12 halaman siswa
-│   ├── teacher/        # 14 halaman guru
-│   ├── admin/          # 11 halaman admin
-│   └── parent/         # 11 halaman orang tua
-├── services/           # API services
-├── hooks/              # Custom React hooks
-├── utils/              # Utility functions
-├── types/               # TypeScript types
-├── contexts/            # React contexts
-├── routes/              # Route definitions
-└── constants/           # Constants
+lms/
+├── src/                    # Frontend source code
+│   ├── components/        # React components
+│   ├── pages/            # Page components
+│   ├── services/         # API services
+│   ├── routes/          # Route definitions
+│   ├── types/           # TypeScript types
+│   └── utils/          # Utility functions
+├── server/               # Backend server
+│   ├── src/
+│   │   ├── database/    # Database setup & schema
+│   │   ├── routes/      # API routes
+│   │   └── middleware/  # Express middleware
+│   └── database/        # SQLite database file
+└── README.md
 ```
 
 ## Development
 
-### Services
+### Frontend Development
+```bash
+npm run dev
+```
 
-Semua API services tersedia di `src/services/`:
-- `authService` - Authentication
-- `assignmentService` - Tugas
-- `quizService` - Kuis
-- `materialService` - Materi pembelajaran
-- `gradeService` - Nilai
-- `attendanceService` - Absensi
-- `userService` - User management
-- `classService` - Kelas management
+### Backend Development
+```bash
+cd server
+npm run dev
+```
 
-### Utilities
+### Build for Production
 
-Utility functions di `src/utils/`:
-- `dateUtils` - Format tanggal Indonesia
-- `validation` - Validasi form
+**Frontend:**
+```bash
+npm run build
+```
 
-### Hooks
+**Backend:**
+```bash
+cd server
+npm run build
+npm start
+```
 
-Custom hooks di `src/hooks/`:
-- `useLocalStorage` - LocalStorage dengan React state
-- `useDebounce` - Debounce values
-- `useAsync` - Handle async operations
+## Database
 
-## Next Steps
+Database menggunakan SQLite yang disimpan di `server/database/lms.db`. 
 
-- [ ] Implementasi API integration (ganti mock data)
-- [ ] File upload/download functionality
-- [ ] Form handling untuk create/edit
-- [ ] Data visualization (charts)
-- [ ] Real-time notifications
-- [ ] Unit tests
-- [ ] E2E tests
+Untuk reset database:
+```bash
+cd server
+rm database/lms.db
+npm run migrate
+npm run seed
+```
+
+## API Documentation
+
+Lihat `server/README.md` untuk dokumentasi lengkap API endpoints.
 
 ## License
 

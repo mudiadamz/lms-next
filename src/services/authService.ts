@@ -1,5 +1,5 @@
 import { User } from '../types';
-// import { apiClient } from './api';
+import { apiClient } from './api';
 
 export interface LoginCredentials {
   username: string;
@@ -11,78 +11,47 @@ export interface LoginResponse {
   token: string;
 }
 
+interface ApiLoginResponse {
+  success: boolean;
+  data?: LoginResponse;
+  error?: string;
+}
+
 export const authService = {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    // TODO: Replace with actual API call
-    // For now, return mock data
-    const mockUsers: Record<string, User> = {
-      student: {
-        id: '1',
-        studentNumber: '2024001',
-        email: 'student@example.com',
-        fullName: 'Budi Santoso',
-        role: 'student',
-        schoolLevel: 'sma',
-        classId: 'class1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      teacher: {
-        id: '2',
-        teacherNumber: '1985001',
-        email: 'teacher@example.com',
-        fullName: 'Ibu Siti',
-        role: 'teacher',
-        schoolLevel: 'sma',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      admin: {
-        id: '3',
-        adminNumber: 'ADM001',
-        email: 'admin@example.com',
-        fullName: 'Admin Sekolah',
-        role: 'admin',
-        schoolLevel: 'sma',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      parent: {
-        id: '4',
-        studentNumber: '2024001',
-        email: 'parent@example.com',
-        fullName: 'Bapak Santoso',
-        role: 'parent',
-        studentId: '1',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    };
-
-    const foundUser = mockUsers[credentials.username.toLowerCase()];
+    const response = await apiClient.post<ApiLoginResponse>('/auth/login', credentials);
     
-    if (foundUser && credentials.password === 'password') {
-      const token = `mock_token_${foundUser.id}`;
-      return {
-        user: foundUser,
-        token,
-      };
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Invalid username or password');
     }
 
-    throw new Error('Invalid username or password');
+    // Store token and user
+    localStorage.setItem('token', response.data.token);
+    localStorage.setItem('user', JSON.stringify(response.data.user));
+
+    return response.data;
   },
 
   async logout(): Promise<void> {
-    // TODO: Call logout API endpoint
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    try {
+      await apiClient.post('/auth/logout');
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+    }
   },
 
   async getCurrentUser(): Promise<User | null> {
-    // TODO: Replace with actual API call
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      return JSON.parse(storedUser);
+      try {
+        return JSON.parse(storedUser);
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        return null;
+      }
     }
     return null;
   },

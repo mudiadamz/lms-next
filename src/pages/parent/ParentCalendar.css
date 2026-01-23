@@ -322,9 +322,7 @@
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 0.5px solid var(--ios-separator);
-}
-
-@media (max-width: 1024px) {
+}@media (max-width: 1024px) {
   .calendar-content-wrapper {
     grid-template-columns: 1fr;
   }

@@ -1,30 +1,60 @@
 import { Class } from '../types';
-// import { apiClient } from './api';
+import { apiClient } from './api';
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
 
 export const classService = {
-  async getClasses(_schoolLevel?: string): Promise<Class[]> {
-    // TODO: Replace with actual API call
-    return [];
+  async getClasses(schoolLevel?: string): Promise<Class[]> {
+    const params = schoolLevel ? { schoolLevel } : undefined;
+    const response = await apiClient.get<ApiResponse<Class[]>>('/classes', params);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch classes');
+    }
+    
+    return response.data;
   },
 
-  async getClassById(_id: string): Promise<Class> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async getClassById(id: string): Promise<Class> {
+    const response = await apiClient.get<ApiResponse<Class>>(`/classes/${id}`);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Class not found');
+    }
+    
+    return response.data;
   },
 
-  async createClass(_classData: Omit<Class, 'id'>): Promise<Class> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async createClass(classData: Omit<Class, 'id'>): Promise<Class> {
+    const response = await apiClient.post<ApiResponse<Class>>('/classes', classData);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to create class');
+    }
+    
+    return response.data;
   },
 
-  async updateClass(_id: string, _classData: Partial<Class>): Promise<Class> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async updateClass(id: string, classData: Partial<Class>): Promise<Class> {
+    const response = await apiClient.put<ApiResponse<Class>>(`/classes/${id}`, classData);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to update class');
+    }
+    
+    return response.data;
   },
 
-  async deleteClass(_id: string): Promise<void> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async deleteClass(id: string): Promise<void> {
+    const response = await apiClient.delete<ApiResponse<void>>(`/classes/${id}`);
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete class');
+    }
   },
 };
 

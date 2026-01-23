@@ -1,31 +1,60 @@
 import { User } from '../types';
-// import { apiClient } from './api';
-// import { PaginatedResponse } from '../types';
+import { apiClient } from './api';
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
 
 export const userService = {
-  async getUsers(_role?: User['role']): Promise<User[]> {
-    // TODO: Replace with actual API call
-    return [];
+  async getUsers(role?: User['role']): Promise<User[]> {
+    const params = role ? { role } : undefined;
+    const response = await apiClient.get<ApiResponse<User[]>>('/users', params);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to fetch users');
+    }
+    
+    return response.data;
   },
 
-  async getUserById(_id: string): Promise<User> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async getUserById(id: string): Promise<User> {
+    const response = await apiClient.get<ApiResponse<User>>(`/users/${id}`);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'User not found');
+    }
+    
+    return response.data;
   },
 
-  async createUser(_user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async createUser(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
+    const response = await apiClient.post<ApiResponse<User>>('/users', user);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to create user');
+    }
+    
+    return response.data;
   },
 
-  async updateUser(_id: string, _user: Partial<User>): Promise<User> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async updateUser(id: string, user: Partial<User>): Promise<User> {
+    const response = await apiClient.put<ApiResponse<User>>(`/users/${id}`, user);
+    
+    if (!response.success || !response.data) {
+      throw new Error(response.error || 'Failed to update user');
+    }
+    
+    return response.data;
   },
 
-  async deleteUser(_id: string): Promise<void> {
-    // TODO: Replace with actual API call
-    throw new Error('Not implemented');
+  async deleteUser(id: string): Promise<void> {
+    const response = await apiClient.delete<ApiResponse<void>>(`/users/${id}`);
+    
+    if (!response.success) {
+      throw new Error(response.error || 'Failed to delete user');
+    }
   },
 };
 

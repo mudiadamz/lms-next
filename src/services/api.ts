@@ -47,11 +47,14 @@ class ApiClient {
         headers,
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+        const errorMessage = data.error || `API Error: ${response.status} ${response.statusText}`;
+        throw new Error(errorMessage);
       }
 
-      return await response.json();
+      return data;
     } catch (error) {
       console.error('API Request failed:', error);
       throw error;

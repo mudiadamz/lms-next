@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
+import { authService } from '../services/authService';
 
 interface AuthContextType {
   user: User | null;
@@ -45,67 +46,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setIsLoading(false);
   }, []);
 
-  const login = async (studentNumber: string, password: string) => {
+  const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      // TODO: Replace with actual API call
-      // For now, using mock data
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          studentNumber: '2024001',
-          fullName: 'Budi Santoso',
-          role: 'student',
-          schoolLevel: 'sma',
-          classId: 'class1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: '2',
-          teacherNumber: '1985001',
-          fullName: 'Ibu Siti',
-          role: 'teacher',
-          schoolLevel: 'sma',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: '3',
-          adminNumber: 'ADM001',
-          fullName: 'Admin Sekolah',
-          role: 'admin',
-          schoolLevel: 'sma',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-        {
-          id: '4',
-          studentNumber: '2024001', // Parent uses student's number
-          fullName: 'Bapak Santoso',
-          role: 'parent',
-          studentId: '1',
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      ];
-
-      // Find user by studentNumber, teacherNumber, or adminNumber
-      const foundUser = mockUsers.find(
-        (u) =>
-          u.studentNumber === studentNumber ||
-          u.teacherNumber === studentNumber ||
-          u.adminNumber === studentNumber
-      );
-      
-      if (foundUser && password === 'password') {
-        const token = `mock_token_${foundUser.id}`;
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(foundUser));
-        setUser(foundUser);
-      } else {
-        throw new Error('Nomor induk atau password salah');
-      }
+      const response = await authService.login({ username, password });
+      setUser(response.user);
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -114,10 +59,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
+  const logout = async () => {
+    try {
+      await authService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+    }
   };
 
   const updateUser = (userData: Partial<User>) => {
