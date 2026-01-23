@@ -51,9 +51,6 @@ export const GradingInterface = () => {
     <DashboardLayout>
       <div className="grading-interface">
         <div className="grading-header">
-          <Button variant="outline" onClick={() => navigate(`${ROUTES.TEACHER_ASSIGNMENTS}/${assignmentId}`)}>
-            ← Kembali
-          </Button>
         </div>
 
         <Card title={`Penilaian: ${mockSubmission.assignmentTitle}`}>

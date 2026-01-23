@@ -25,7 +25,11 @@ const mockSubmission = {
   score: null as number | null,
 };
 
-export const StudentAssignmentDetail = () => {
+interface StudentAssignmentDetailProps {
+  readOnly?: boolean;
+}
+
+export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentDetailProps = {} as StudentAssignmentDetailProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [submission, setSubmission] = useState(mockSubmission);
@@ -111,7 +115,13 @@ export const StudentAssignmentDetail = () => {
           )}
         </Card>
 
-        {!isSubmitted ? (
+        {readOnly ? (
+          <Card title="Informasi Tugas">
+            <div className="info-note" style={{ padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+              <p>Sebagai orang tua, Anda dapat melihat detail tugas ini tetapi tidak dapat mengerjakan tugas.</p>
+            </div>
+          </Card>
+        ) : !isSubmitted ? (
           <Card title="Kerjakan Tugas">
             <form onSubmit={handleSubmit} className="submission-form">
               <FormTextarea
@@ -159,7 +169,7 @@ export const StudentAssignmentDetail = () => {
           isOpen={showSuccessModal}
           onClose={() => {
             setShowSuccessModal(false);
-            navigate(ROUTES.STUDENT_ASSIGNMENTS);
+            navigate(readOnly ? ROUTES.PARENT_ASSIGNMENTS : ROUTES.STUDENT_ASSIGNMENTS);
           }}
           title="Berhasil"
           size="small"

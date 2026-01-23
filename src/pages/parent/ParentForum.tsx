@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, EmptyState } from '../../components/common';
+import { Button, Badge, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { getRelativeTime } from '../../utils';
 import { useAuth } from '../../contexts/AuthContext';
@@ -37,10 +37,6 @@ export const ParentForum = () => {
     <DashboardLayout>
       <div className="parent-forum">
         <h1>Forum Diskusi</h1>
-
-        <div className="page-filters">
-          <SearchBar placeholder="Cari diskusi..." />
-        </div>
 
         {mockPosts.length === 0 ? (
           <EmptyState

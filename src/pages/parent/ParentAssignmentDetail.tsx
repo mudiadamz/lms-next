@@ -37,9 +37,6 @@ export const ParentAssignmentDetail = () => {
     <DashboardLayout>
       <div className="parent-assignment-detail">
         <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.PARENT_ASSIGNMENTS)}>
-            ← Kembali
-          </Button>
         </div>
 
         <Card title={mockAssignment.title}>

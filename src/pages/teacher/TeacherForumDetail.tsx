@@ -144,9 +144,6 @@ export const TeacherForumDetail = () => {
     <DashboardLayout>
       <div className="forum-detail">
         <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.TEACHER_FORUM)}>
-            ← Kembali ke Forum
-          </Button>
           <Dropdown
             trigger={<Button variant="outline">Kelola</Button>}
             items={[

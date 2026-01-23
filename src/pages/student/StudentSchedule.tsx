@@ -1,8 +1,7 @@
-import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { FormSelect, Badge, Icon, EmptyState } from '../../components/common';
+import { Badge, Icon, EmptyState } from '../../components/common';
 import { Schedule } from '../../types';
 import { DAYS_OF_WEEK } from '../../constants';
 import './StudentSchedule.css';
@@ -215,8 +214,6 @@ const getTeacherName = (teacherId: string) => {
 
 export const StudentSchedule = () => {
   const { user } = useAuth();
-  const [selectedWeek, setSelectedWeek] = useState<'current' | 'next'>('current');
-  const [selectedDay, setSelectedDay] = useState<string>('all');
 
   // Filter schedules berdasarkan kelas siswa (dalam real app, ambil dari user.classId)
   const studentClassId = user?.classId || 'class1';
@@ -246,16 +243,7 @@ export const StudentSchedule = () => {
     return new Date().getDay();
   };
 
-  // Filter days based on selected day filter
-  const getDaysToShow = () => {
-    if (selectedDay === 'all') {
-      return DAYS_OF_WEEK.slice(1, 6); // Monday to Friday
-    }
-    const dayIndex = parseInt(selectedDay);
-    return [DAYS_OF_WEEK[dayIndex]];
-  };
-
-  const daysToShow = getDaysToShow();
+  const daysToShow = DAYS_OF_WEEK.slice(1, 6); // Monday to Friday
   const hasAnySchedule = Object.keys(schedulesByDay).length > 0;
 
   return (
@@ -263,27 +251,6 @@ export const StudentSchedule = () => {
       <div className="student-schedule">
         <div className="schedule-header">
           <h1>Jadwal Pelajaran</h1>
-          <div className="schedule-filters">
-            <FormSelect
-              value={selectedWeek}
-              onChange={(e) => setSelectedWeek(e.target.value as 'current' | 'next')}
-              options={[
-                { value: 'current', label: 'Minggu Ini' },
-                { value: 'next', label: 'Minggu Depan' },
-              ]}
-            />
-            <FormSelect
-              value={selectedDay}
-              onChange={(e) => setSelectedDay(e.target.value)}
-              options={[
-                { value: 'all', label: 'Semua Hari' },
-                ...DAYS_OF_WEEK.slice(1, 6).map((day, index) => ({
-                  value: (index + 1).toString(),
-                  label: day,
-                })),
-              ]}
-            />
-          </div>
         </div>
 
         {!hasAnySchedule ? (
@@ -297,7 +264,7 @@ export const StudentSchedule = () => {
             {daysToShow.map((day, index) => {
               const dayOfWeek = index + 1; // Monday = 1, Tuesday = 2, etc.
               const daySchedules = schedulesByDay[dayOfWeek] || [];
-              const isToday = getCurrentDayOfWeek() === dayOfWeek && selectedWeek === 'current';
+              const isToday = getCurrentDayOfWeek() === dayOfWeek;
 
               return (
                 <Card
@@ -320,8 +287,8 @@ export const StudentSchedule = () => {
                       {daySchedules.map((schedule) => (
                         <div key={schedule.id} className="schedule-item">
                           <div className="schedule-time">
-                            <Icon name="clock" size={18} style={{ marginRight: '0.5rem' }} />
-                            {formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}
+                            <Icon name="clock" size={16} />
+                            <span>{formatTime(schedule.startTime)} - {formatTime(schedule.endTime)}</span>
                           </div>
                           <div className="schedule-details">
                             <div className="schedule-subject">
@@ -329,13 +296,13 @@ export const StudentSchedule = () => {
                             </div>
                             <div className="schedule-meta">
                               <div className="schedule-teacher">
-                                <Icon name="user" size={14} style={{ marginRight: '0.25rem' }} />
-                                {getTeacherName(schedule.teacherId)}
+                                <Icon name="user" size={12} />
+                                <span>{getTeacherName(schedule.teacherId)}</span>
                               </div>
                               {schedule.room && (
                                 <div className="schedule-room">
-                                  <Icon name="officeBuilding" size={14} style={{ marginRight: '0.25rem' }} />
-                                  {schedule.room}
+                                  <Icon name="officeBuilding" size={12} />
+                                  <span>{schedule.room}</span>
                                 </div>
                               )}
                             </div>
@@ -360,15 +327,19 @@ export const StudentSchedule = () => {
           <Card variant="elevated" className="schedule-summary">
             <div className="summary-content">
               <div className="summary-item">
-                <Icon name="calendar" size={24} style={{ color: 'var(--ios-blue)' }} />
-                <div>
+                <div className="summary-icon summary-icon--calendar">
+                  <Icon name="calendar" size={20} />
+                </div>
+                <div className="summary-info">
                   <div className="summary-value">{filteredSchedules.length}</div>
                   <div className="summary-label">Total Mata Pelajaran</div>
                 </div>
               </div>
               <div className="summary-item">
-                <Icon name="clock" size={24} style={{ color: 'var(--ios-blue)' }} />
-                <div>
+                <div className="summary-icon summary-icon--clock">
+                  <Icon name="clock" size={20} />
+                </div>
+                <div className="summary-info">
                   <div className="summary-value">
                     {new Set(filteredSchedules.map((s) => s.dayOfWeek)).size}
                   </div>

@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, EmptyState } from '../../components/common';
+import { Button, Badge, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, getRelativeTime } from '../../utils';
 import './StudentForum.css';
@@ -27,15 +27,17 @@ const mockPosts = [
   },
 ];
 
-export const StudentForum = () => {
+interface StudentForumProps {
+  readOnly?: boolean;
+}
+
+export const StudentForum = ({ readOnly = false }: StudentForumProps = {} as StudentForumProps) => {
+  const forumDetailRoute = readOnly ? ROUTES.PARENT_FORUM_DETAIL : ROUTES.STUDENT_FORUM_DETAIL;
+  
   return (
     <DashboardLayout>
       <div className="student-forum">
         <h1>Forum Diskusi</h1>
-
-        <div className="page-filters">
-          <SearchBar placeholder="Cari diskusi..." />
-        </div>
 
         {mockPosts.length === 0 ? (
           <EmptyState
@@ -60,7 +62,7 @@ export const StudentForum = () => {
                   <span>{getRelativeTime(post.createdAt)}</span>
                   <span>💬 {post.commentCount} komentar</span>
                 </div>
-                <Link to={ROUTES.STUDENT_FORUM_DETAIL.replace(':id', post.id)}>
+                <Link to={forumDetailRoute.replace(':id', post.id)}>
                   <Button variant="outline" className="post-action-button">
                     Lihat Diskusi
                   </Button>

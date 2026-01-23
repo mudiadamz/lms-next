@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState } from '../../components/common';
 import { SCHOOL_LEVELS } from '../../constants';
 import './AdminCurriculum.css';
 
@@ -50,7 +50,6 @@ const mockCurriculums: Curriculum[] = [
 ];
 
 export const AdminCurriculum = () => {
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -67,14 +66,11 @@ export const AdminCurriculum = () => {
   });
 
   const filteredCurriculums = curriculums.filter((curriculum) => {
-    const matchesSearch =
-      curriculum.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      curriculum.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLevel =
       selectedLevel === 'all' ||
       curriculum.schoolLevel === selectedLevel ||
       curriculum.schoolLevel === 'all';
-    return matchesSearch && matchesLevel;
+    return matchesLevel;
   });
 
   const activeCurriculum = curriculums.find((c) => c.isActive);
@@ -328,11 +324,6 @@ export const AdminCurriculum = () => {
         )}
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari kurikulum..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
           <div className="filter-group">
             <select
               value={selectedLevel}

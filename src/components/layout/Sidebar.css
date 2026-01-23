@@ -1,6 +1,6 @@
 .sidebar {
   width: 280px;
-  background-color: var(--ios-background);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1) 0%, rgba(247, 250, 252, 0.98) 100%);
   border-right: 0.5px solid var(--ios-separator);
   min-height: calc(100vh - 56px);
   position: sticky;
@@ -8,6 +8,10 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   flex-shrink: 0;
+}
+
+.dark-mode .sidebar {
+  background: linear-gradient(180deg, rgba(28, 28, 30, 1) 0%, rgba(0, 0, 0, 0.98) 100%);
 }
 
 .sidebar-nav {
@@ -32,17 +36,31 @@
   font-size: 17px;
   min-height: 44px;
   -webkit-tap-highlight-color: transparent;
+  background: none;
+  border-right: none;
+  border-top: none;
+  border-bottom: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dark-mode .sidebar-menu-item {
+  color: #ffffff;
 }
 
 .sidebar-menu-item:active {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(0, 122, 255, 0.08);
 }
 
 .sidebar-menu-item--active {
-  background-color: rgba(0, 122, 255, 0.1);
+  background: linear-gradient(90deg, rgba(0, 122, 255, 0.12) 0%, rgba(0, 122, 255, 0.06) 100%);
   color: var(--ios-blue);
   border-left-color: var(--ios-blue);
+  border-left-width: 3px;
   font-weight: 600;
+  box-shadow: inset 0 0 20px rgba(0, 122, 255, 0.05);
 }
 
 .sidebar-menu-icon {
@@ -57,6 +75,58 @@
 
 .sidebar-menu-label {
   font-size: 17px;
+  flex: 1;
+}
+
+.sidebar-menu-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  color: #666;
+}
+
+.sidebar-menu-item--expanded .sidebar-menu-arrow {
+  transform: rotate(90deg);
+}
+
+.sidebar-submenu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.sidebar-submenu-item {
+  display: flex;
+  align-items: center;
+  padding: 0.625rem 1rem 0.625rem 3rem;
+  color: #666666;
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+  font-size: 15px;
+  min-height: 40px;
+  -webkit-tap-highlight-color: transparent;
+  border-left: 3px solid transparent;
+}
+
+.dark-mode .sidebar-submenu-item {
+  color: #a1a1a6;
+}
+
+.sidebar-submenu-item:hover {
+  background-color: rgba(0, 122, 255, 0.05);
+}
+
+.sidebar-submenu-item--active {
+  background-color: rgba(0, 122, 255, 0.08);
+  color: var(--ios-blue);
+  border-left-color: var(--ios-blue);
+  font-weight: 600;
+}
+
+.sidebar-submenu-label {
+  font-size: 15px;
 }
 
 /* Mobile Styles */

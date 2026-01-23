@@ -142,7 +142,7 @@ export const AdminUsersCreate = () => {
       case 'admin':
         return 'Tambah Admin';
       default:
-        return 'Tambah User';
+        return 'Tambah Pengguna';
     }
   };
 
@@ -191,14 +191,6 @@ export const AdminUsersCreate = () => {
       <div className="admin-users-create">
         <div className="page-header">
           <div>
-            <Button
-              variant="outline"
-              onClick={() => navigate(ROUTES.ADMIN_USERS)}
-              style={{ marginBottom: '1rem' }}
-            >
-              <Icon name="arrowLeft" size={16} style={{ marginRight: '0.5rem' }} />
-              Kembali
-            </Button>
             <h1>{getPageTitle()}</h1>
           </div>
         </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, EmptyState, Icon, Modal, FormSelect, FormInput, FormTextarea } from '../../components/common';
+import { Button, Badge, EmptyState, Icon, Modal, FormSelect, FormInput, FormTextarea } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { getRelativeTime } from '../../utils';
 import './TeacherMessages.css';
@@ -75,7 +75,6 @@ const MOCK_PARENTS = [
 
 export const TeacherMessages = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState<'all' | 'student' | 'parent'>('all');
   const [showNewMessageModal, setShowNewMessageModal] = useState(false);
   const [newMessageData, setNewMessageData] = useState({
@@ -86,11 +85,8 @@ export const TeacherMessages = () => {
   });
 
   const filteredConversations = mockConversations.filter((conv) => {
-    const matchesSearch =
-      conv.participantName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === 'all' || conv.participantRole === filterRole;
-    return matchesSearch && matchesRole;
+    return matchesRole;
   });
 
   const handleNewMessage = () => {
@@ -145,11 +141,6 @@ export const TeacherMessages = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari pesan..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
           <div className="filter-group">
             <select
               value={filterRole}
@@ -167,7 +158,7 @@ export const TeacherMessages = () => {
           <EmptyState
             icon="message"
             title="Tidak Ada Pesan"
-            message={searchTerm || filterRole !== 'all'
+            message={filterRole !== 'all'
               ? 'Tidak ada pesan yang sesuai dengan filter yang dipilih.'
               : 'Belum ada pesan yang tersedia.'}
             action={{

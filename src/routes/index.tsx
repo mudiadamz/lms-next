@@ -24,6 +24,8 @@ import { StudentMessages } from '../pages/student/StudentMessages';
 import { StudentMessagesChat } from '../pages/student/MessagesChat';
 import { StudentPortfolio } from '../pages/student/StudentPortfolio';
 import { StudentCalendar } from '../pages/student/StudentCalendar';
+import { StudentProfile } from '../pages/student/StudentProfile';
+import { StudentPayment } from '../pages/student/StudentPayment';
 
 // Teacher Pages
 import { TeacherDashboard } from '../pages/teacher/TeacherDashboard';
@@ -51,6 +53,7 @@ import { TeacherMessagesChat } from '../pages/teacher/TeacherMessagesChat';
 import { TeacherAnnouncements } from '../pages/teacher/TeacherAnnouncements';
 import { TeacherAnalytics } from '../pages/teacher/TeacherAnalytics';
 import { TeacherQuestionBank } from '../pages/teacher/TeacherQuestionBank';
+import { TeacherProfile } from '../pages/teacher/TeacherProfile';
 
 // Admin Pages
 import { AdminDashboard } from '../pages/admin/AdminDashboard';
@@ -71,6 +74,8 @@ import { AdminReports } from '../pages/admin/AdminReports';
 import { AdminSettings } from '../pages/admin/AdminSettings';
 import { AdminCurriculum } from '../pages/admin/AdminCurriculum';
 import { AdminAuditLog } from '../pages/admin/AdminAuditLog';
+import { AdminProfile } from '../pages/admin/AdminProfile';
+import { AdminPayment } from '../pages/admin/AdminPayment';
 
 // Parent Pages
 import { ParentDashboard } from '../pages/parent/ParentDashboard';
@@ -94,6 +99,7 @@ import { ParentQuizDetail } from '../pages/parent/ParentQuizDetail';
 import { ParentForum } from '../pages/parent/ParentForum';
 import { ParentForumDetail } from '../pages/parent/ParentForumDetail';
 import { ParentPortfolio } from '../pages/parent/ParentPortfolio';
+import { ParentProfile } from '../pages/parent/ParentProfile';
 
 export const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
@@ -237,6 +243,22 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['student']}>
             <StudentCalendar />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.STUDENT_PROFILE}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <StudentProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.STUDENT_PAYMENT}
+        element={
+          <ProtectedRoute allowedRoles={['student']}>
+            <StudentPayment />
           </ProtectedRoute>
         }
       />
@@ -442,6 +464,14 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path={ROUTES.TEACHER_PROFILE}
+        element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <TeacherProfile />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Protected Admin Routes */}
       <Route
@@ -588,6 +618,22 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path={ROUTES.ADMIN_PROFILE}
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminProfile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.ADMIN_PAYMENT}
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminPayment />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Protected Parent Routes */}
       <Route
@@ -610,15 +656,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_SCHEDULE}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentSchedule />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_GRADES}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentGrades />
+            <StudentSchedule />
           </ProtectedRoute>
         }
       />
@@ -626,47 +664,15 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_ATTENDANCE}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentAttendance />
+            <StudentAttendance />
           </ProtectedRoute>
         }
       />
       <Route
-        path={ROUTES.PARENT_ASSIGNMENTS}
+        path={ROUTES.PARENT_PAYMENT}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentAssignments />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_ASSIGNMENT_DETAIL}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentAssignmentDetail />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_MESSAGES}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentMessages />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_MESSAGE_CHAT}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentMessagesChat />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_SUBJECTS}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentSubjects />
+            <StudentPayment />
           </ProtectedRoute>
         }
       />
@@ -674,7 +680,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_MATERIALS}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentMaterials />
+            <StudentMaterials readOnly />
           </ProtectedRoute>
         }
       />
@@ -682,7 +688,23 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_MATERIAL_DETAIL}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentMaterialDetail />
+            <StudentMaterialDetail />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_ASSIGNMENTS}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentAssignments readOnly />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_ASSIGNMENT_DETAIL}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentAssignmentDetail readOnly />
           </ProtectedRoute>
         }
       />
@@ -690,7 +712,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_QUIZZES}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentQuizzes />
+            <StudentQuizzes readOnly />
           </ProtectedRoute>
         }
       />
@@ -698,7 +720,15 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_QUIZ_DETAIL}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentQuizDetail />
+            <StudentQuizDetail readOnly />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_GRADES}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentGrades />
           </ProtectedRoute>
         }
       />
@@ -706,7 +736,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_FORUM}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentForum />
+            <StudentForum readOnly />
           </ProtectedRoute>
         }
       />
@@ -714,7 +744,23 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_FORUM_DETAIL}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentForumDetail />
+            <StudentForumDetail readOnly />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_MESSAGES}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentMessages />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.PARENT_MESSAGE_CHAT}
+        element={
+          <ProtectedRoute allowedRoles={['parent']}>
+            <StudentMessagesChat />
           </ProtectedRoute>
         }
       />
@@ -722,7 +768,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_PORTFOLIO}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentPortfolio />
+            <StudentPortfolio />
           </ProtectedRoute>
         }
       />
@@ -730,31 +776,15 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_CALENDAR}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentCalendar />
+            <StudentCalendar />
           </ProtectedRoute>
         }
       />
       <Route
-        path={ROUTES.PARENT_ANNOUNCEMENTS}
+        path={ROUTES.PARENT_PROFILE}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentAnnouncements />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_PROGRESS}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentProgress />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path={ROUTES.PARENT_ACTIVITY}
-        element={
-          <ProtectedRoute allowedRoles={['parent']}>
-            <ParentActivity />
+            <ParentProfile />
           </ProtectedRoute>
         }
       />

@@ -1,50 +1,189 @@
 .teacher-dashboard h1 {
   margin: 0 0 0.5rem 0;
-  font-size: 2rem;
+  font-size: 24px;
   color: #1f2937;
 }
 
 .teacher-dashboard p {
   color: #6b7280;
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.dashboard-card {
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  overflow: hidden;
+}
+
+.dashboard-card .card-content {
+  padding: 0;
+}
+
+.dashboard-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-card-content {
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dashboard-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dashboard-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-card-title {
+  font-size: 13px;
+  color: #666666;
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+}
+
+.dashboard-card-value {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+/* Blue Card */
+.dashboard-card--blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border-left: 3px solid #3b82f6;
+}
+
+.dashboard-card--blue .dashboard-card-icon {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: #3b82f6;
+}
+
+.dashboard-card--blue .dashboard-card-value {
+  color: #3b82f6;
+}
+
+/* Green Card */
+.dashboard-card--green {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+  border-left: 3px solid #22c55e;
+}
+
+.dashboard-card--green .dashboard-card-icon {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.dashboard-card--green .dashboard-card-value {
+  color: #22c55e;
+}
+
+/* Purple Card */
+.dashboard-card--purple {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(168, 85, 247, 0.05) 100%);
+  border-left: 3px solid #a855f7;
+}
+
+.dashboard-card--purple .dashboard-card-icon {
+  background-color: rgba(168, 85, 247, 0.15);
+  color: #a855f7;
+}
+
+.dashboard-card--purple .dashboard-card-value {
+  color: #a855f7;
+}
+
+/* Orange Card */
+.dashboard-card--orange {
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(249, 115, 22, 0.05) 100%);
+  border-left: 3px solid #f97316;
+}
+
+.dashboard-card--orange .dashboard-card-icon {
+  background-color: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+}
+
+.dashboard-card--orange .dashboard-card-value {
+  color: #f97316;
+}
+
+/* Dark mode styles */
+.dark-mode .teacher-dashboard h1 {
+  color: #f9fafb;
+}
+
+.dark-mode .dashboard-card-title {
+  color: #9ca3af;
+}
+
+.dark-mode .dashboard-card-value {
+  color: inherit;
 }
 
 @media (max-width: 768px) {
-  .teacher-dashboard h1 {
-    font-size: 1.5rem;
-    margin-bottom: 0.375rem;
-  }
-
-  .teacher-dashboard p {
-    margin-bottom: 1rem;
-    font-size: 0.9375rem;
-  }
-
   .dashboard-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .dashboard-card-content {
+    padding: 0.625rem 0.75rem;
+    gap: 0.625rem;
+  }
+
+  .dashboard-card-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .dashboard-card-value {
+    font-size: 18px;
+  }
+
+  .dashboard-card-title {
+    font-size: 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .teacher-dashboard h1 {
-    font-size: 1.25rem;
-    margin-bottom: 0.25rem;
-  }
-
-  .teacher-dashboard p {
-    margin-bottom: 0.75rem;
-    font-size: 0.875rem;
-  }
-
   .dashboard-grid {
-    gap: 0.75rem;
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dashboard-card-content {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .dashboard-card-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .dashboard-card-value {
+    font-size: 16px;
   }
 }
 

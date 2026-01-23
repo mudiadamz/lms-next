@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, FormSelect, Icon, EmptyState, Pagination, Modal } from '../../components/common';
+import { Button, Badge, Icon, EmptyState, Pagination, Modal } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, formatDateTime } from '../../utils';
 import './StudentPortfolio.css';
@@ -27,14 +27,6 @@ interface PortfolioItem {
   academicYear: string;
 }
 
-const MOCK_SUBJECTS = [
-  { value: 'all', label: 'Semua Mata Pelajaran' },
-  { value: 'subject1', label: 'Matematika' },
-  { value: 'subject2', label: 'Fisika' },
-  { value: 'subject3', label: 'Kimia' },
-  { value: 'subject4', label: 'Biologi' },
-  { value: 'subject5', label: 'Bahasa Indonesia' },
-];
 
 // Contoh data portofolio
 const mockPortfolioItems: PortfolioItem[] = [
@@ -151,39 +143,16 @@ const getScoreColor = (score: number, maxScore: number) => {
 export const StudentPortfolio = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState<string>('all');
-  const [selectedType, setSelectedType] = useState<string>('all');
-  const [selectedSemester, setSelectedSemester] = useState<string>('1');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedItem, setSelectedItem] = useState<PortfolioItem | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const itemsPerPage = 9;
 
-  const filteredItems = mockPortfolioItems.filter((item) => {
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.subject.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesSubject = selectedSubject === 'all' || item.subjectId === selectedSubject;
-    const matchesType = selectedType === 'all' || item.type === selectedType;
-    const matchesSemester = item.semester.toString() === selectedSemester;
-    return matchesSearch && matchesSubject && matchesType && matchesSemester;
-  });
-
-  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
-  const paginatedItems = filteredItems.slice(
+  const totalPages = Math.ceil(mockPortfolioItems.length / itemsPerPage);
+  const paginatedItems = mockPortfolioItems.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
-
-  // Calculate statistics
-  const totalItems = mockPortfolioItems.length;
-  const assignmentsCount = mockPortfolioItems.filter((item) => item.type === 'assignment').length;
-  const projectsCount = mockPortfolioItems.filter((item) => item.type === 'project').length;
-  const quizzesCount = mockPortfolioItems.filter((item) => item.type === 'quiz').length;
-  const averageScore =
-    mockPortfolioItems.reduce((sum, item) => sum + (item.score || 0), 0) /
-    mockPortfolioItems.filter((item) => item.score !== undefined).length;
 
   const handleViewDetail = (item: PortfolioItem) => {
     setSelectedItem(item);
@@ -197,107 +166,12 @@ export const StudentPortfolio = () => {
           <h1>Portofolio</h1>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="portfolio-stats">
-          <Card variant="elevated" className="stat-card stat-card--primary">
-            <div className="stat-icon" style={{ backgroundColor: 'rgba(0, 122, 255, 0.1)' }}>
-              <Icon name="folder" size={24} style={{ color: 'var(--ios-blue)' }} />
-            </div>
-            <div className="stat-content">
-              <div className="stat-value">{totalItems}</div>
-              <div className="stat-label">Total Karya</div>
-            </div>
-          </Card>
-          <Card variant="elevated" className="stat-card">
-            <div className="stat-content">
-              <div className="stat-value">{assignmentsCount}</div>
-              <div className="stat-label">Tugas</div>
-            </div>
-          </Card>
-          <Card variant="elevated" className="stat-card">
-            <div className="stat-content">
-              <div className="stat-value">{projectsCount}</div>
-              <div className="stat-label">Proyek</div>
-            </div>
-          </Card>
-          <Card variant="elevated" className="stat-card">
-            <div className="stat-content">
-              <div className="stat-value">{quizzesCount}</div>
-              <div className="stat-label">Kuis</div>
-            </div>
-          </Card>
-          <Card variant="elevated" className="stat-card">
-            <div className="stat-content">
-              <div className="stat-value">{averageScore.toFixed(1)}</div>
-              <div className="stat-label">Rata-rata Nilai</div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <div className="page-filters">
-          <SearchBar
-            placeholder="Cari portofolio..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-          <div className="filter-group">
-            <select
-              value={selectedSubject}
-              onChange={(e) => {
-                setSelectedSubject(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="filter-select"
-            >
-              {MOCK_SUBJECTS.map((subj) => (
-                <option key={subj.value} value={subj.value}>
-                  {subj.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="filter-group">
-            <select
-              value={selectedType}
-              onChange={(e) => {
-                setSelectedType(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="filter-select"
-            >
-              <option value="all">Semua Tipe</option>
-              <option value="assignment">Tugas</option>
-              <option value="project">Proyek</option>
-              <option value="quiz">Kuis</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <select
-              value={selectedSemester}
-              onChange={(e) => {
-                setSelectedSemester(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="filter-select"
-            >
-              <option value="1">Semester 1</option>
-              <option value="2">Semester 2</option>
-            </select>
-          </div>
-        </div>
-
         {/* Portfolio Grid */}
         {paginatedItems.length === 0 ? (
           <EmptyState
             icon="folder"
             title="Tidak Ada Portofolio"
-            message={searchTerm || selectedSubject !== 'all' || selectedType !== 'all'
-              ? 'Tidak ada portofolio yang sesuai dengan filter yang dipilih.'
-              : 'Belum ada karya yang ditambahkan ke portofolio.'}
+            message="Belum ada karya yang ditambahkan ke portofolio."
           />
         ) : (
           <>

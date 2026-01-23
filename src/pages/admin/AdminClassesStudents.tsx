@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Table, Badge, Icon, Pagination } from '../../components/common';
+import { Button, Table, Badge, Icon, Pagination } from '../../components/common';
 import { ROUTES } from '../../constants';
 import './AdminClasses.css';
 
@@ -34,7 +34,6 @@ const mockStudents = [
 export const AdminClassesStudents = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [students, setStudents] = useState(mockStudents);
   const itemsPerPage = 10;
@@ -44,10 +43,7 @@ export const AdminClassesStudents = () => {
     // For now, using mock data
   }, [id]);
 
-  const filteredStudents = students.filter((student) =>
-    student.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    student.studentNumber.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredStudents = students;
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const paginatedStudents = filteredStudents.slice(
@@ -95,21 +91,7 @@ export const AdminClassesStudents = () => {
     <DashboardLayout>
       <div className="admin-classes-students">
         <div className="page-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.ADMIN_CLASSES)}>
-            <Icon name="chevronLeft" size={20} /> Kembali
-          </Button>
           <h1>Daftar Siswa</h1>
-        </div>
-
-        <div className="page-filters">
-          <SearchBar
-            placeholder="Cari siswa..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
         </div>
 
         <Card
@@ -143,4 +125,3 @@ export const AdminClassesStudents = () => {
     </DashboardLayout>
   );
 };
-

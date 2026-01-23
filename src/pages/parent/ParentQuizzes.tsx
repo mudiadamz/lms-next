@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, EmptyState } from '../../components/common';
+import { Button, Badge, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, isPast } from '../../utils';
 import { useAuth } from '../../contexts/AuthContext';
@@ -57,10 +57,6 @@ export const ParentQuizzes = () => {
     <DashboardLayout>
       <div className="parent-quizzes">
         <h1>Kuis Anak</h1>
-
-        <div className="page-filters">
-          <SearchBar placeholder="Cari kuis..." />
-        </div>
 
         {mockQuizzes.length === 0 ? (
           <EmptyState

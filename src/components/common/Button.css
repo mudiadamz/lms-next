@@ -26,13 +26,14 @@
 }
 
 .btn--primary {
-  background-color: var(--ios-blue);
+  background: linear-gradient(135deg, #007aff 0%, #0051d5 100%);
   color: white;
-  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 122, 255, 0.3), 0 0 0 0.5px rgba(0, 122, 255, 0.1);
 }
 
 .btn--primary:hover:not(.btn--disabled) {
-  background-color: #0051d5;
+  background: linear-gradient(135deg, #0051d5 0%, #003d9e 100%);
+  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.4), 0 0 0 0.5px rgba(0, 122, 255, 0.15);
 }
 
 .btn--secondary {

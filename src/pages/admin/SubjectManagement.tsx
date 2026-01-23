@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, SearchBar, Badge, Dropdown, Modal, FormInput, FormSelect, FormTextarea, ConfirmDialog } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormSelect, FormTextarea, ConfirmDialog } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
 import './SubjectManagement.css';
 
@@ -38,7 +38,6 @@ const mockSubjects = [
 
 export const SubjectManagement = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -54,11 +53,8 @@ export const SubjectManagement = () => {
   });
 
   const filteredSubjects = subjects.filter((subject) => {
-    const matchesSearch =
-      subject.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      subject.code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLevel = selectedLevel === 'all' || subject.schoolLevel === selectedLevel;
-    return matchesSearch && matchesLevel;
+    return matchesLevel;
   });
 
   const handleCreate = () => {
@@ -200,11 +196,6 @@ export const SubjectManagement = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari mata pelajaran..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
           <div className="filter-group">
             <select
               value={selectedLevel}

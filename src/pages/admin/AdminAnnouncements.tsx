@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState, Pagination } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState, Pagination } from '../../components/common';
 import { Announcement, UserRole } from '../../types';
 import { ROLE_LABELS } from '../../constants';
 import './AdminAnnouncements.css';
@@ -307,14 +307,6 @@ export const AdminAnnouncements = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari pengumuman..."
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
           <div className="filter-group">
             <select
               value={selectedAudience}
@@ -338,7 +330,7 @@ export const AdminAnnouncements = () => {
           <EmptyState
             icon="announcement"
             title="Tidak Ada Pengumuman"
-            message={searchTerm || selectedAudience !== 'all'
+            message={selectedAudience !== 'all'
               ? 'Tidak ada pengumuman yang sesuai dengan filter yang dipilih.'
               : 'Belum ada pengumuman yang dibuat.'}
             action={{

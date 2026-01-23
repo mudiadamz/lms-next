@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, Table } from '../../components/common';
+import { Button, Badge, Table } from '../../components/common';
 import { ROUTES, SCHOOL_LEVELS } from '../../constants';
 import './AdminSubjects.css';
 
@@ -80,10 +80,6 @@ export const AdminSubjects = () => {
               <Button>Kelola Mata Pelajaran</Button>
             </Link>
           </div>
-        </div>
-
-        <div className="page-filters">
-          <SearchBar placeholder="Cari mata pelajaran..." />
         </div>
 
         <Card title={`Daftar Mata Pelajaran (${mockSubjects.length})`} variant="elevated">

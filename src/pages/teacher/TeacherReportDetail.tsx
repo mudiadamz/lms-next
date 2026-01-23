@@ -161,10 +161,6 @@ export const TeacherReportDetail = () => {
     <DashboardLayout>
       <div className="report-detail">
         <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.TEACHER_REPORTS)}>
-            <Icon name="chevronLeft" size={20} style={{ marginRight: '0.5rem' }} />
-            Kembali ke Daftar Rapor
-          </Button>
           <Button variant="primary">
             <Icon name="download" size={16} style={{ marginRight: '0.5rem' }} />
             Unduh PDF

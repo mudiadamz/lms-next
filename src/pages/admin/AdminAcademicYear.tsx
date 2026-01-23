@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, SearchBar, Table, Badge, Dropdown, Modal, FormInput, FormSelect, ConfirmDialog, Icon, EmptyState } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormSelect, ConfirmDialog, Icon, EmptyState } from '../../components/common';
 import { AcademicYear } from '../../types';
 import './AdminAcademicYear.css';
 
@@ -31,7 +31,6 @@ const mockAcademicYears: AcademicYear[] = [
 ];
 
 export const AdminAcademicYear = () => {
-  const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -44,9 +43,7 @@ export const AdminAcademicYear = () => {
     endDate: '',
   });
 
-  const filteredAcademicYears = academicYears.filter((year) =>
-    year.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredAcademicYears = academicYears;
 
   const activeAcademicYear = academicYears.find((year) => year.isActive);
 
@@ -271,13 +268,6 @@ export const AdminAcademicYear = () => {
           </Card>
         )}
 
-        <div className="page-filters">
-          <SearchBar
-            placeholder="Cari tahun ajaran..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
 
         {filteredAcademicYears.length === 0 ? (
           <EmptyState

@@ -1,10 +1,10 @@
 .header {
-  background-color: rgba(255, 255, 255, 0.8);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(247, 250, 252, 0.95) 100%);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   color: #000000;
   padding: 0;
-  box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 0 0.5px rgba(0, 122, 255, 0.05);
   position: sticky;
   top: 0;
   left: 0;
@@ -13,6 +13,12 @@
   border-bottom: 0.5px solid var(--ios-separator);
   width: 100%;
   margin: 0;
+}
+
+.dark-mode .header {
+  background: linear-gradient(135deg, rgba(28, 28, 30, 0.95) 0%, rgba(0, 0, 0, 0.95) 100%);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 0 0 0.5px rgba(10, 132, 255, 0.1);
 }
 
 .header-content {
@@ -78,11 +84,21 @@
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: #000000;
+  background: linear-gradient(135deg, #000000 0%, rgba(0, 122, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
   letter-spacing: -0.01em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.dark-mode .header-logo h1 {
+  background: linear-gradient(135deg, #ffffff 0%, rgba(10, 132, 255, 0.8) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .header-nav {
@@ -115,6 +131,10 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 120px;
+}
+
+.dark-mode .header-user-name {
+  color: #ffffff;
 }
 
 .header-user-menu-overlay {
@@ -167,6 +187,40 @@
   display: flex;
   align-items: center;
   min-height: 44px;
+}
+
+.header-user-menu-item--profile {
+  color: #000000;
+  border-bottom: 0.5px solid var(--ios-separator);
+}
+
+.header-user-menu-item--profile:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .header-user-menu-item--profile {
+  color: #ffffff;
+}
+
+.dark-mode .header-user-menu-item--profile:active {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.header-user-menu-item--settings {
+  color: #000000;
+  border-bottom: 0.5px solid var(--ios-separator);
+}
+
+.header-user-menu-item--settings:active {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .header-user-menu-item--settings {
+  color: #ffffff;
+}
+
+.dark-mode .header-user-menu-item--settings:active {
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .header-user-menu-item:active {

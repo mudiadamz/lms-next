@@ -36,7 +36,11 @@ const mockComments = [
   },
 ];
 
-export const StudentForumDetail = () => {
+interface StudentForumDetailProps {
+  readOnly?: boolean;
+}
+
+export const StudentForumDetail = ({ readOnly = false }: StudentForumDetailProps = {} as StudentForumDetailProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -72,11 +76,6 @@ export const StudentForumDetail = () => {
   return (
     <DashboardLayout>
       <div className="forum-detail">
-        <div className="detail-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.STUDENT_FORUM)}>
-            ← Kembali ke Forum
-          </Button>
-        </div>
 
         <Card>
           <div className="post-header">
@@ -112,19 +111,25 @@ export const StudentForumDetail = () => {
             ))}
           </div>
 
-          <form onSubmit={handleSubmitComment} className="comment-form">
-            <FormTextarea
-              value={newComment}
-              onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Tulis komentar Anda..."
-              rows={3}
-            />
-            <div className="comment-actions">
-              <Button type="submit" isLoading={isSubmitting} disabled={!newComment.trim()}>
-                Kirim Komentar
-              </Button>
+          {readOnly ? (
+            <div className="info-note" style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+              <p>Sebagai orang tua, Anda dapat melihat diskusi ini tetapi tidak dapat berpartisipasi.</p>
             </div>
-          </form>
+          ) : (
+            <form onSubmit={handleSubmitComment} className="comment-form">
+              <FormTextarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Tulis komentar Anda..."
+                rows={3}
+              />
+              <div className="comment-actions">
+                <Button type="submit" isLoading={isSubmitting} disabled={!newComment.trim()}>
+                  Kirim Komentar
+                </Button>
+              </div>
+            </form>
+          )}
         </Card>
       </div>
     </DashboardLayout>

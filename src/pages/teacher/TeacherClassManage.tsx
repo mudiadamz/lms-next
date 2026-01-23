@@ -41,9 +41,6 @@ export const TeacherClassManage = () => {
     <DashboardLayout>
       <div className="teacher-class-manage">
         <div className="page-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.TEACHER_CLASSES)}>
-            <Icon name="chevronLeft" size={20} /> Kembali
-          </Button>
           <h1>Kelola Kelas - {mockClassData.name}</h1>
         </div>
 

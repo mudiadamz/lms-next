@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, EmptyState } from '../../components/common';
+import { Button, Badge, FormSelect, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, isPast } from '../../utils';
 import './StudentAssignments.css';
@@ -25,9 +26,41 @@ const mockAssignments = [
     status: 'submitted',
     score: 85,
   },
+  {
+    id: '3',
+    title: 'Tugas Fisika - Hukum Newton',
+    subject: 'Fisika',
+    teacher: 'Bapak Andi',
+    dueDate: new Date('2024-01-28T23:59:59'),
+    status: 'not_started',
+    score: null,
+  },
 ];
 
-export const StudentAssignments = () => {
+// Get unique subjects from assignments
+const getUniqueSubjects = () => {
+  const subjects = new Set(mockAssignments.map((a) => a.subject));
+  return Array.from(subjects).sort();
+};
+
+interface StudentAssignmentsProps {
+  readOnly?: boolean;
+}
+
+export const StudentAssignments = ({ readOnly = false }: StudentAssignmentsProps = {} as StudentAssignmentsProps) => {
+  const [selectedSubject, setSelectedSubject] = useState<string>('all');
+
+  const uniqueSubjects = getUniqueSubjects();
+  const subjectOptions = [
+    { value: 'all', label: 'Semua Mata Pelajaran' },
+    ...uniqueSubjects.map((subject) => ({ value: subject, label: subject })),
+  ];
+
+  const filteredAssignments =
+    selectedSubject === 'all'
+      ? mockAssignments
+      : mockAssignments.filter((assignment) => assignment.subject === selectedSubject);
+
   const getStatusBadge = (assignment: typeof mockAssignments[0]) => {
     if (assignment.score !== null) {
       return <Badge variant="success">Sudah Dinilai</Badge>;
@@ -47,18 +80,26 @@ export const StudentAssignments = () => {
         <h1>Tugas</h1>
 
         <div className="page-filters">
-          <SearchBar placeholder="Cari tugas..." />
+          <FormSelect
+            value={selectedSubject}
+            onChange={(e) => setSelectedSubject(e.target.value)}
+            options={subjectOptions}
+          />
         </div>
 
-        {mockAssignments.length === 0 ? (
+        {filteredAssignments.length === 0 ? (
           <EmptyState
             icon="📝"
             title="Tidak Ada Tugas"
-            message="Belum ada tugas yang diberikan untuk Anda saat ini."
+            message={
+              selectedSubject !== 'all'
+                ? `Tidak ada tugas untuk mata pelajaran ${selectedSubject}.`
+                : 'Belum ada tugas yang diberikan untuk Anda saat ini.'
+            }
           />
         ) : (
           <div className="assignments-grid">
-            {mockAssignments.map((assignment) => (
+            {filteredAssignments.map((assignment) => (
               <Card key={assignment.id} title={assignment.title} variant="elevated">
                 <div className="assignment-card-info">
                   <p>
@@ -79,9 +120,9 @@ export const StudentAssignments = () => {
                     </p>
                   )}
                 </div>
-                <Link to={`${ROUTES.STUDENT_ASSIGNMENTS}/${assignment.id}`}>
-                  <Button variant="primary" className="assignment-action-button">
-                    {assignment.status === 'submitted' ? 'Lihat Detail' : 'Kerjakan Tugas'}
+                <Link to={`${readOnly ? ROUTES.PARENT_ASSIGNMENTS : ROUTES.STUDENT_ASSIGNMENTS}/${assignment.id}`}>
+                  <Button variant={readOnly ? "outline" : "primary"} className="assignment-action-button">
+                    {readOnly ? 'Lihat Detail' : (assignment.status === 'submitted' ? 'Lihat Detail' : 'Kerjakan Tugas')}
                   </Button>
                 </Link>
               </Card>

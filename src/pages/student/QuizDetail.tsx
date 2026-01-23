@@ -37,12 +37,16 @@ const mockQuestions = [
   },
 ];
 
-export const StudentQuizDetail = () => {
+interface StudentQuizDetailProps {
+  readOnly?: boolean;
+}
+
+export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps = {} as StudentQuizDetailProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showStartModal, setShowStartModal] = useState(true);
+  const [showStartModal, setShowStartModal] = useState(!readOnly);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(mockQuiz.timeLimit * 60);
 
@@ -66,7 +70,7 @@ export const StudentQuizDetail = () => {
     try {
       // TODO: Call quizService.submitQuiz
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      navigate(ROUTES.STUDENT_QUIZZES);
+      navigate(readOnly ? ROUTES.PARENT_QUIZZES : ROUTES.STUDENT_QUIZZES);
     } catch (error) {
       console.error('Error submitting quiz:', error);
       alert('Gagal mengumpulkan kuis');
@@ -84,6 +88,35 @@ export const StudentQuizDetail = () => {
   const isActive = new Date() >= mockQuiz.startDate && new Date() <= mockQuiz.endDate;
   const isOverdue = isPast(mockQuiz.endDate);
 
+  if (readOnly) {
+    return (
+      <DashboardLayout>
+        <div className="quiz-detail">
+          <div className="quiz-header">
+            <div>
+              <h1>{mockQuiz.title}</h1>
+              <div className="quiz-meta">
+                <Badge variant="info">{mockQuiz.subject}</Badge>
+                <span>Guru: {mockQuiz.teacher}</span>
+              </div>
+            </div>
+          </div>
+          <Card>
+            <div className="quiz-info">
+              <p><strong>Waktu:</strong> {mockQuiz.timeLimit} menit</p>
+              <p><strong>Jumlah Soal:</strong> {mockQuiz.questions}</p>
+              <p><strong>Nilai Maksimal:</strong> {mockQuiz.maxScore}</p>
+              <p><strong>Batas Waktu:</strong> {formatDateTime(mockQuiz.endDate)}</p>
+            </div>
+            <div className="info-note" style={{ marginTop: '1rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
+              <p>Sebagai orang tua, Anda dapat melihat detail kuis ini tetapi tidak dapat mengerjakan kuis.</p>
+            </div>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (!isActive && !isOverdue) {
     return (
       <DashboardLayout>
@@ -91,7 +124,6 @@ export const StudentQuizDetail = () => {
           <div className="quiz-not-available">
             <h2>Kuis Belum Dimulai</h2>
             <p>Kuis akan dimulai pada: {formatDateTime(mockQuiz.startDate)}</p>
-            <Button onClick={() => navigate(ROUTES.STUDENT_QUIZZES)}>Kembali</Button>
           </div>
         </Card>
       </DashboardLayout>
@@ -104,7 +136,7 @@ export const StudentQuizDetail = () => {
         {showStartModal && (
           <Modal
             isOpen={showStartModal}
-            onClose={() => navigate(ROUTES.STUDENT_QUIZZES)}
+            onClose={() => navigate(readOnly ? ROUTES.PARENT_QUIZZES : ROUTES.STUDENT_QUIZZES)}
             title="Mulai Kuis"
             size="medium"
           >
@@ -119,7 +151,7 @@ export const StudentQuizDetail = () => {
               </div>
             </div>
             <div className="modal-footer">
-              <Button variant="outline" onClick={() => navigate(ROUTES.STUDENT_QUIZZES)}>
+              <Button variant="outline" onClick={() => navigate(readOnly ? ROUTES.PARENT_QUIZZES : ROUTES.STUDENT_QUIZZES)}>
                 Batal
               </Button>
               <Button onClick={handleStart}>Mulai Kuis</Button>
@@ -171,7 +203,7 @@ export const StudentQuizDetail = () => {
 
           <div className="quiz-actions">
             <Button variant="outline" onClick={() => setShowConfirmModal(true)}>
-              Kembali
+              Tutup
             </Button>
             <Button
               onClick={() => setShowConfirmModal(true)}

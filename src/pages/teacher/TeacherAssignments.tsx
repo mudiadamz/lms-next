@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, Table } from '../../components/common';
+import { Button, Badge, Table } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
 import './TeacherAssignments.css';
@@ -68,10 +68,6 @@ export const TeacherAssignments = () => {
           <Link to={ROUTES.TEACHER_ASSIGNMENTS_CREATE}>
             <Button>Buat Tugas Baru</Button>
           </Link>
-        </div>
-
-        <div className="page-filters">
-          <SearchBar placeholder="Cari tugas..." />
         </div>
 
         <Card>

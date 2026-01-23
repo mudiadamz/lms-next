@@ -1,11 +1,12 @@
 .student-portfolio h1 {
-  margin: 0;
-  font-size: 2rem;
+  margin: 0 0 0.75rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
   color: #1f2937;
 }
 
 .page-header {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
 }
 
 /* Statistics Cards */
@@ -302,20 +303,13 @@
 }
 
 @media (max-width: 768px) {
-  .portfolio-stats {
-    grid-template-columns: repeat(2, 1fr);
+  .student-portfolio h1 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
   }
 
-  .stat-card--primary {
-    grid-column: span 2;
-  }
-
-  .page-filters {
-    flex-direction: column;
-  }
-
-  .filter-group {
-    width: 100%;
+  .page-header {
+    margin-bottom: 0.75rem;
   }
 
   .portfolio-grid {

@@ -62,9 +62,6 @@ export const AdminSubjectsDetail = () => {
     <DashboardLayout>
       <div className="subject-detail">
         <div className="page-header">
-          <Button variant="outline" onClick={() => navigate(ROUTES.ADMIN_SUBJECT_MANAGEMENT)}>
-            <Icon name="chevronLeft" size={20} /> Kembali
-          </Button>
           <h1>Detail Mata Pelajaran</h1>
         </div>
 

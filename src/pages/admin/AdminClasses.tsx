@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar, Table, Dropdown, EmptyState, Icon, ConfirmDialog } from '../../components/common';
+import { Button, Badge, Table, Dropdown, EmptyState, Icon, ConfirmDialog } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
 import './AdminClasses.css';
 
@@ -38,18 +38,14 @@ const mockClasses = [
 
 export const AdminClasses = () => {
   const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<string>('all');
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedClass, setSelectedClass] = useState<typeof mockClasses[0] | null>(null);
   const [classes, setClasses] = useState(mockClasses);
 
   const filteredClasses = classes.filter((cls) => {
-    const matchesSearch =
-      cls.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cls.homeroomTeacher.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesLevel = selectedLevel === 'all' || cls.schoolLevel === selectedLevel;
-    return matchesSearch && matchesLevel;
+    return matchesLevel;
   });
 
   const handleDelete = (cls: typeof mockClasses[0]) => {
@@ -138,11 +134,6 @@ export const AdminClasses = () => {
         </div>
 
         <div className="page-filters">
-          <SearchBar
-            placeholder="Cari kelas..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
           <div className="filter-group">
             <select
               value={selectedLevel}

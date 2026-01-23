@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Badge, SearchBar, Button, EmptyState } from '../../components/common';
+import { Badge, Button, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
 import { useAuth } from '../../contexts/AuthContext';
@@ -47,10 +47,6 @@ export const ParentMaterials = () => {
     <DashboardLayout>
       <div className="parent-materials">
         <h1>Materi Pembelajaran Anak</h1>
-
-        <div className="page-filters">
-          <SearchBar placeholder="Cari materi..." />
-        </div>
 
         {mockMaterials.length === 0 ? (
           <EmptyState

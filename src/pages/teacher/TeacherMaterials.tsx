@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, SearchBar } from '../../components/common';
+import { Button, Badge } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
 import './TeacherMaterials.css';
@@ -26,10 +26,6 @@ export const TeacherMaterials = () => {
           <Link to={ROUTES.TEACHER_MATERIALS_CREATE}>
             <Button>Upload Materi</Button>
           </Link>
-        </div>
-
-        <div className="page-filters">
-          <SearchBar placeholder="Cari materi..." />
         </div>
 
         <div className="materials-grid">
