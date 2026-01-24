@@ -53,13 +53,34 @@ export const AdminAcademicYear = () => {
 
   const handleEdit = (year: AcademicYear) => {
     setSelectedAcademicYear(year);
+    
+    // Safely convert to Date if needed
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+    
+    if (year.startDate) {
+      if (year.startDate instanceof Date) {
+        startDate = year.startDate;
+      } else if (typeof year.startDate === 'string') {
+        startDate = new Date(year.startDate);
+      }
+    }
+    
+    if (year.endDate) {
+      if (year.endDate instanceof Date) {
+        endDate = year.endDate;
+      } else if (typeof year.endDate === 'string') {
+        endDate = new Date(year.endDate);
+      }
+    }
+    
     setFormData({
       name: year.name,
-      startDate: year.startDate && !isNaN(year.startDate.getTime()) 
-        ? year.startDate.toISOString().split('T')[0] 
+      startDate: startDate && !isNaN(startDate.getTime()) 
+        ? startDate.toISOString().split('T')[0] 
         : '',
-      endDate: year.endDate && !isNaN(year.endDate.getTime())
-        ? year.endDate.toISOString().split('T')[0]
+      endDate: endDate && !isNaN(endDate.getTime())
+        ? endDate.toISOString().split('T')[0]
         : '',
     });
     setShowEditModal(true);
@@ -157,15 +178,27 @@ export const AdminAcademicYear = () => {
     }
   };
 
-  const formatDate = (date: Date | undefined | null) => {
-    if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
+  const formatDate = (date: Date | undefined | null | string) => {
+    if (!date) return '-';
+    
+    let dateObj: Date;
+    if (date instanceof Date) {
+      dateObj = date;
+    } else if (typeof date === 'string') {
+      dateObj = new Date(date);
+    } else {
       return '-';
     }
+    
+    if (isNaN(dateObj.getTime())) {
+      return '-';
+    }
+    
     return new Intl.DateTimeFormat('id-ID', {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    }).format(date);
+    }).format(dateObj);
   };
 
   const columns = [
@@ -197,8 +230,33 @@ export const AdminAcademicYear = () => {
       key: 'duration',
       header: 'Durasi',
       render: (item: AcademicYear) => {
+        // Safely convert to Date objects
+        let startDate: Date | null = null;
+        let endDate: Date | null = null;
+        
+        if (item.startDate) {
+          if (item.startDate instanceof Date) {
+            startDate = item.startDate;
+          } else if (typeof item.startDate === 'string') {
+            startDate = new Date(item.startDate);
+          }
+        }
+        
+        if (item.endDate) {
+          if (item.endDate instanceof Date) {
+            endDate = item.endDate;
+          } else if (typeof item.endDate === 'string') {
+            endDate = new Date(item.endDate);
+          }
+        }
+        
+        if (!startDate || !endDate || 
+            isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return '-';
+        }
+        
         const months = Math.round(
-          (item.endDate.getTime() - item.startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+          (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
         );
         return `${months} bulan`;
       },

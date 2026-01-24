@@ -51,6 +51,40 @@ export const AdminSchedule = () => {
     semester: '1',
   });
 
+  // Load initial data
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        const [schedulesData, classesData, subjectsData, teachersData, academicYearsData] = await Promise.all([
+          scheduleService.getSchedules(),
+          classService.getClasses(),
+          subjectService.getSubjects(),
+          userService.getUsers('teacher'),
+          academicYearService.getAcademicYears(),
+        ]);
+
+        setSchedules(schedulesData);
+        setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
+        setSubjects(subjectsData.map(s => ({ value: s.id, label: s.name })));
+        setTeachers(teachersData.map(t => ({ value: t.id, label: t.name })));
+        setAcademicYears(academicYearsData.map(ay => ({ value: ay.name, label: ay.name })));
+
+        // Set default selected year if available
+        if (academicYearsData.length > 0 && !selectedYear) {
+          setSelectedYear(academicYearsData[0].name);
+        }
+      } catch (error) {
+        console.error('Error loading schedule data:', error);
+        alert('Gagal memuat data jadwal');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
   const filteredSchedules = schedules.filter((schedule) => {
     const matchesClass = selectedClass === 'all' || schedule.classId === selectedClass;
     const matchesDay = selectedDay === 'all' || schedule.dayOfWeek.toString() === selectedDay;

@@ -49,9 +49,12 @@ export const StudentAttendance = () => {
   }, [user?.id]);
 
   // Sort by date (newest first)
-  const sortedAttendances = [...attendances].sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  const sortedAttendances = [...attendances].sort((a, b) => {
+    const aDate = new Date(a.date);
+    const bDate = new Date(b.date);
+    if (isNaN(aDate.getTime()) || isNaN(bDate.getTime())) return 0;
+    return bDate.getTime() - aDate.getTime();
+  });
 
   const totalPages = Math.ceil(sortedAttendances.length / itemsPerPage);
   const paginatedAttendances = sortedAttendances.slice(

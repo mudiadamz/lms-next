@@ -88,7 +88,12 @@ export const ParentActivity = () => {
         });
 
         // Sort by date (newest first)
-        activityList.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        activityList.sort((a, b) => {
+          const aDate = new Date(a.date);
+          const bDate = new Date(b.date);
+          if (isNaN(aDate.getTime()) || isNaN(bDate.getTime())) return 0;
+          return bDate.getTime() - aDate.getTime();
+        });
 
         setActivities(activityList.slice(0, 20)); // Limit to 20 most recent
       } catch (error) {

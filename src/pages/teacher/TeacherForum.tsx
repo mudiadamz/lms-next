@@ -79,7 +79,16 @@ export const TeacherForum = () => {
   const sortedPosts = [...filteredPosts].sort((a, b) => {
     if (a.isPinned && !b.isPinned) return -1;
     if (!a.isPinned && b.isPinned) return 1;
-    return b.createdAt.getTime() - a.createdAt.getTime();
+    
+    // Safely convert to Date objects if needed
+    const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+    const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+    
+    if (isNaN(aDate.getTime()) || isNaN(bDate.getTime())) {
+      return 0; // If dates are invalid, don't change order
+    }
+    
+    return bDate.getTime() - aDate.getTime();
   });
 
   const totalPages = Math.ceil(sortedPosts.length / itemsPerPage);

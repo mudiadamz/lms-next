@@ -76,15 +76,36 @@ export const AdminCurriculum = () => {
 
   const handleEdit = (curriculum: Curriculum) => {
     setSelectedCurriculum(curriculum);
+    
+    // Safely convert to Date objects if needed
+    let startDate: Date | null = null;
+    let endDate: Date | null = null;
+    
+    if (curriculum.startDate) {
+      if (curriculum.startDate instanceof Date) {
+        startDate = curriculum.startDate;
+      } else if (typeof curriculum.startDate === 'string') {
+        startDate = new Date(curriculum.startDate);
+      }
+    }
+    
+    if (curriculum.endDate) {
+      if (curriculum.endDate instanceof Date) {
+        endDate = curriculum.endDate;
+      } else if (typeof curriculum.endDate === 'string') {
+        endDate = new Date(curriculum.endDate);
+      }
+    }
+    
     setFormData({
       name: curriculum.name,
       description: curriculum.description,
       schoolLevel: curriculum.schoolLevel,
-      startDate: curriculum.startDate && !isNaN(curriculum.startDate.getTime())
-        ? curriculum.startDate.toISOString().split('T')[0]
+      startDate: startDate && !isNaN(startDate.getTime())
+        ? startDate.toISOString().split('T')[0]
         : '',
-      endDate: curriculum.endDate && !isNaN(curriculum.endDate.getTime())
-        ? curriculum.endDate.toISOString().split('T')[0]
+      endDate: endDate && !isNaN(endDate.getTime())
+        ? endDate.toISOString().split('T')[0]
         : '',
     });
     setShowEditModal(true);

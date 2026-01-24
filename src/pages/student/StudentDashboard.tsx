@@ -56,13 +56,23 @@ export const StudentDashboard = () => {
 
         // Get recent grades (last 5)
         const recent = gradesData
-          .sort((a, b) => new Date(b.createdAt || b.date || 0).getTime() - new Date(a.createdAt || a.date || 0).getTime())
+          .sort((a, b) => {
+            const aDate = new Date(b.createdAt || b.date || 0);
+            const bDate = new Date(a.createdAt || a.date || 0);
+            if (isNaN(aDate.getTime()) || isNaN(bDate.getTime())) return 0;
+            return aDate.getTime() - bDate.getTime();
+          })
           .slice(0, 5);
         setRecentGrades(recent);
 
         // Get recent announcements
         const recentAnnouncements = announcementsData
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .sort((a, b) => {
+            const aDate = a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt);
+            const bDate = b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt);
+            if (isNaN(aDate.getTime()) || isNaN(bDate.getTime())) return 0;
+            return bDate.getTime() - aDate.getTime();
+          })
           .slice(0, 5);
         setAnnouncements(recentAnnouncements);
 
