@@ -28,6 +28,7 @@ export const AdminAnnouncements = () => {
     targetAudience: 'all' as UserRole[] | 'all',
     classId: '',
     isPinned: false,
+    startDate: '',
     endDate: '',
   });
 
@@ -108,6 +109,7 @@ export const AdminAnnouncements = () => {
       targetAudience: 'all',
       classId: '',
       isPinned: false,
+      startDate: new Date().toISOString().split('T')[0], // Default to today
       endDate: '',
     });
     setShowCreateModal(true);
@@ -121,6 +123,9 @@ export const AdminAnnouncements = () => {
       targetAudience: announcement.targetAudience,
       classId: announcement.classId || '',
       isPinned: announcement.isPinned,
+      startDate: announcement.startDate
+        ? announcement.startDate.toISOString().split('T')[0]
+        : new Date().toISOString().split('T')[0],
       endDate: announcement.endDate
         ? announcement.endDate.toISOString().split('T')[0]
         : '',
@@ -157,13 +162,32 @@ export const AdminAnnouncements = () => {
     try {
       setIsSubmitting(true);
 
+      // Convert targetAudience to string if it's an array
+      const targetAudienceString = Array.isArray(formData.targetAudience) 
+        ? formData.targetAudience[0] 
+        : formData.targetAudience;
+
+      // Format dates as YYYY-MM-DD for SQLite DATE format
+      const formatDateForDB = (dateString: string) => {
+        if (!dateString) return undefined;
+        // If already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+          return dateString;
+        }
+        // Otherwise, convert to YYYY-MM-DD
+        return new Date(dateString).toISOString().split('T')[0];
+      };
+
       const announcementData = {
         title: formData.title,
         content: formData.content,
-        targetAudience: formData.targetAudience,
+        targetAudience: targetAudienceString,
         classId: formData.classId || undefined,
         isPinned: formData.isPinned,
-        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
+        startDate: formData.startDate 
+          ? formatDateForDB(formData.startDate) || new Date().toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0], // Default to current date if not provided
+        endDate: formData.endDate ? formatDateForDB(formData.endDate) : undefined,
       };
 
       if (showEditModal && selectedAnnouncement) {
@@ -188,6 +212,7 @@ export const AdminAnnouncements = () => {
         targetAudience: 'all',
         classId: '',
         isPinned: false,
+        startDate: new Date().toISOString().split('T')[0],
         endDate: '',
       });
       setSelectedAnnouncement(null);
@@ -342,6 +367,7 @@ export const AdminAnnouncements = () => {
               targetAudience: 'all',
               classId: '',
               isPinned: false,
+              startDate: new Date().toISOString().split('T')[0],
               endDate: '',
             });
           }}
@@ -400,6 +426,13 @@ export const AdminAnnouncements = () => {
                 ]}
               />
             )}
+            <FormInput
+              label="Tanggal Mulai"
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              required
+            />
             <FormInput
               label="Tanggal Berakhir (Opsional)"
               type="date"
@@ -487,6 +520,13 @@ export const AdminAnnouncements = () => {
                 ]}
               />
             )}
+            <FormInput
+              label="Tanggal Mulai"
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              required
+            />
             <FormInput
               label="Tanggal Berakhir (Opsional)"
               type="date"

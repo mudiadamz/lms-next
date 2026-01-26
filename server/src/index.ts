@@ -21,6 +21,8 @@ import academicYearRoutes from './routes/academic-years.js';
 import paymentRoutes from './routes/payments.js';
 import curriculumRoutes from './routes/curriculums.js';
 import auditLogRoutes from './routes/audit-logs.js';
+import excelRoutes from './routes/excel.js';
+import settingsRoutes from './routes/settings.js';
 
 dotenv.config();
 
@@ -35,6 +37,9 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
 
 // Health check - BEFORE database init to ensure it responds quickly
 app.get('/health', (req, res) => {
@@ -106,6 +111,8 @@ app.use('/api/academic-years', academicYearRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/curriculums', curriculumRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
+app.use('/api/excel', excelRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Root endpoint
 app.get('/', (req, res) => {

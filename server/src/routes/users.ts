@@ -79,6 +79,12 @@ router.get('/:id', authenticateToken, (req: AuthRequest, res) => {
       return res.status(404).json({ success: false, error: 'User not found' });
     }
 
+    // For parent role, get studentIds array
+    let studentIds: string[] = [];
+    if (user.role === 'parent' && user.student_id) {
+      studentIds = [user.student_id];
+    }
+
     res.json({
       success: true,
       data: {
@@ -92,6 +98,7 @@ router.get('/:id', authenticateToken, (req: AuthRequest, res) => {
         schoolLevel: user.school_level,
         classId: user.class_id,
         studentId: user.student_id,
+        studentIds: user.role === 'parent' ? studentIds : undefined,
         avatar: user.avatar,
         phoneNumber: user.phone_number,
         birthPlace: user.birth_place,

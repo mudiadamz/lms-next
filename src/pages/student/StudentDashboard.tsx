@@ -6,7 +6,7 @@ import { Badge, Button, Loading } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../constants';
 import { formatDate, isPast } from '../../utils';
-import { assignmentService, gradeService, announcementService, scheduleService, attendanceService } from '../../services';
+import { assignmentService, quizService, gradeService, announcementService, scheduleService, attendanceService } from '../../services';
 import './StudentDashboard.css';
 
 export const StudentDashboard = () => {

@@ -11,8 +11,10 @@ router.get('/', authenticateToken, (req: AuthRequest, res) => {
     const { classId, subjectId } = req.query;
     let query = `
       SELECT q.id, q.title, q.description, q.subject_id, q.class_id, q.teacher_id,
-             q.time_limit, q.start_date, q.end_date, q.max_score, q.created_at
+             q.time_limit, q.start_date, q.end_date, q.max_score, q.created_at,
+             u.full_name as teacher_name
       FROM quizzes q
+      LEFT JOIN users u ON q.teacher_id = u.id
       WHERE 1=1
     `;
     
@@ -55,6 +57,7 @@ router.get('/', authenticateToken, (req: AuthRequest, res) => {
         subjectId: quiz.subject_id,
         classId: quiz.class_id,
         teacherId: quiz.teacher_id,
+        teacherName: quiz.teacher_name,
         questions: questions.map(q => ({
           id: q.id,
           question: q.question,
@@ -110,6 +113,7 @@ router.get('/:id', authenticateToken, (req: AuthRequest, res) => {
         subjectId: quiz.subject_id,
         classId: quiz.class_id,
         teacherId: quiz.teacher_id,
+        teacherName: quiz.teacher_name,
         questions: questions.map(q => ({
           id: q.id,
           question: q.question,

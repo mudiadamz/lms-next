@@ -51,6 +51,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     try {
       const response = await authService.login({ username, password });
       setUser(response.user);
+      // Dispatch custom event to notify settings to reload
+      window.dispatchEvent(new Event('auth-changed'));
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -66,6 +68,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.error('Logout error:', error);
     } finally {
       setUser(null);
+      // Dispatch custom event to notify settings to reload
+      window.dispatchEvent(new Event('auth-changed'));
     }
   };
 

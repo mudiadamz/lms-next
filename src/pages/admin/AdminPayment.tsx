@@ -1,15 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FormInput, FormSelect, Loading, EmptyState } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FormInput, FormSelect, Loading, EmptyState, SearchBar } from '../../components/common';
 import { formatDate } from '../../utils/dateUtils';
 import { classService, paymentService } from '../../services';
+import { useSettings } from '../../contexts/SettingsContext';
 import './AdminPayment.css';
 
 interface Payment {
   id: string;
-  classId: string;
-  className: string;
+  studentId: string;
+  studentName: string;
+  studentNumber?: string;
+  classId?: string;
+  className?: string;
   month: string;
   year: number;
   amount: number;
@@ -17,6 +21,7 @@ interface Payment {
   status: 'paid' | 'pending' | 'overdue';
   paymentMethod?: string;
   receiptNumber?: string;
+  receiptFileUrl?: string;
   notes?: string;
   createdAt: Date;
 }
@@ -48,9 +53,11 @@ const getStatusBadge = (status: Payment['status']) => {
 };
 
 export const AdminPayment = () => {
+  const { settings } = useSettings();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
@@ -59,6 +66,7 @@ export const AdminPayment = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const itemsPerPage = 10;
 
@@ -82,19 +90,27 @@ export const AdminPayment = () => {
           classService.getClasses(),
         ]);
 
-        // Map payments with class names
-        const paymentsWithClassNames = paymentsData.map(payment => {
-          const classInfo = classesData.find(c => c.id === payment.classId);
-          return {
-            ...payment,
-            className: classInfo?.name || payment.className || '-',
-          };
-        });
-
-        setPayments(paymentsWithClassNames);
-        setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
+        console.log('Loaded classes:', classesData);
+        console.log('Classes length:', classesData?.length);
+        console.log('Is array:', Array.isArray(classesData));
+        
+        if (!Array.isArray(classesData)) {
+          console.error('Invalid classes data (not an array):', classesData);
+          setClasses([]);
+        } else {
+          const mappedClasses = classesData.map(c => ({ value: c.id, label: c.name }));
+          console.log('Mapped classes:', mappedClasses);
+          console.log('Mapped classes length:', mappedClasses.length);
+          setClasses(mappedClasses);
+        }
+        
+        setPayments(Array.isArray(paymentsData) ? paymentsData : []);
       } catch (error) {
         console.error('Error loading payments:', error);
+        console.error('Error details:', error instanceof Error ? error.message : String(error));
+        setClasses([]);
+        setPayments([]);
+        // Don't show alert here, let the UI show the empty state message
       } finally {
         setIsLoading(false);
       }
@@ -103,12 +119,17 @@ export const AdminPayment = () => {
   }, []);
 
   const filteredPayments = payments.filter((payment) => {
+    const matchesSearch = searchTerm === '' || 
+      payment.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.studentNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      payment.className?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === 'all' || payment.status === selectedStatus;
     const matchesClass = selectedClass === 'all' || payment.classId === selectedClass;
     const matchesMonth = selectedMonth === 'all' || payment.month === selectedMonth;
     const matchesYear = payment.year.toString() === selectedYear;
-    return matchesStatus && matchesClass && matchesMonth && matchesYear;
+    return matchesSearch && matchesStatus && matchesClass && matchesMonth && matchesYear;
   });
+
 
   const paginatedPayments = filteredPayments.slice(
     (currentPage - 1) * itemsPerPage,
@@ -154,7 +175,7 @@ export const AdminPayment = () => {
   const handleEdit = (payment: Payment) => {
     setSelectedPayment(payment);
     setFormData({
-      selectedClasses: [payment.classId],
+      selectedClasses: payment.classId ? [payment.classId] : [],
       month: payment.month,
       year: payment.year.toString(),
       amount: payment.amount.toString(),
@@ -181,15 +202,7 @@ export const AdminPayment = () => {
       
       // Reload payments
       const paymentsData = await paymentService.getPayments();
-      const classesData = await classService.getClasses();
-      const paymentsWithClassNames = paymentsData.map(p => {
-        const classInfo = classesData.find(c => c.id === p.classId);
-        return {
-          ...p,
-          className: classInfo?.name || p.className || '-',
-        };
-      });
-      setPayments(paymentsWithClassNames);
+      setPayments(paymentsData);
     } catch (error) {
       console.error('Error updating payment:', error);
       alert('Gagal memperbarui status pembayaran');
@@ -205,35 +218,64 @@ export const AdminPayment = () => {
         return;
       }
 
-      const createdPayments = await paymentService.createPayment({
-        classIds: formData.selectedClasses,
-        month: formData.month,
-        year: parseInt(formData.year),
-        amount: parseFloat(formData.amount),
-        dueDate: formData.dueDate,
-        notes: formData.notes || undefined,
-      });
-      
-      // Reload payments
-      const paymentsData = await paymentService.getPayments();
-      const classesData = await classService.getClasses();
-      const paymentsWithClassNames = paymentsData.map(p => {
-        const classInfo = classesData.find(c => c.id === p.classId);
-        return {
-          ...p,
-          className: classInfo?.name || p.className || '-',
-        };
-      });
-      setPayments(paymentsWithClassNames);
-      setShowCreateModal(false);
+      if (!formData.paymentMethod || formData.paymentMethod.trim() === '') {
+        alert('Pilih metode pembayaran');
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const createdPayments = await paymentService.createPayment({
+          classIds: formData.selectedClasses,
+          month: formData.month,
+          year: parseInt(formData.year),
+          amount: parseFloat(formData.amount),
+          dueDate: formData.dueDate,
+          paymentMethod: formData.paymentMethod,
+          notes: formData.notes || undefined,
+        });
+        
+        // Reset filters to show newly created payments BEFORE reloading
+        setSelectedStatus('all');
+        setSelectedClass('all');
+        setSelectedMonth(formData.month || 'all');
+        setSelectedYear(formData.year);
+        setSearchTerm('');
+        setCurrentPage(1);
+        
+        // Reload payments after filters are updated
+        const paymentsData = await paymentService.getPayments();
+        setPayments(paymentsData);
+        
+        setShowCreateModal(false);
+        
+        // Reset form
+        setFormData({
+          selectedClasses: [],
+          month: '',
+          year: new Date().getFullYear().toString(),
+          amount: '',
+          dueDate: '',
+          paymentMethod: '',
+          receiptNumber: '',
+          notes: '',
+        });
+        
+        setIsLoading(false);
+        alert(`Berhasil membuat ${createdPayments.length} pembayaran SPP`);
+      } catch (error) {
+        console.error('Error creating payment:', error);
+        setIsLoading(false);
+        alert('Gagal membuat pembayaran SPP');
+      }
     } else if (showEditModal && selectedPayment) {
       if (formData.selectedClasses.length === 0) {
-        alert('Pilih minimal satu kelas');
+        alert('Pilih kelas');
         return;
       }
       
       await paymentService.updatePayment(selectedPayment.id, {
-        classId: formData.selectedClasses[0],
+        classId: formData.selectedClasses[0] || undefined,
         month: formData.month,
         year: parseInt(formData.year),
         amount: parseFloat(formData.amount),
@@ -245,15 +287,7 @@ export const AdminPayment = () => {
       
       // Reload payments
       const paymentsData = await paymentService.getPayments();
-      const classesData = await classService.getClasses();
-      const paymentsWithClassNames = paymentsData.map(p => {
-        const classInfo = classesData.find(c => c.id === p.classId);
-        return {
-          ...p,
-          className: classInfo?.name || p.className || '-',
-        };
-      });
-      setPayments(paymentsWithClassNames);
+      setPayments(paymentsData);
       setShowEditModal(false);
       setSelectedPayment(null);
     }
@@ -266,15 +300,7 @@ export const AdminPayment = () => {
       
       // Reload payments
       const paymentsData = await paymentService.getPayments();
-      const classesData = await classService.getClasses();
-      const paymentsWithClassNames = paymentsData.map(p => {
-        const classInfo = classesData.find(c => c.id === p.classId);
-        return {
-          ...p,
-          className: classInfo?.name || p.className || '-',
-        };
-      });
-      setPayments(paymentsWithClassNames);
+      setPayments(paymentsData);
       
       setShowDeleteDialog(false);
       setSelectedPayment(null);
@@ -286,11 +312,23 @@ export const AdminPayment = () => {
 
   const columns = [
     {
+      key: 'student',
+      header: 'Siswa',
+      render: (item: Payment) => (
+        <div>
+          <div style={{ fontWeight: 600 }}>{item.studentName}</div>
+          {item.studentNumber && (
+            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>NIS: {item.studentNumber}</div>
+          )}
+        </div>
+      ),
+    },
+    {
       key: 'class',
       header: 'Kelas',
       render: (item: Payment) => (
         <div>
-          <div style={{ fontWeight: 600 }}>{item.className}</div>
+          <div>{item.className || '-'}</div>
         </div>
       ),
     },
@@ -331,6 +369,28 @@ export const AdminPayment = () => {
       render: (item: Payment) => item.receiptNumber || '-',
     },
     {
+      key: 'receiptFile',
+      header: 'Bukti Pembayaran',
+      render: (item: Payment) => {
+        if (item.receiptFileUrl) {
+          return (
+            <Button
+              variant="outline"
+              size="small"
+              onClick={() => {
+                setSelectedPayment(item);
+                setShowReceiptModal(true);
+              }}
+            >
+              <Icon name="eye" size={14} style={{ marginRight: '0.25rem' }} />
+              Lihat Bukti
+            </Button>
+          );
+        }
+        return <span style={{ color: '#8e8e93', fontSize: '0.8125rem' }}>-</span>;
+      },
+    },
+    {
       key: 'actions',
       header: 'Aksi',
       render: (item: Payment) => (
@@ -361,9 +421,6 @@ export const AdminPayment = () => {
     },
   ];
 
-  const totalPaid = payments.filter((p) => p.status === 'paid').reduce((sum, p) => sum + p.amount, 0);
-  const totalPending = payments.filter((p) => p.status === 'pending' || p.status === 'overdue').reduce((sum, p) => sum + p.amount, 0);
-
   return (
     <DashboardLayout>
       <div className="admin-payment">
@@ -375,48 +432,18 @@ export const AdminPayment = () => {
           </Button>
         </div>
 
-        {/* Summary Cards */}
-        <div className="payment-summary">
-          <Card variant="elevated" className="summary-card summary-card--paid">
-            <div className="summary-icon" style={{ backgroundColor: 'rgba(52, 199, 89, 0.1)' }}>
-              <Icon name="checkCircle" size={24} style={{ color: '#34c759' }} />
-            </div>
-            <div className="summary-content">
-              <div className="summary-label">Total Sudah Dibayar</div>
-              <div className="summary-value">{formatCurrency(totalPaid)}</div>
-              <div className="summary-count">{payments.filter((p) => p.status === 'paid').length} pembayaran</div>
-            </div>
-          </Card>
-
-          <Card variant="elevated" className="summary-card summary-card--pending">
-            <div className="summary-icon" style={{ backgroundColor: 'rgba(255, 204, 0, 0.1)' }}>
-              <Icon name="clock" size={24} style={{ color: '#ffcc00' }} />
-            </div>
-            <div className="summary-content">
-              <div className="summary-label">Total Belum Dibayar</div>
-              <div className="summary-value">{formatCurrency(totalPending)}</div>
-              <div className="summary-count">
-                {payments.filter((p) => p.status === 'pending' || p.status === 'overdue').length} pembayaran
-              </div>
-            </div>
-          </Card>
-
-          <Card variant="elevated" className="summary-card summary-card--total">
-            <div className="summary-icon" style={{ backgroundColor: 'rgba(0, 122, 255, 0.1)' }}>
-              <Icon name="analytics" size={24} style={{ color: '#007aff' }} />
-            </div>
-            <div className="summary-content">
-              <div className="summary-label">Total SPP</div>
-              <div className="summary-value">{formatCurrency(totalPaid + totalPending)}</div>
-              <div className="summary-count">{payments.length} pembayaran</div>
-            </div>
-          </Card>
-        </div>
-
         {/* Filters */}
         <Card variant="elevated">
           <div className="filters">
             <div className="filter-group">
+              <SearchBar
+                placeholder="Cari murid berdasarkan nama, NIS, atau kelas..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
               <FormSelect
                 label="Status"
                 value={selectedStatus}
@@ -503,42 +530,59 @@ export const AdminPayment = () => {
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           title="Tambah Pembayaran SPP"
-          size="medium"
+          size="large"
         >
           <form onSubmit={handleSubmit} className="payment-form">
             <div className="form-group">
               <label className="form-label">
                 Pilih Kelas <span style={{ color: '#ff3b30' }}>*</span>
               </label>
-              <div className="checkbox-group">
-                <div className="checkbox-item checkbox-item--select-all">
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={formData.selectedClasses.length === classes.length && classes.length > 0}
-                      onChange={handleSelectAllClasses}
-                    />
-                    <span>Pilih Semua</span>
-                  </label>
+              {isLoading ? (
+                <div style={{ padding: '1rem', textAlign: 'center', color: '#6b7280' }}>
+                  Memuat data kelas...
                 </div>
-                <div className="checkbox-divider"></div>
-                {classes.map((cls) => (
-                  <div key={cls.value} className="checkbox-item">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={formData.selectedClasses.includes(cls.value)}
-                        onChange={() => handleClassToggle(cls.value)}
-                      />
-                      <span>{cls.label}</span>
-                    </label>
+              ) : classes.length === 0 ? (
+                <div style={{ padding: '1rem', textAlign: 'center', color: '#ff3b30' }}>
+                  Tidak ada kelas yang tersedia. Pastikan sudah ada kelas yang terdaftar.
+                </div>
+              ) : (
+                <>
+                  <div className="checkbox-group" style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                    <div className="checkbox-item checkbox-item--select-all">
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={formData.selectedClasses.length === classes.length && classes.length > 0}
+                          onChange={handleSelectAllClasses}
+                        />
+                        <span>Pilih Semua ({classes.length} kelas)</span>
+                      </label>
+                    </div>
+                    <div className="checkbox-divider"></div>
+                    {classes.map((cls) => (
+                      <div key={cls.value} className="checkbox-item">
+                        <label>
+                          <input
+                            type="checkbox"
+                            checked={formData.selectedClasses.includes(cls.value)}
+                            onChange={() => handleClassToggle(cls.value)}
+                          />
+                          <span>{cls.label}</span>
+                        </label>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-              {formData.selectedClasses.length === 0 && (
-                <div style={{ color: '#ff3b30', fontSize: '13px', marginTop: '0.25rem' }}>
-                  Pilih minimal satu kelas
-                </div>
+                  {formData.selectedClasses.length === 0 && (
+                    <div style={{ color: '#ff3b30', fontSize: '13px', marginTop: '0.25rem' }}>
+                      Pilih minimal satu kelas
+                    </div>
+                  )}
+                  {formData.selectedClasses.length > 0 && (
+                    <div style={{ color: '#34c759', fontSize: '13px', marginTop: '0.25rem' }}>
+                      {formData.selectedClasses.length} kelas dipilih
+                    </div>
+                  )}
+                </>
               )}
             </div>
             <div className="form-row">
@@ -576,11 +620,22 @@ export const AdminPayment = () => {
                 required
               />
             </div>
-            <FormInput
-              label="Metode Pembayaran (Opsional)"
+            <FormSelect
+              label={
+                <>
+                  Metode Pembayaran <span style={{ color: '#ff3b30' }}>*</span>
+                </>
+              }
               value={formData.paymentMethod}
               onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-              placeholder="Contoh: Transfer Bank, Tunai"
+              options={[
+                { value: '', label: 'Pilih Metode Pembayaran' },
+                ...(settings.paymentSettings?.paymentMethods || []).map((method) => ({
+                  value: method,
+                  label: method,
+                })),
+              ]}
+              required
             />
             <FormInput
               label="No. Kwitansi (Opsional)"
@@ -613,7 +668,7 @@ export const AdminPayment = () => {
               onChange={(e) => setFormData({ ...formData, selectedClasses: e.target.value ? [e.target.value] : [] })}
               options={[
                 { value: '', label: 'Pilih Kelas' },
-                ...classes.map((cls) => ({ value: cls.value, label: cls.label })),
+                ...classes.map((c) => ({ value: c.value, label: c.label })),
               ]}
               required
             />
@@ -652,10 +707,17 @@ export const AdminPayment = () => {
                 required
               />
             </div>
-            <FormInput
+            <FormSelect
               label="Metode Pembayaran"
               value={formData.paymentMethod}
               onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+              options={[
+                { value: '', label: 'Pilih Metode Pembayaran' },
+                ...(settings.paymentSettings?.paymentMethods || []).map((method) => ({
+                  value: method,
+                  label: method,
+                })),
+              ]}
             />
             <FormInput
               label="No. Kwitansi"
@@ -679,10 +741,82 @@ export const AdminPayment = () => {
           }}
           onConfirm={confirmDelete}
           title="Hapus Pembayaran"
-          message={`Apakah Anda yakin ingin menghapus pembayaran SPP untuk ${selectedPayment?.className} (${selectedPayment?.month} ${selectedPayment?.year})? Tindakan ini tidak dapat dibatalkan.`}
+          message={`Apakah Anda yakin ingin menghapus pembayaran SPP untuk ${selectedPayment?.studentName} (${selectedPayment?.month} ${selectedPayment?.year})? Tindakan ini tidak dapat dibatalkan.`}
           confirmLabel="Hapus"
           variant="danger"
         />
+
+        {/* View Receipt Modal */}
+        <Modal
+          isOpen={showReceiptModal}
+          onClose={() => {
+            setShowReceiptModal(false);
+            setSelectedPayment(null);
+          }}
+          title="Bukti Pembayaran"
+          size="large"
+        >
+          {selectedPayment && selectedPayment.receiptFileUrl && (
+            <div className="receipt-viewer">
+              <div className="receipt-info" style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'var(--ios-secondary-background)', borderRadius: '8px' }}>
+                <p><strong>Siswa:</strong> {selectedPayment.studentName}</p>
+                {selectedPayment.studentNumber && <p><strong>NIS:</strong> {selectedPayment.studentNumber}</p>}
+                <p><strong>Kelas:</strong> {selectedPayment.className || '-'}</p>
+                <p><strong>Periode:</strong> {selectedPayment.month} {selectedPayment.year}</p>
+                <p><strong>Jumlah:</strong> {formatCurrency(selectedPayment.amount)}</p>
+                <p><strong>Status:</strong> {getStatusBadge(selectedPayment.status)}</p>
+                {selectedPayment.paymentMethod && <p><strong>Metode Pembayaran:</strong> {selectedPayment.paymentMethod}</p>}
+                {selectedPayment.receiptNumber && <p><strong>No. Kwitansi:</strong> {selectedPayment.receiptNumber}</p>}
+              </div>
+              {(() => {
+                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+                const fileUrl = selectedPayment.receiptFileUrl.startsWith('http') 
+                  ? selectedPayment.receiptFileUrl 
+                  : `${API_BASE_URL}${selectedPayment.receiptFileUrl}`;
+                const fileName = selectedPayment.receiptFileUrl.split('/').pop() || 'Bukti Pembayaran';
+                const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
+                const isPdf = fileName.match(/\.pdf$/i);
+                
+                return (
+                  <div className="receipt-content">
+                    {isImage ? (
+                      <img 
+                        src={fileUrl} 
+                        alt="Bukti Pembayaran" 
+                        style={{ width: '100%', maxHeight: '600px', objectFit: 'contain', borderRadius: '8px', border: '0.5px solid var(--ios-separator)' }}
+                      />
+                    ) : isPdf ? (
+                      <iframe 
+                        src={fileUrl} 
+                        style={{ width: '100%', height: '600px', border: '0.5px solid var(--ios-separator)', borderRadius: '8px' }}
+                        title="Bukti Pembayaran"
+                      />
+                    ) : (
+                      <div style={{ padding: '2rem', textAlign: 'center' }}>
+                        <Icon name="document" size={48} style={{ color: '#8e8e93', marginBottom: '1rem' }} />
+                        <p style={{ marginBottom: '1rem', color: '#8e8e93' }}>Preview tidak tersedia untuk file ini</p>
+                        <a href={fileUrl} download target="_blank" rel="noopener noreferrer">
+                          <Button variant="primary">
+                            <Icon name="download" size={16} style={{ marginRight: '0.5rem' }} />
+                            Download Bukti Pembayaran
+                          </Button>
+                        </a>
+                      </div>
+                    )}
+                    <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+                      <a href={fileUrl} download target="_blank" rel="noopener noreferrer">
+                        <Button variant="outline" size="small">
+                          <Icon name="download" size={14} style={{ marginRight: '0.25rem' }} />
+                          Download
+                        </Button>
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </Modal>
       </div>
     </DashboardLayout>
   );

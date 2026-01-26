@@ -39,18 +39,23 @@ export const StudentMaterials = ({ readOnly = false }: StudentMaterialsProps = {
         const studentData = user?.id ? await userService.getUserById(user.id) : null;
         const classId = (studentData as any)?.classId;
 
-        const [materialsData, subjectsData, teachersData] = await Promise.all([
+        const [materialsData, subjectsData] = await Promise.all([
           materialService.getMaterials(classId),
           subjectService.getSubjects(),
-          userService.getUsers('teacher'),
         ]);
 
         setMaterials(materialsData);
         const subjectMap: Record<string, string> = {};
         subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
         setSubjects(subjectMap);
+        
+        // Extract teacher names from materials (backend already includes teacherName via JOIN)
         const teacherMap: Record<string, string> = {};
-        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        materialsData.forEach((m: any) => {
+          if (m.teacherId && m.teacherName) {
+            teacherMap[m.teacherId] = m.teacherName;
+          }
+        });
         setTeachers(teacherMap);
       } catch (error) {
         console.error('Error loading materials:', error);
@@ -110,7 +115,7 @@ export const StudentMaterials = ({ readOnly = false }: StudentMaterialsProps = {
                     <strong>Mata Pelajaran:</strong> {subjects[material.subjectId] || material.subjectId}
                   </p>
                   <p>
-                    <strong>Guru:</strong> {teachers[material.teacherId] || material.teacherId}
+                    <strong>Guru:</strong> {(material as any).teacherName || teachers[material.teacherId] || material.teacherId}
                   </p>
                   <p>
                     <strong>Tanggal:</strong> {formatDate(new Date(material.createdAt || material.date || Date.now()))}

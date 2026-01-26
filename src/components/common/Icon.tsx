@@ -55,6 +55,7 @@ import {
   HiThumbDown,
   HiMoon,
   HiSun,
+  HiCreditCard,
 } from 'react-icons/hi';
 
 // Icon mapping untuk iOS-style icons
@@ -129,6 +130,7 @@ export const ICONS = {
   dislike: HiThumbDown,
   moon: HiMoon,
   sun: HiSun,
+  creditCard: HiCreditCard,
 } as const;
 
 export type IconName = keyof typeof ICONS;

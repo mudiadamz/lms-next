@@ -25,7 +25,18 @@ export const AdminClasses = () => {
           userService.getUsers('teacher'),
         ]);
 
-        setClasses(classesData);
+        // Remove duplicates based on name + schoolLevel combination
+        // Keep the first occurrence of each unique combination
+        const uniqueClassesMap = new Map<string, any>();
+        classesData.forEach((cls: any) => {
+          const key = `${cls.name}_${cls.schoolLevel}`;
+          if (!uniqueClassesMap.has(key)) {
+            uniqueClassesMap.set(key, cls);
+          }
+        });
+        const uniqueClasses = Array.from(uniqueClassesMap.values());
+
+        setClasses(uniqueClasses);
         const teacherMap: Record<string, string> = {};
         teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
         setTeachers(teacherMap);

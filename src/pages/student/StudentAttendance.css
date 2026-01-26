@@ -1,26 +1,31 @@
+.student-attendance {
+  font-size: 10px;
+}
+
 .student-attendance h1 {
   margin: 0;
-  font-size: 2rem;
+  font-size: 18px;
+  font-weight: 700;
   color: #1f2937;
 }
 
 .page-header {
-  margin-bottom: 2rem;
+  margin-bottom: 0.75rem;
 }
 
 /* Statistics Cards */
 .attendance-stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1.5rem;
+  gap: 0.5rem;
+  padding: 0.75rem;
 }
 
 .stat-card--primary {
@@ -32,9 +37,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   flex-shrink: 0;
 }
 
@@ -68,22 +73,23 @@
 
 /* Month Summary */
 .month-summary {
-  margin-bottom: 2rem;
-  padding: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
 }
 
 .month-summary-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 0.5rem;
   border-bottom: 0.5px solid var(--ios-separator);
 }
 
 .month-summary-header h3 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1.25rem;
+  margin: 0 0 0.125rem 0;
+  font-size: 14px;
+  font-weight: 600;
   color: #000000;
 }
 
@@ -92,27 +98,27 @@
 }
 
 .month-rate-value {
-  font-size: 2rem;
+  font-size: 18px;
   font-weight: 700;
   color: var(--ios-blue);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.125rem;
 }
 
 .month-rate-label {
-  font-size: 0.85rem;
+  font-size: 10px;
   color: var(--ios-gray);
 }
 
 .month-summary-details {
   display: flex;
-  gap: 2rem;
+  gap: 1rem;
   flex-wrap: wrap;
 }
 
 .month-detail-item {
   display: flex;
-  gap: 0.5rem;
-  font-size: 0.95rem;
+  gap: 0.375rem;
+  font-size: 10px;
   color: var(--ios-gray);
 }
 
@@ -124,8 +130,8 @@
 /* Filters */
 .page-filters {
   display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -136,20 +142,20 @@
 
 .filter-select {
   width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 17px;
-  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  font-size: 10px;
+  border-radius: 8px;
   border: 0.5px solid var(--ios-separator);
   background-color: var(--ios-background);
   color: #000000;
-  min-height: 44px;
+  min-height: 32px;
   -webkit-appearance: none;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 12px;
-  padding-right: 2.5rem;
+  background-position: right 0.75rem center;
+  background-size: 10px;
+  padding-right: 2rem;
   cursor: pointer;
   transition: all 0.2s;
 }

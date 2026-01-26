@@ -25,11 +25,10 @@ export const StudentSchedule = () => {
         const studentData = user?.id ? await userService.getUserById(user.id) : null;
         const classId = (studentData as any)?.classId;
         
-        const [schedulesData, classesData, subjectsData, teachersData] = await Promise.all([
+        const [schedulesData, classesData, subjectsData] = await Promise.all([
           scheduleService.getSchedules(classId ? { classId } : {}),
           classService.getClasses(),
           subjectService.getSubjects(),
-          userService.getUsers('teacher'),
         ]);
 
         setSchedules(schedulesData);
@@ -43,8 +42,13 @@ export const StudentSchedule = () => {
         subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
         setSubjects(subjectMap);
 
+        // Extract teacher names from schedules (backend already includes teacherName via JOIN)
         const teacherMap: Record<string, string> = {};
-        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        schedulesData.forEach((s: any) => {
+          if (s.teacherId && s.teacherName) {
+            teacherMap[s.teacherId] = s.teacherName;
+          }
+        });
         setTeachers(teacherMap);
       } catch (error) {
         console.error('Error loading schedule:', error);
@@ -146,7 +150,7 @@ export const StudentSchedule = () => {
                             <div className="schedule-meta">
                               <div className="schedule-teacher">
                                 <Icon name="user" size={12} />
-                                <span>{teachers[schedule.teacherId] || schedule.teacherId}</span>
+                                <span>{(schedule as any).teacherName || teachers[schedule.teacherId] || schedule.teacherId}</span>
                               </div>
                               {schedule.room && (
                                 <div className="schedule-room">

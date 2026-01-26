@@ -5,6 +5,7 @@
 
 :root {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 1rem;
   line-height: 1.5;
   font-weight: 400;
 
@@ -96,54 +97,54 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 {
-  font-size: 34px;
+  font-size: 1.5rem;
   font-weight: 700;
-  line-height: 41px;
+  line-height: 1.3;
 }
 
 h2 {
-  font-size: 28px;
+  font-size: 1.25rem;
   font-weight: 700;
-  line-height: 34px;
+  line-height: 1.3;
 }
 
 h3 {
-  font-size: 22px;
+  font-size: 1.125rem;
   font-weight: 600;
-  line-height: 28px;
+  line-height: 1.3;
 }
 
 @media (max-width: 768px) {
   h1 {
-    font-size: 24px;
-    line-height: 30px;
+    font-size: 16px;
+    line-height: 1.3;
   }
 
   h2 {
-    font-size: 20px;
-    line-height: 26px;
+    font-size: 14px;
+    line-height: 1.3;
   }
 
   h3 {
-    font-size: 18px;
-    line-height: 24px;
+    font-size: 12px;
+    line-height: 1.3;
   }
 }
 
 @media (max-width: 480px) {
   h1 {
-    font-size: 20px;
-    line-height: 26px;
+    font-size: 14px;
+    line-height: 1.3;
   }
 
   h2 {
-    font-size: 18px;
-    line-height: 24px;
+    font-size: 12px;
+    line-height: 1.3;
   }
 
   h3 {
-    font-size: 16px;
-    line-height: 22px;
+    font-size: 11px;
+    line-height: 1.3;
   }
 }
 
@@ -188,12 +189,12 @@ button {
 
   /* Common page header spacing */
   .page-header {
-    margin-bottom: 1rem !important;
+    margin-bottom: 0.75rem !important;
   }
 
   /* Common section spacing */
   section {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 }
 
@@ -206,10 +207,10 @@ button {
   }
 
   .page-header {
-    margin-bottom: 0.75rem !important;
+    margin-bottom: 0.5rem !important;
   }
 
   section {
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.5rem;
   }
 }

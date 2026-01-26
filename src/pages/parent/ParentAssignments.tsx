@@ -31,18 +31,23 @@ export const ParentAssignments = () => {
         const firstChild = await userService.getUserById(studentIds[0]);
         const classId = (firstChild as any)?.classId;
 
-        const [assignmentsData, subjectsData, teachersData] = await Promise.all([
+        const [assignmentsData, subjectsData] = await Promise.all([
           assignmentService.getAssignments(classId ? { classId } : {}),
           subjectService.getSubjects(),
-          userService.getUsers('teacher'),
         ]);
 
         setAssignments(assignmentsData);
         const subjectMap: Record<string, string> = {};
         subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
         setSubjects(subjectMap);
+        
+        // Extract teacher names from assignments (backend already includes teacherName via JOIN)
         const teacherMap: Record<string, string> = {};
-        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        assignmentsData.forEach((a: any) => {
+          if (a.teacherId && a.teacherName) {
+            teacherMap[a.teacherId] = a.teacherName;
+          }
+        });
         setTeachers(teacherMap);
       } catch (error) {
         console.error('Error loading assignments:', error);
@@ -91,7 +96,7 @@ export const ParentAssignments = () => {
                     <strong>Mata Pelajaran:</strong> {subjects[assignment.subjectId] || assignment.subjectId}
                   </p>
                   <p>
-                    <strong>Guru:</strong> {teachers[assignment.teacherId] || assignment.teacherId}
+                    <strong>Guru:</strong> {(assignment as any).teacherName || teachers[assignment.teacherId] || assignment.teacherId}
                   </p>
                   <p>
                     <strong>Deadline:</strong> {formatDate(new Date(assignment.dueDate))}

@@ -11,8 +11,10 @@ router.get('/', authenticateToken, (req: AuthRequest, res) => {
     const { classId, subjectId } = req.query;
     let query = `
       SELECT a.id, a.title, a.description, a.subject_id, a.class_id, a.teacher_id,
-             a.due_date, a.max_score, a.created_at, a.updated_at
+             a.due_date, a.max_score, a.created_at, a.updated_at,
+             u.full_name as teacher_name
       FROM assignments a
+      LEFT JOIN users u ON a.teacher_id = u.id
       WHERE 1=1
     `;
     
@@ -54,6 +56,7 @@ router.get('/', authenticateToken, (req: AuthRequest, res) => {
         subjectId: assignment.subject_id,
         classId: assignment.class_id,
         teacherId: assignment.teacher_id,
+        teacherName: assignment.teacher_name,
         dueDate: new Date(assignment.due_date),
         maxScore: assignment.max_score,
         attachments: attachments.map(a => a.file_url),
@@ -75,10 +78,12 @@ router.get('/:id', authenticateToken, (req: AuthRequest, res) => {
     const { id } = req.params;
 
     const assignment = db.prepare(`
-      SELECT id, title, description, subject_id, class_id, teacher_id,
-             due_date, max_score, created_at, updated_at
-      FROM assignments
-      WHERE id = ?
+      SELECT a.id, a.title, a.description, a.subject_id, a.class_id, a.teacher_id,
+             a.due_date, a.max_score, a.created_at, a.updated_at,
+             u.full_name as teacher_name
+      FROM assignments a
+      LEFT JOIN users u ON a.teacher_id = u.id
+      WHERE a.id = ?
     `).get(id) as any;
 
     if (!assignment) {
@@ -98,6 +103,7 @@ router.get('/:id', authenticateToken, (req: AuthRequest, res) => {
         subjectId: assignment.subject_id,
         classId: assignment.class_id,
         teacherId: assignment.teacher_id,
+        teacherName: assignment.teacher_name,
         dueDate: new Date(assignment.due_date),
         maxScore: assignment.max_score,
         attachments: attachments.map(a => a.file_url),

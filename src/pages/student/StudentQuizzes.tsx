@@ -13,7 +13,7 @@ interface StudentQuizzesProps {
   readOnly?: boolean;
 }
 
-export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps = {} as StudentQuizzesProps) => {
+export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps) => {
   const { user } = useAuth();
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<Record<string, string>>({});
@@ -28,18 +28,23 @@ export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps = {} as
         const studentData = user?.id ? await userService.getUserById(user.id) : null;
         const classId = (studentData as any)?.classId;
 
-        const [quizzesData, subjectsData, teachersData] = await Promise.all([
+        const [quizzesData, subjectsData] = await Promise.all([
           quizService.getQuizzes(classId ? { classId } : {}),
           subjectService.getSubjects(),
-          userService.getUsers('teacher'),
         ]);
 
         setQuizzes(quizzesData);
         const subjectMap: Record<string, string> = {};
         subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
         setSubjects(subjectMap);
+        
+        // Extract teacher names from quizzes (backend already includes teacherName via JOIN)
         const teacherMap: Record<string, string> = {};
-        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        quizzesData.forEach((q: any) => {
+          if (q.teacherId && q.teacherName) {
+            teacherMap[q.teacherId] = q.teacherName;
+          }
+        });
         setTeachers(teacherMap);
       } catch (error) {
         console.error('Error loading quizzes:', error);
@@ -121,7 +126,7 @@ export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps = {} as
                     <strong>Mata Pelajaran:</strong> {subjects[quiz.subjectId] || quiz.subjectId}
                   </p>
                   <p>
-                    <strong>Guru:</strong> {teachers[quiz.teacherId] || quiz.teacherId}
+                    <strong>Guru:</strong> {(quiz as any).teacherName || teachers[quiz.teacherId] || quiz.teacherId}
                   </p>
                   <p>
                     <strong>Waktu:</strong> {quiz.timeLimit || quiz.duration || 0} menit
@@ -167,3 +172,5 @@ export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps = {} as
     </DashboardLayout>
   );
 };
+
+export default StudentQuizzes;

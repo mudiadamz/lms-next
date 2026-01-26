@@ -147,13 +147,61 @@
   color: var(--ios-gray);
 }
 
+/* Editable Table Styles */
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.inline-edit-select,
+.inline-edit-input {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  border: 1px solid var(--ios-separator);
+  background-color: var(--ios-background);
+  color: #000000;
+  min-height: 36px;
+}
+
+.inline-edit-select:focus,
+.inline-edit-input:focus {
+  outline: none;
+  border-color: var(--ios-blue);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}
+
+.inline-edit-time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.inline-edit-time .inline-edit-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.inline-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .page-header button {
+  .header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .header-actions button {
     width: 100%;
   }
 
@@ -171,5 +219,19 @@
 
   .schedule-weekly-view {
     grid-template-columns: 1fr;
+  }
+
+  .inline-edit-time {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .inline-edit-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .inline-edit-actions button {
+    width: 100%;
   }
 }

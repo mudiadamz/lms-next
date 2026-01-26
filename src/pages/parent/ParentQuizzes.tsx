@@ -31,18 +31,23 @@ export const ParentQuizzes = () => {
         const firstChild = await userService.getUserById(studentIds[0]);
         const classId = (firstChild as any)?.classId;
 
-        const [quizzesData, subjectsData, teachersData] = await Promise.all([
+        const [quizzesData, subjectsData] = await Promise.all([
           quizService.getQuizzes(classId ? { classId } : {}),
           subjectService.getSubjects(),
-          userService.getUsers('teacher'),
         ]);
 
         setQuizzes(quizzesData);
         const subjectMap: Record<string, string> = {};
         subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
         setSubjects(subjectMap);
+        
+        // Extract teacher names from quizzes (backend already includes teacherName via JOIN)
         const teacherMap: Record<string, string> = {};
-        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
+        quizzesData.forEach((q: any) => {
+          if (q.teacherId && q.teacherName) {
+            teacherMap[q.teacherId] = q.teacherName;
+          }
+        });
         setTeachers(teacherMap);
       } catch (error) {
         console.error('Error loading quizzes:', error);
@@ -94,7 +99,7 @@ export const ParentQuizzes = () => {
                     <strong>Mata Pelajaran:</strong> {subjects[quiz.subjectId] || quiz.subjectId}
                   </p>
                   <p>
-                    <strong>Guru:</strong> {teachers[quiz.teacherId] || quiz.teacherId}
+                    <strong>Guru:</strong> {(quiz as any).teacherName || teachers[quiz.teacherId] || quiz.teacherId}
                   </p>
                   <p>
                     <strong>Waktu:</strong> {quiz.timeLimit || quiz.duration || 0} menit

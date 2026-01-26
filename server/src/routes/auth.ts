@@ -93,6 +93,12 @@ router.post('/login', async (req, res) => {
     user.createdAt = new Date(user.created_at);
     user.updatedAt = new Date(user.updated_at);
 
+    // For parent role, get studentIds array
+    let studentIds: string[] = [];
+    if (user.role === 'parent' && user.student_id) {
+      studentIds = [user.student_id];
+    }
+
     res.json({
       success: true,
       data: {
@@ -107,6 +113,7 @@ router.post('/login', async (req, res) => {
           schoolLevel: user.school_level,
           classId: user.class_id,
           studentId: user.student_id,
+          studentIds: user.role === 'parent' ? studentIds : undefined,
           avatar: user.avatar,
           phoneNumber: user.phone_number,
           birthPlace: user.birth_place,

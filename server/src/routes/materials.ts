@@ -10,33 +10,35 @@ router.get('/', authenticateToken, (req: AuthRequest, res) => {
   try {
     const { classId, subjectId } = req.query;
     let query = `
-      SELECT id, title, description, type, subject_id, class_id, teacher_id,
-             file_url, external_url, created_at
-      FROM materials
+      SELECT m.id, m.title, m.description, m.type, m.subject_id, m.class_id, m.teacher_id,
+             m.file_url, m.external_url, m.created_at,
+             u.full_name as teacher_name
+      FROM materials m
+      LEFT JOIN users u ON m.teacher_id = u.id
       WHERE 1=1
     `;
     
     const params: any[] = [];
     
     if (classId) {
-      query += ' AND class_id = ?';
+      query += ' AND m.class_id = ?';
       params.push(classId);
     }
     
     if (subjectId) {
-      query += ' AND subject_id = ?';
+      query += ' AND m.subject_id = ?';
       params.push(subjectId);
     }
     
     if (req.userRole === 'student') {
       const user = db.prepare('SELECT class_id FROM users WHERE id = ?').get(req.userId) as any;
       if (user?.class_id) {
-        query += ' AND class_id = ?';
+        query += ' AND m.class_id = ?';
         params.push(user.class_id);
       }
     }
     
-    query += ' ORDER BY created_at DESC';
+    query += ' ORDER BY m.created_at DESC';
 
     const materials = db.prepare(query).all(...params) as any[];
 
@@ -53,6 +55,7 @@ router.get('/', authenticateToken, (req: AuthRequest, res) => {
         subjectId: material.subject_id,
         classId: material.class_id,
         teacherId: material.teacher_id,
+        teacherName: material.teacher_name,
         fileUrl: material.file_url,
         externalUrl: material.external_url,
         attachments: attachments.map(a => a.file_url),
@@ -73,10 +76,12 @@ router.get('/:id', authenticateToken, (req: AuthRequest, res) => {
     const { id } = req.params;
 
     const material = db.prepare(`
-      SELECT id, title, description, type, subject_id, class_id, teacher_id,
-             file_url, external_url, created_at
-      FROM materials
-      WHERE id = ?
+      SELECT m.id, m.title, m.description, m.type, m.subject_id, m.class_id, m.teacher_id,
+             m.file_url, m.external_url, m.created_at,
+             u.full_name as teacher_name
+      FROM materials m
+      LEFT JOIN users u ON m.teacher_id = u.id
+      WHERE m.id = ?
     `).get(id) as any;
 
     if (!material) {
@@ -97,6 +102,7 @@ router.get('/:id', authenticateToken, (req: AuthRequest, res) => {
         subjectId: material.subject_id,
         classId: material.class_id,
         teacherId: material.teacher_id,
+        teacherName: material.teacher_name,
         fileUrl: material.file_url,
         externalUrl: material.external_url,
         attachments: attachments.map(a => a.file_url),

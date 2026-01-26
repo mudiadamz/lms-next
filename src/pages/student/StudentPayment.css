@@ -1,23 +1,24 @@
 .student-payment {
   padding: 0;
+  font-size: 10px;
 }
 
 .student-payment h1 {
   margin: 0 0 0.5rem 0;
-  font-size: 1.5rem;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #000000;
 }
 
 .payment-summary {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .summary-card {
-  padding: 0.75rem;
+  padding: 0.5rem;
   display: flex;
   align-items: center;
-  gap: 0.625rem;
+  gap: 0.5rem;
   transition: all 0.2s ease;
 }
 
@@ -31,9 +32,9 @@
 }
 
 .summary-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -46,44 +47,44 @@
 }
 
 .summary-label {
-  font-size: 0.75rem;
+  font-size: 10px;
   color: #666666;
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.125rem;
 }
 
 .summary-value {
-  font-size: 1.125rem;
+  font-size: 14px;
   font-weight: 700;
   color: #000000;
-  margin-bottom: 0.1rem;
+  margin-bottom: 0.075rem;
   line-height: 1.2;
 }
 
 .summary-count {
-  font-size: 0.7rem;
+  font-size: 10px;
   color: #8e8e93;
 }
 
 .payment-tabs {
   display: flex;
-  gap: 0.375rem;
-  margin-bottom: 0.75rem;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
   border-bottom: 0.5px solid var(--ios-separator);
   padding-bottom: 0;
 }
 
 .tab-button {
-  padding: 0.5rem 1rem;
+  padding: 0.375rem 0.75rem;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
   color: #666666;
-  font-size: 0.875rem;
+  font-size: 10px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   -webkit-tap-highlight-color: transparent;
-  min-height: 36px;
+  min-height: 28px;
 }
 
 .tab-button:hover {
@@ -100,7 +101,145 @@
 
 .payment-amount {
   font-weight: 600;
+  font-size: 10px;
   color: #000000;
+}
+
+.student-payment .card {
+  padding: 0.75rem;
+}
+
+.student-payment .card-content {
+  padding: 0;
+}
+
+.student-payment .table {
+  font-size: 10px;
+}
+
+.payment-methods-info {
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+}
+
+.payment-methods-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.payment-methods-header h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #000000;
+}
+
+.payment-methods-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.payment-method-item {
+  font-size: 0.8125rem;
+  color: #000000;
+  line-height: 1.5;
+}
+
+.payment-method-item strong {
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.payment-summary-table {
+  margin-bottom: 0.75rem;
+}
+
+.summary-table-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #000000;
+}
+
+.upload-payment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.upload-payment-info {
+  padding: 0.75rem;
+  background-color: var(--ios-secondary-background);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.upload-payment-info p {
+  margin: 0.25rem 0;
+  font-size: 0.8125rem;
+  color: #000000;
+}
+
+.upload-payment-info strong {
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 0.5px solid var(--ios-separator);
+}
+
+.dark-mode .payment-methods-header h3 {
+  color: #ffffff;
+}
+
+.dark-mode .payment-method-item {
+  color: #ffffff;
+}
+
+.dark-mode .upload-payment-info p {
+  color: #ffffff;
+}
+
+.receipt-viewer {
+  display: flex;
+  flex-direction: column;
+}
+
+.receipt-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.receipt-info p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #000000;
+  line-height: 1.5;
+}
+
+.receipt-info strong {
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.receipt-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dark-mode .receipt-info p {
+  color: #ffffff;
 }
 
 /* Dark mode styles */

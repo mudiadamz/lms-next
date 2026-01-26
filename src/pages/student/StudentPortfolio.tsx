@@ -67,19 +67,26 @@ export const StudentPortfolio = () => {
         const studentData = user?.id ? await userService.getUserById(user.id) : null;
         const classId = (studentData as any)?.classId;
 
-        const [assignmentsData, quizzesData, gradesData, subjectsData, teachersData] = await Promise.all([
+        const [assignmentsData, quizzesData, gradesData, subjectsData] = await Promise.all([
           assignmentService.getAssignments(classId ? { classId } : {}),
           quizService.getQuizzes(classId ? { classId } : {}),
           gradeService.getGrades(user?.id ? { studentId: user.id } : {}),
           subjectService.getSubjects(),
-          userService.getUsers('teacher'),
         ]);
 
         // Combine assignments, quizzes, and grades into portfolio items
         const items: PortfolioItem[] = [];
         
+        // Extract teacher names from assignments and quizzes (backend already includes teacherName via JOIN)
+        const teacherMap: Record<string, string> = {};
+        
         // Add assignments with grades
-        assignmentsData.forEach(assignment => {
+        assignmentsData.forEach((assignment: any) => {
+          // Store teacher name from assignment
+          if (assignment.teacherId && assignment.teacherName) {
+            teacherMap[assignment.teacherId] = assignment.teacherName;
+          }
+          
           const grade = gradesData.find(g => g.assignmentId === assignment.id);
           if (grade || assignment.status === 'submitted') {
             items.push({
@@ -102,7 +109,12 @@ export const StudentPortfolio = () => {
         });
 
         // Add quizzes with grades
-        quizzesData.forEach(quiz => {
+        quizzesData.forEach((quiz: any) => {
+          // Store teacher name from quiz
+          if (quiz.teacherId && quiz.teacherName) {
+            teacherMap[quiz.teacherId] = quiz.teacherName;
+          }
+          
           const grade = gradesData.find(g => g.quizId === quiz.id);
           if (grade || quiz.score !== null) {
             items.push({
@@ -126,8 +138,6 @@ export const StudentPortfolio = () => {
         const subjectMap: Record<string, string> = {};
         subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
         setSubjects(subjectMap);
-        const teacherMap: Record<string, string> = {};
-        teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
         setTeachers(teacherMap);
       } catch (error) {
         console.error('Error loading portfolio:', error);

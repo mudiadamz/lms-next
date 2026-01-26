@@ -48,6 +48,15 @@ class ApiClient {
       });
 
       const data = await response.json();
+      
+      // Log for debugging
+      if (endpoint.includes('/classes')) {
+        console.log('API /classes response:', {
+          ok: response.ok,
+          status: response.status,
+          data: data
+        });
+      }
 
       if (!response.ok) {
         const errorMessage = data.error || `API Error: ${response.status} ${response.statusText}`;
@@ -56,7 +65,10 @@ class ApiClient {
 
       return data;
     } catch (error) {
-      console.error('API Request failed:', error);
+      console.error('API Request failed:', {
+        endpoint,
+        error: error instanceof Error ? error.message : String(error)
+      });
       throw error;
     }
   }

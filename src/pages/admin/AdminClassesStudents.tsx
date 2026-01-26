@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Icon, Pagination, Loading, EmptyState } from '../../components/common';
+import { Button, Table, Badge, Icon, Pagination, Loading, EmptyState, SearchBar } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { classService, userService } from '../../services';
 import './AdminClasses.css';
@@ -11,6 +11,7 @@ export const AdminClassesStudents = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
   const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const itemsPerPage = 10;
@@ -40,7 +41,13 @@ export const AdminClassesStudents = () => {
     loadData();
   }, [id]);
 
-  const filteredStudents = students;
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch =
+      student.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.studentNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      student.email?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
 
   const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
   const paginatedStudents = filteredStudents.slice(
@@ -101,8 +108,19 @@ export const AdminClassesStudents = () => {
           <h1>Daftar Siswa</h1>
         </div>
 
+        <div className="page-filters">
+          <SearchBar
+            placeholder="Cari siswa berdasarkan nama, NIS, atau email..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
+
         <Card
-          title={`Daftar Siswa (${students.length})`}
+          title={`Daftar Siswa (${filteredStudents.length}${searchTerm ? ` dari ${students.length}` : ''})`}
           variant="elevated"
           headerAction={
             <Button size="small">

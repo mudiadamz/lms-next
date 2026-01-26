@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Table, SearchBar, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FileUpload, Loading } from '../../components/common';
 import { ROLE_LABELS, SCHOOL_LEVELS, ROUTES } from '../../constants';
-import { userService } from '../../services';
+import { userService, excelService } from '../../services';
 import './AdminUsers.css';
 
 export const AdminUsers = () => {
@@ -44,12 +44,19 @@ export const AdminUsers = () => {
     loadUsers();
   }, [selectedSubMenu]);
 
+  // Reset filters when switching submenu
+  useEffect(() => {
+    setSearchTerm('');
+    setCurrentPage(1);
+  }, [selectedSubMenu]);
+
   const filteredUsers = users.filter((user) => {
     const matchesSearch =
       user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (user.studentNumber && user.studentNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (user.teacherNumber && user.teacherNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.adminNumber && user.adminNumber.toLowerCase().includes(searchTerm.toLowerCase()));
+      (user.adminNumber && user.adminNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesSubMenu = user.role === selectedSubMenu;
     return matchesSearch && matchesSubMenu;
   });
@@ -118,20 +125,45 @@ export const AdminUsers = () => {
   };
 
   const handleParseExcel = async (file: File) => {
-    // TODO: Implement actual Excel parsing using xlsx library
-    // For now, show a placeholder message
     setIsImporting(true);
     try {
-      // Note: In a real implementation, use xlsx library to parse the file
-      // const workbook = XLSX.read(file, { type: 'binary' });
-      // const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      // const data = XLSX.utils.sheet_to_json(sheet);
+      const parsedData = await excelService.parseExcelFile(file);
       
-      alert('Fitur import Excel belum diimplementasikan. Silakan gunakan form manual.');
-      setImportPreview([]);
+      // Map parsed data to user format based on role
+      const mappedData = parsedData.map((row: any) => {
+        const user: any = {
+          username: String(row['Username'] || row['username'] || '').trim(),
+          fullName: String(row['Nama Lengkap'] || row['nama_lengkap'] || row['Nama'] || row['nama'] || '').trim(),
+          email: String(row['Email'] || row['email'] || '').trim(),
+          role: selectedSubMenu,
+          schoolLevel: String(row['Tingkat Sekolah'] || row['tingkat_sekolah'] || row['School Level'] || '').trim().toLowerCase(),
+          phoneNumber: String(row['No. HP'] || row['no_hp'] || row['Phone'] || '').trim(),
+          birthPlace: String(row['Tempat Lahir'] || row['tempat_lahir'] || row['Birth Place'] || '').trim(),
+          birthDate: String(row['Tanggal Lahir'] || row['tanggal_lahir'] || row['Birth Date'] || '').trim(),
+          address: String(row['Alamat'] || row['alamat'] || row['Address'] || '').trim(),
+        };
+
+        if (selectedSubMenu === 'student') {
+          user.studentNumber = String(row['NIS'] || row['nis'] || row['Student Number'] || '').trim();
+          user.classId = String(row['Kelas ID'] || row['kelas_id'] || row['Class ID'] || '').trim();
+        } else if (selectedSubMenu === 'teacher') {
+          user.teacherNumber = String(row['NIP'] || row['nip'] || row['Teacher Number'] || '').trim();
+        } else if (selectedSubMenu === 'admin') {
+          user.adminNumber = String(row['NIP Admin'] || row['nip_admin'] || row['Admin Number'] || '').trim();
+        }
+
+        return user;
+      }).filter((user: any) => user.fullName && user.username); // Filter out empty rows
+
+      if (mappedData.length === 0) {
+        alert('Tidak ada data yang valid ditemukan di file Excel. Pastikan kolom Nama Lengkap dan Username terisi.');
+      }
+
+      setImportPreview(mappedData);
     } catch (error) {
       console.error('Error parsing Excel:', error);
-      alert('Gagal membaca file Excel');
+      alert('Gagal membaca file Excel. Pastikan format file benar dan file tidak rusak.');
+      setImportPreview([]);
     } finally {
       setIsImporting(false);
     }
@@ -145,15 +177,31 @@ export const AdminUsers = () => {
 
     setIsImporting(true);
     try {
-      // TODO: Call API to import users
-      // await userService.importUsers(importPreview);
-      alert('Fitur import Excel belum diimplementasikan. Silakan gunakan form manual.');
-      setShowImportModal(false);
-      setImportFile(null);
-      setImportPreview([]);
-    } catch (error) {
+      const result = await excelService.importUsers(importFile, selectedSubMenu);
+      
+      if (result.success > 0) {
+        const errorMessages = result.errors && result.errors.length > 0 
+          ? `\n\nError detail:\n${result.errors.map(e => `Baris ${e.row}: ${e.error}`).join('\n')}`
+          : '';
+        
+        alert(`Berhasil mengimpor ${result.success} pengguna${result.failed > 0 ? `. ${result.failed} gagal.` : ''}${errorMessages}`);
+        
+        // Reload users list
+        const usersData = await userService.getUsers(selectedSubMenu as any);
+        setUsers(usersData);
+        
+        setShowImportModal(false);
+        setImportFile(null);
+        setImportPreview([]);
+      } else {
+        const errorMessages = result.errors && result.errors.length > 0
+          ? result.errors.map(e => `Baris ${e.row}: ${e.error}`).join('\n')
+          : 'Tidak ada data yang berhasil diimpor';
+        alert(`Gagal mengimpor pengguna.\n\n${errorMessages}`);
+      }
+    } catch (error: any) {
       console.error('Error importing users:', error);
-      alert('Gagal mengimpor user');
+      alert(`Gagal mengimpor pengguna: ${error.message || 'Unknown error'}`);
     } finally {
       setIsImporting(false);
     }
@@ -218,7 +266,13 @@ export const AdminUsers = () => {
 
         <div className="page-filters">
           <SearchBar
-            placeholder="Cari user..."
+            placeholder={
+              selectedSubMenu === 'student' 
+                ? 'Cari murid berdasarkan nama, NIS, atau email...'
+                : selectedSubMenu === 'teacher'
+                ? 'Cari guru berdasarkan nama, NIP, atau email...'
+                : 'Cari pengguna berdasarkan nama atau email...'
+            }
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
@@ -277,18 +331,65 @@ export const AdminUsers = () => {
         >
           <div className="import-modal-content">
             <div className="import-instructions">
-              <h4>Format File Excel:</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4>Format File Excel:</h4>
+                <Button
+                  variant="outline"
+                  size="small"
+                  onClick={() => excelService.downloadExample(selectedSubMenu as any)}
+                >
+                  <Icon name="download" size={16} style={{ marginRight: '0.25rem' }} />
+                  Download Template Excel
+                </Button>
+              </div>
               <p>File Excel harus memiliki kolom berikut:</p>
               <ul>
-                <li><strong>Nama Lengkap</strong> - Nama lengkap user</li>
-                <li><strong>Nomor Induk Siswa (NIS)</strong> - Untuk role student (password default sama dengan NIS)</li>
-                <li><strong>Nomor Induk Pengajar (NIP)</strong> - Untuk role teacher (password default sama dengan NIP)</li>
-                <li><strong>Nomor Induk Admin</strong> - Untuk role admin (password default sama dengan Nomor Induk Admin)</li>
-                <li><strong>Role</strong> - admin, teacher, student, atau parent</li>
-                <li><strong>Tingkat Sekolah</strong> - sd, smp, atau sma (opsional)</li>
+                {selectedSubMenu === 'student' && (
+                  <>
+                    <li><strong>NIS</strong> - Nomor Induk Siswa (wajib)</li>
+                    <li><strong>Username</strong> - Username untuk login (wajib)</li>
+                    <li><strong>Password</strong> - Password untuk login (wajib)</li>
+                    <li><strong>Nama Lengkap</strong> - Nama lengkap siswa (wajib)</li>
+                    <li><strong>Email</strong> - Email siswa (opsional)</li>
+                    <li><strong>Tingkat Sekolah</strong> - sd, smp, atau sma (opsional)</li>
+                    <li><strong>Kelas ID</strong> - ID kelas siswa (opsional)</li>
+                    <li><strong>No. HP</strong> - Nomor HP (opsional)</li>
+                    <li><strong>Tempat Lahir</strong> - Tempat lahir (opsional)</li>
+                    <li><strong>Tanggal Lahir</strong> - Format: YYYY-MM-DD (opsional)</li>
+                    <li><strong>Alamat</strong> - Alamat lengkap (opsional)</li>
+                  </>
+                )}
+                {selectedSubMenu === 'teacher' && (
+                  <>
+                    <li><strong>NIP</strong> - Nomor Induk Pengajar (wajib)</li>
+                    <li><strong>Username</strong> - Username untuk login (wajib)</li>
+                    <li><strong>Password</strong> - Password untuk login (wajib)</li>
+                    <li><strong>Nama Lengkap</strong> - Nama lengkap guru (wajib)</li>
+                    <li><strong>Email</strong> - Email guru (opsional)</li>
+                    <li><strong>Tingkat Sekolah</strong> - sd, smp, atau sma (opsional)</li>
+                    <li><strong>No. HP</strong> - Nomor HP (opsional)</li>
+                    <li><strong>Tempat Lahir</strong> - Tempat lahir (opsional)</li>
+                    <li><strong>Tanggal Lahir</strong> - Format: YYYY-MM-DD (opsional)</li>
+                    <li><strong>Alamat</strong> - Alamat lengkap (opsional)</li>
+                  </>
+                )}
+                {selectedSubMenu === 'admin' && (
+                  <>
+                    <li><strong>NIP Admin</strong> - Nomor Induk Admin (wajib)</li>
+                    <li><strong>Username</strong> - Username untuk login (wajib)</li>
+                    <li><strong>Password</strong> - Password untuk login (wajib)</li>
+                    <li><strong>Nama Lengkap</strong> - Nama lengkap admin (wajib)</li>
+                    <li><strong>Email</strong> - Email admin (opsional)</li>
+                    <li><strong>Tingkat Sekolah</strong> - sd, smp, atau sma (opsional)</li>
+                    <li><strong>No. HP</strong> - Nomor HP (opsional)</li>
+                    <li><strong>Tempat Lahir</strong> - Tempat lahir (opsional)</li>
+                    <li><strong>Tanggal Lahir</strong> - Format: YYYY-MM-DD (opsional)</li>
+                    <li><strong>Alamat</strong> - Alamat lengkap (opsional)</li>
+                  </>
+                )}
               </ul>
               <p style={{ marginTop: '0.75rem', fontSize: '13px', color: '#6b7280' }}>
-                <strong>Catatan:</strong> Password default untuk pengguna baru adalah nomor induk mereka. Pengguna dapat mengubah password setelah login pertama kali.
+                <strong>Catatan:</strong> Kolom dengan label (wajib) harus diisi. Pastikan username unik dan tidak duplikat.
               </p>
             </div>
 
@@ -299,41 +400,42 @@ export const AdminUsers = () => {
               multiple={false}
             />
 
-            {isImporting && (
+            {isImporting && importPreview.length === 0 && (
               <div className="import-loading">
-                <p>Memproses file Excel...</p>
+                <Loading message="Memproses file Excel..." />
               </div>
             )}
 
             {importPreview.length > 0 && (
               <div className="import-preview">
-                <h4>Preview Data ({importPreview.length} user):</h4>
+                <h4>Preview Data ({importPreview.length} pengguna):</h4>
                 <div className="preview-table">
                   <Table
                     columns={[
                       { key: 'fullName', header: 'Nama' },
                       {
+                        key: 'username',
+                        header: 'Username',
+                        render: (item: any) => item.username || '-',
+                      },
+                      {
                         key: 'number',
                         header: 'Nomor Induk',
                         render: (item: any) => {
-                          if (item.role === 'student' && item.studentNumber) {
+                          if (selectedSubMenu === 'student' && item.studentNumber) {
                             return item.studentNumber;
-                          } else if (item.role === 'teacher' && item.teacherNumber) {
+                          } else if (selectedSubMenu === 'teacher' && item.teacherNumber) {
                             return item.teacherNumber;
-                          } else if (item.role === 'admin' && item.adminNumber) {
+                          } else if (selectedSubMenu === 'admin' && item.adminNumber) {
                             return item.adminNumber;
                           }
                           return '-';
                         },
                       },
                       {
-                        key: 'role',
-                        header: 'Role',
-                        render: (item: any) => (
-                          <Badge variant={item.role === 'admin' ? 'danger' : item.role === 'teacher' ? 'primary' : 'secondary'}>
-                            {ROLE_LABELS[item.role] || item.role}
-                          </Badge>
-                        ),
+                        key: 'email',
+                        header: 'Email',
+                        render: (item: any) => item.email || '-',
                       },
                     ]}
                     data={importPreview}

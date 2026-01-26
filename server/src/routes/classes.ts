@@ -26,7 +26,26 @@ router.get('/', authenticateToken, (req, res) => {
     
     query += ' ORDER BY c.grade, c.name';
 
-    const classes = db.prepare(query).all(...params) as any[];
+    const allClasses = db.prepare(query).all(...params) as any[];
+    
+    // Remove duplicates based on name + school_level combination
+    // Keep the first occurrence (oldest by created_at if available, otherwise by id)
+    const uniqueClassesMap = new Map<string, any>();
+    allClasses.forEach((cls: any) => {
+      const key = `${cls.name}_${cls.school_level}`;
+      if (!uniqueClassesMap.has(key)) {
+        uniqueClassesMap.set(key, cls);
+      } else {
+        // If duplicate found, keep the one with older created_at or smaller id
+        const existing = uniqueClassesMap.get(key);
+        const existingDate = existing.created_at ? new Date(existing.created_at).getTime() : 0;
+        const currentDate = cls.created_at ? new Date(cls.created_at).getTime() : 0;
+        if (currentDate < existingDate || (currentDate === existingDate && cls.id < existing.id)) {
+          uniqueClassesMap.set(key, cls);
+        }
+      }
+    });
+    const classes = Array.from(uniqueClassesMap.values());
 
     const formattedClasses = classes.map(cls => {
       const students = db.prepare(`

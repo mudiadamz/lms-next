@@ -70,6 +70,7 @@ const getMenuItems = (role: string): MenuItem[] => {
             { label: 'Murid', path: `${ROUTES.ADMIN_USERS}?role=student`, role: 'student' },
           ]
         },
+        { label: 'Pembayaran SPP', path: ROUTES.ADMIN_PAYMENT, icon: 'analytics' },
         { label: 'Kelas', path: ROUTES.ADMIN_CLASSES, icon: 'userGroup' },
         { label: 'Mata Pelajaran', path: ROUTES.ADMIN_SUBJECTS, icon: 'book' },
         { label: 'Jadwal', path: ROUTES.ADMIN_SCHEDULE, icon: 'schedule' },
@@ -77,9 +78,7 @@ const getMenuItems = (role: string): MenuItem[] => {
         { label: 'Pengumuman', path: ROUTES.ADMIN_ANNOUNCEMENTS, icon: 'announcement' },
         { label: 'Laporan', path: ROUTES.ADMIN_REPORTS, icon: 'report' },
         { label: 'Kurikulum', path: ROUTES.ADMIN_CURRICULUM, icon: 'book' },
-        { label: 'Pembayaran SPP', path: ROUTES.ADMIN_PAYMENT, icon: 'analytics' },
         { label: 'Pengaturan', path: ROUTES.ADMIN_SETTINGS, icon: 'settings' },
-        { label: 'Audit Log', path: ROUTES.ADMIN_AUDIT_LOG, icon: 'document' },
       ];
     case 'parent':
       return [

@@ -1,4 +1,4 @@
-import { SelectHTMLAttributes } from 'react';
+import { SelectHTMLAttributes, ReactNode } from 'react';
 import './FormSelect.css';
 
 interface Option {
@@ -7,7 +7,7 @@ interface Option {
 }
 
 interface FormSelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label: string;
+  label: string | ReactNode;
   options: Option[];
   error?: string;
   helperText?: string;

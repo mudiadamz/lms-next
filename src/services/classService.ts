@@ -9,14 +9,25 @@ interface ApiResponse<T> {
 
 export const classService = {
   async getClasses(schoolLevel?: string): Promise<Class[]> {
-    const params = schoolLevel ? { schoolLevel } : undefined;
-    const response = await apiClient.get<ApiResponse<Class[]>>('/classes', params);
-    
-    if (!response.success || !response.data) {
-      throw new Error(response.error || 'Failed to fetch classes');
+    try {
+      const params = schoolLevel ? { schoolLevel } : undefined;
+      const response = await apiClient.get<ApiResponse<Class[]>>('/classes', params);
+      
+      console.log('getClasses response:', response);
+      
+      if (!response.success) {
+        console.error('getClasses failed:', response.error);
+        throw new Error(response.error || 'Failed to fetch classes');
+      }
+      
+      // Return empty array if data is null/undefined, otherwise return the data (even if empty array)
+      const result = response.data || [];
+      console.log('getClasses returning:', result, 'length:', result.length);
+      return result;
+    } catch (error) {
+      console.error('getClasses error:', error);
+      throw error;
     }
-    
-    return response.data;
   },
 
   async getClassById(id: string): Promise<Class> {

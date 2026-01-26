@@ -442,7 +442,8 @@ export function createTables() {
   db.exec(`
     CREATE TABLE IF NOT EXISTS payments (
       id TEXT PRIMARY KEY,
-      class_id TEXT NOT NULL,
+      student_id TEXT NOT NULL,
+      class_id TEXT,
       month TEXT NOT NULL,
       year INTEGER NOT NULL,
       amount REAL NOT NULL,
@@ -450,11 +451,134 @@ export function createTables() {
       status TEXT NOT NULL CHECK(status IN ('paid', 'pending', 'overdue')),
       payment_method TEXT,
       receipt_number TEXT,
+      receipt_file_url TEXT,
       notes TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (student_id) REFERENCES users(id),
       FOREIGN KEY (class_id) REFERENCES classes(id)
     )
   `);
+
+  // Migration: Add student_id column if it doesn't exist (for existing databases)
+  try {
+    const columns = db.prepare("PRAGMA table_info(payments)").all() as any[];
+    const hasStudentId = columns.some((col: any) => col.name === 'student_id');
+    
+    if (!hasStudentId) {
+      console.log('🔄 Migrating payments table: adding student_id column...');
+      
+      // Check if there are existing payments
+      const existingPayments = db.prepare('SELECT COUNT(*) as count FROM payments').get() as any;
+      
+      if (existingPayments.count > 0) {
+        // If there are existing payments, we need to recreate the table
+        // Step 1: Create new table with student_id
+        db.exec(`
+          CREATE TABLE payments_new (
+            id TEXT PRIMARY KEY,
+            student_id TEXT NOT NULL,
+            class_id TEXT,
+            month TEXT NOT NULL,
+            year INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            due_date DATE NOT NULL,
+            status TEXT NOT NULL CHECK(status IN ('paid', 'pending', 'overdue')),
+            payment_method TEXT,
+            receipt_number TEXT,
+            receipt_file_url TEXT,
+            notes TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES users(id),
+            FOREIGN KEY (class_id) REFERENCES classes(id)
+          )
+        `);
+        
+        // Step 2: Migrate existing payments by assigning a student from each class
+        // For each payment, find a student in that class
+        const oldPayments = db.prepare('SELECT * FROM payments').all() as any[];
+        
+        for (const payment of oldPayments) {
+          if (payment.class_id) {
+            // Find a student in this class
+            const student = db.prepare(`
+              SELECT id FROM users 
+              WHERE class_id = ? AND role = 'student' 
+              LIMIT 1
+            `).get(payment.class_id) as any;
+            
+            if (student) {
+              // Insert into new table with student_id
+              db.prepare(`
+                INSERT INTO payments_new (id, student_id, class_id, month, year, amount, due_date, status, payment_method, receipt_number, receipt_file_url, notes, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `).run(
+                payment.id,
+                student.id,
+                payment.class_id,
+                payment.month,
+                payment.year,
+                payment.amount,
+                payment.due_date,
+                payment.status,
+                payment.payment_method || null,
+                payment.receipt_number || null,
+                payment.receipt_file_url || null,
+                payment.notes || null,
+                payment.created_at || new Date().toISOString()
+              );
+            }
+          }
+        }
+        
+        // Step 3: Drop old table and rename new one
+        db.exec(`DROP TABLE payments`);
+        db.exec(`ALTER TABLE payments_new RENAME TO payments`);
+        
+        console.log('✅ Migration completed: payments table updated with student_id');
+      } else {
+        // No existing payments, just drop and recreate
+        db.exec(`DROP TABLE IF EXISTS payments`);
+        db.exec(`
+          CREATE TABLE payments (
+            id TEXT PRIMARY KEY,
+            student_id TEXT NOT NULL,
+            class_id TEXT,
+            month TEXT NOT NULL,
+            year INTEGER NOT NULL,
+            amount REAL NOT NULL,
+            due_date DATE NOT NULL,
+            status TEXT NOT NULL CHECK(status IN ('paid', 'pending', 'overdue')),
+            payment_method TEXT,
+            receipt_number TEXT,
+            receipt_file_url TEXT,
+            notes TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (student_id) REFERENCES users(id),
+            FOREIGN KEY (class_id) REFERENCES classes(id)
+          )
+        `);
+        console.log('✅ Migration completed: payments table recreated with student_id');
+      }
+    }
+  } catch (migrationError: any) {
+    console.error('❌ Migration error:', migrationError?.message);
+    console.error('Migration stack:', migrationError?.stack);
+    // Don't throw - let the app continue, but log the error
+  }
+
+  // Migration: Add receipt_file_url column if it doesn't exist
+  try {
+    const columns = db.prepare("PRAGMA table_info(payments)").all() as any[];
+    const hasReceiptFileUrl = columns.some((col: any) => col.name === 'receipt_file_url');
+    
+    if (!hasReceiptFileUrl) {
+      console.log('🔄 Migrating payments table: adding receipt_file_url column...');
+      db.exec(`ALTER TABLE payments ADD COLUMN receipt_file_url TEXT`);
+      console.log('✅ Migration completed: payments table updated with receipt_file_url');
+    }
+  } catch (migrationError: any) {
+    console.error('❌ Migration error for receipt_file_url:', migrationError?.message);
+  }
 
   // Curriculums table
   db.exec(`
@@ -481,6 +605,67 @@ export function createTables() {
       ip_address TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
+    )
+  `);
+
+  // Settings table (single row for system-wide settings)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS settings (
+      id TEXT PRIMARY KEY DEFAULT 'system',
+      school_name TEXT NOT NULL DEFAULT 'LMS Sekolah',
+      address TEXT DEFAULT '',
+      school_level TEXT CHECK(school_level IN ('sd', 'smp', 'sma', '')),
+      dark_mode INTEGER DEFAULT 0,
+      payment_default_amount REAL DEFAULT 0,
+      payment_default_due_day INTEGER DEFAULT 1,
+      payment_auto_generate INTEGER DEFAULT 0,
+      bank_name TEXT DEFAULT '',
+      account_holder_name TEXT DEFAULT '',
+      account_number TEXT DEFAULT '',
+      payment_methods TEXT DEFAULT '[]',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_by TEXT,
+      FOREIGN KEY (updated_by) REFERENCES users(id)
+    )
+  `);
+
+  // Migration: Add payment and bank columns if they don't exist
+  try {
+    const columns = db.prepare("PRAGMA table_info(settings)").all() as any[];
+    const columnNames = columns.map((col: any) => col.name);
+    
+    if (!columnNames.includes('payment_default_amount')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN payment_default_amount REAL DEFAULT 0`);
+    }
+    if (!columnNames.includes('payment_default_due_day')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN payment_default_due_day INTEGER DEFAULT 1`);
+    }
+    if (!columnNames.includes('payment_auto_generate')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN payment_auto_generate INTEGER DEFAULT 0`);
+    }
+    if (!columnNames.includes('bank_name')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN bank_name TEXT DEFAULT ''`);
+    }
+    if (!columnNames.includes('account_holder_name')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN account_holder_name TEXT DEFAULT ''`);
+    }
+    if (!columnNames.includes('account_number')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN account_number TEXT DEFAULT ''`);
+    }
+    if (!columnNames.includes('payment_methods')) {
+      db.exec(`ALTER TABLE settings ADD COLUMN payment_methods TEXT DEFAULT '[]'`);
+    }
+  } catch (migrationError: any) {
+    console.error('Migration error (this is OK if columns already exist):', migrationError?.message);
+  }
+
+  // User Settings table (for per-user settings like dark mode preference)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_settings (
+      user_id TEXT PRIMARY KEY,
+      dark_mode INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 

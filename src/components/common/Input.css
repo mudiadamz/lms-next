@@ -6,7 +6,7 @@
 }
 
 .input-label {
-  font-size: 15px;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #000000;
   margin-bottom: 0.25rem;
@@ -14,14 +14,14 @@
 
 .input {
   width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 17px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
   border: 0.5px solid var(--ios-separator);
-  border-radius: 10px;
+  border-radius: 8px;
   transition: all 0.2s ease;
   font-family: inherit;
   background-color: var(--ios-background);
-  min-height: 44px;
+  min-height: 36px;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -42,7 +42,7 @@
 }
 
 .input-helper {
-  font-size: 13px;
+  font-size: 0.75rem;
   color: var(--ios-gray);
 }
 

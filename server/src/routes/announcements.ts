@@ -65,8 +65,11 @@ router.get('/', authenticateToken, (req: AuthRequest, res) => {
     }
 
     // Filter by date (only show active announcements)
-    query += ' AND (a.end_date IS NULL OR a.end_date >= date(\'now\'))';
-    query += ' AND a.start_date <= date(\'now\')';
+    // Admin and teachers can see all announcements regardless of date
+    if (req.userRole !== 'admin' && req.userRole !== 'teacher') {
+      query += ' AND (a.end_date IS NULL OR a.end_date >= date(\'now\'))';
+      query += ' AND a.start_date <= date(\'now\')';
+    }
 
     query += ' ORDER BY a.is_pinned DESC, a.created_at DESC';
 
