@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Badge, Button, Loading } from '../../components/common';
+import { Badge, Button, Loading, Modal } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../constants';
-import { formatDate, isPast } from '../../utils';
+import { formatDate, formatDateTime, isPast } from '../../utils';
 import { assignmentService, quizService, gradeService, announcementService, scheduleService, attendanceService } from '../../services';
 import './StudentDashboard.css';
 
@@ -14,6 +14,9 @@ export const StudentDashboard = () => {
   const [urgentAssignments, setUrgentAssignments] = useState<any[]>([]);
   const [recentGrades, setRecentGrades] = useState<any[]>([]);
   const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [detailAnnouncement, setDetailAnnouncement] = useState<any | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
   const [stats, setStats] = useState({
     activeAssignments: 0,
@@ -119,6 +122,16 @@ export const StudentDashboard = () => {
       loadData();
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    const announcementId = searchParams.get('announcementId');
+    if (!announcementId || announcements.length === 0) return;
+    const match = announcements.find((item) => item.id === announcementId);
+    if (match) {
+      setDetailAnnouncement(match);
+      setShowDetailModal(true);
+    }
+  }, [searchParams, announcements]);
 
   return (
     <DashboardLayout>
@@ -249,6 +262,33 @@ export const StudentDashboard = () => {
             </Card>
           </div>
         )}
+
+        <Modal
+          isOpen={showDetailModal && !!detailAnnouncement}
+          onClose={() => {
+            setShowDetailModal(false);
+            setDetailAnnouncement(null);
+            if (searchParams.get('announcementId')) {
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.delete('announcementId');
+              setSearchParams(nextParams, { replace: true });
+            }
+          }}
+          title="Detail Pengumuman"
+          size="large"
+        >
+          {detailAnnouncement && (
+            <div className="announcement-detail">
+              <h3>{detailAnnouncement.title}</h3>
+              <p className="announcement-detail-meta">
+                {formatDateTime(detailAnnouncement.createdAt)}
+              </p>
+              <div className="announcement-detail-content">
+                {detailAnnouncement.content}
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </DashboardLayout>
   );

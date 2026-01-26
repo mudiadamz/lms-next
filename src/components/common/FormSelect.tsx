@@ -24,6 +24,8 @@ export const FormSelect = ({
 }: FormSelectProps) => {
   const selectId = id || `select-${Math.random().toString(36).substr(2, 9)}`;
   const hasHelperText = error || helperText;
+  const isMultiple = Boolean(props.multiple);
+  const defaultSize = isMultiple && !props.size ? Math.min(6, options.length || 1) : undefined;
 
   return (
     <div className="form-select-wrapper">
@@ -32,9 +34,10 @@ export const FormSelect = ({
       </label>
       <select
         id={selectId}
-        className={`form-select ${error ? 'form-select--error' : ''} ${className}`}
+        className={`form-select ${isMultiple ? 'form-select--multiple' : ''} ${error ? 'form-select--error' : ''} ${className}`}
         aria-invalid={!!error}
         aria-describedby={hasHelperText ? `${selectId}-helper` : undefined}
+        size={defaultSize}
         {...props}
       >
         {options.map((option) => (

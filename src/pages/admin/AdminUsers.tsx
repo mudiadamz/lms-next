@@ -2,14 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, SearchBar, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FileUpload, Loading } from '../../components/common';
+import { Button, Table, SearchBar, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FileUpload, Loading, FormSelect } from '../../components/common';
 import { ROLE_LABELS, SCHOOL_LEVELS, ROUTES } from '../../constants';
-import { userService, excelService } from '../../services';
+import { userService, excelService, academicYearService, classService } from '../../services';
 import './AdminUsers.css';
 
 export const AdminUsers = () => {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSubMenu, setSelectedSubMenu] = useState<string>('admin');
   const [currentPage, setCurrentPage] = useState(1);
@@ -21,6 +21,13 @@ export const AdminUsers = () => {
   const [importPreview, setImportPreview] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [academicYears, setAcademicYears] = useState<Array<{ value: string; label: string; isActive?: boolean }>>([]);
+  const [selectedAcademicYearId, setSelectedAcademicYearId] = useState('');
+  const [isLoadingAcademicYears, setIsLoadingAcademicYears] = useState(false);
+  const [homeroomClassMap, setHomeroomClassMap] = useState<Record<string, string>>({});
+  const [classInfoMap, setClassInfoMap] = useState<Record<string, { name: string; grade: number }>>({});
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -42,6 +49,64 @@ export const AdminUsers = () => {
     };
 
     loadUsers();
+  }, [selectedSubMenu]);
+
+  useEffect(() => {
+    const loadAcademicYears = async () => {
+      if (selectedSubMenu !== 'student') return;
+      try {
+        setIsLoadingAcademicYears(true);
+        const data = await academicYearService.getAcademicYears();
+        const options = data.map((year) => ({
+          value: year.id,
+          label: year.name,
+          isActive: year.isActive,
+        }));
+        setAcademicYears(options);
+        const activeYear = options.find((year) => year.isActive);
+        if (activeYear) {
+          setSelectedAcademicYearId(activeYear.value);
+        } else if (options.length > 0 && !selectedAcademicYearId) {
+          setSelectedAcademicYearId(options[0].value);
+        }
+      } catch (error) {
+        console.error('Error loading academic years:', error);
+        setAcademicYears([]);
+      } finally {
+        setIsLoadingAcademicYears(false);
+      }
+    };
+
+    loadAcademicYears();
+  }, [selectedSubMenu]);
+
+  useEffect(() => {
+    const loadClasses = async () => {
+      if (selectedSubMenu !== 'teacher' && selectedSubMenu !== 'student') {
+        setHomeroomClassMap({});
+        setClassInfoMap({});
+        return;
+      }
+      try {
+        const classesData = await classService.getClasses();
+        const homeroomMap: Record<string, string> = {};
+        const infoMap: Record<string, { name: string; grade: number }> = {};
+        classesData.forEach((cls: any) => {
+          infoMap[cls.id] = { name: cls.name, grade: cls.grade };
+          if (cls.homeroomTeacherId && !homeroomMap[cls.homeroomTeacherId]) {
+            homeroomMap[cls.homeroomTeacherId] = cls.name;
+          }
+        });
+        setHomeroomClassMap(homeroomMap);
+        setClassInfoMap(infoMap);
+      } catch (error) {
+        console.error('Error loading classes:', error);
+        setHomeroomClassMap({});
+        setClassInfoMap({});
+      }
+    };
+
+    loadClasses();
   }, [selectedSubMenu]);
 
   // Reset filters when switching submenu
@@ -90,6 +155,37 @@ export const AdminUsers = () => {
     navigate(`${ROUTES.ADMIN_USERS}/create/${selectedSubMenu}`);
   };
 
+  const handleEdit = (user: any) => {
+    navigate(ROUTES.ADMIN_USERS_EDIT.replace(':id', user.id));
+  };
+
+  const handleResetPassword = (user: any) => {
+    setSelectedUser(user);
+    setShowResetDialog(true);
+  };
+
+  const confirmResetPassword = async () => {
+    if (!selectedUser) return;
+    const defaultPassword =
+      selectedUser.studentNumber ||
+      selectedUser.teacherNumber ||
+      selectedUser.adminNumber ||
+      'password';
+
+    try {
+      setIsResettingPassword(true);
+      await userService.updateUser(selectedUser.id, { password: defaultPassword });
+      setShowResetDialog(false);
+      setSelectedUser(null);
+      alert('Password berhasil direset');
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      alert('Gagal mereset password');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
   const getButtonLabel = () => {
     switch (selectedSubMenu) {
       case 'admin':
@@ -136,16 +232,28 @@ export const AdminUsers = () => {
           fullName: String(row['Nama Lengkap'] || row['nama_lengkap'] || row['Nama'] || row['nama'] || '').trim(),
           email: String(row['Email'] || row['email'] || '').trim(),
           role: selectedSubMenu,
-          schoolLevel: String(row['Tingkat Sekolah'] || row['tingkat_sekolah'] || row['School Level'] || '').trim().toLowerCase(),
           phoneNumber: String(row['No. HP'] || row['no_hp'] || row['Phone'] || '').trim(),
           birthPlace: String(row['Tempat Lahir'] || row['tempat_lahir'] || row['Birth Place'] || '').trim(),
           birthDate: String(row['Tanggal Lahir'] || row['tanggal_lahir'] || row['Birth Date'] || '').trim(),
           address: String(row['Alamat'] || row['alamat'] || row['Address'] || '').trim(),
         };
+        if (selectedSubMenu !== 'teacher' && selectedSubMenu !== 'admin') {
+          user.schoolLevel = String(row['Tingkat Sekolah'] || row['tingkat_sekolah'] || row['School Level'] || '')
+            .trim()
+            .toLowerCase();
+        }
 
         if (selectedSubMenu === 'student') {
           user.studentNumber = String(row['NIS'] || row['nis'] || row['Student Number'] || '').trim();
-          user.classId = String(row['Kelas ID'] || row['kelas_id'] || row['Class ID'] || '').trim();
+          user.classId = String(
+            row['Kelas ID'] ||
+              row['kelas_id'] ||
+              row['Class ID'] ||
+              row['Kelas'] ||
+              row['kelas'] ||
+              row['Class'] ||
+              ''
+          ).trim();
         } else if (selectedSubMenu === 'teacher') {
           user.teacherNumber = String(row['NIP'] || row['nip'] || row['Teacher Number'] || '').trim();
         } else if (selectedSubMenu === 'admin') {
@@ -174,10 +282,18 @@ export const AdminUsers = () => {
       alert('Pilih file Excel terlebih dahulu');
       return;
     }
+    if (selectedSubMenu === 'student' && !selectedAcademicYearId) {
+      alert('Pilih tahun ajaran terlebih dahulu');
+      return;
+    }
 
     setIsImporting(true);
     try {
-      const result = await excelService.importUsers(importFile, selectedSubMenu);
+      const result = await excelService.importUsers(
+        importFile,
+        selectedSubMenu,
+        selectedSubMenu === 'student' ? selectedAcademicYearId : undefined
+      );
       
       if (result.success > 0) {
         const errorMessages = result.errors && result.errors.length > 0 
@@ -223,7 +339,10 @@ export const AdminUsers = () => {
     {
       key: 'role',
       header: 'Role',
-      render: (item: any) => <Badge variant="secondary">{ROLE_LABELS[item.role] || item.role}</Badge>,
+      render: (item: any) => {
+        const roleLabel = ROLE_LABELS[item.role as keyof typeof ROLE_LABELS] || item.role;
+        return <Badge variant="secondary">{roleLabel}</Badge>;
+      },
     },
     {
       key: 'number',
@@ -232,8 +351,19 @@ export const AdminUsers = () => {
     },
     {
       key: 'schoolLevel',
-      header: 'Tingkat',
-      render: (item: any) => item.schoolLevel ? SCHOOL_LEVELS[item.schoolLevel] : '-',
+      header: selectedSubMenu === 'teacher' ? 'Wali Kelas' : selectedSubMenu === 'student' ? 'Kelas' : 'Tingkat',
+      render: (item: any) => {
+        if (item.role === 'teacher') {
+          return homeroomClassMap[item.id] || '-';
+        }
+        if (item.role === 'student') {
+          const classInfo = item.classId ? classInfoMap[item.classId] : null;
+          if (!classInfo) return '-';
+          return `Kelas ${classInfo.grade}`;
+        }
+        const level = item.schoolLevel as keyof typeof SCHOOL_LEVELS;
+        return level ? SCHOOL_LEVELS[level] : '-';
+      },
     },
     {
       key: 'actions',
@@ -242,9 +372,9 @@ export const AdminUsers = () => {
         <Dropdown
           trigger={<Button variant="outline" size="small">⋯</Button>}
           items={[
-            { label: 'Edit', onClick: () => console.log('Edit', item.id) },
-            { label: 'Reset Password', onClick: () => console.log('Reset password', item.id) },
-            { divider: true },
+            { label: 'Edit', onClick: () => handleEdit(item) },
+            { label: 'Reset Password', onClick: () => handleResetPassword(item) },
+            { label: 'divider', onClick: () => {}, divider: true },
             {
               label: 'Hapus',
               onClick: () => handleDelete(item),
@@ -255,6 +385,9 @@ export const AdminUsers = () => {
       ),
     },
   ];
+  const tableColumns = selectedSubMenu === 'admin'
+    ? columns.filter((column) => column.key !== 'schoolLevel')
+    : columns;
 
   return (
     <DashboardLayout>
@@ -291,7 +424,9 @@ export const AdminUsers = () => {
                 size="small"
                 onClick={() => setShowImportModal(true)}
               >
-                <Icon name="upload" size={16} style={{ marginRight: '0.25rem' }} />
+                <span style={{ marginRight: '0.25rem' }}>
+                  <Icon name="upload" size={16} />
+                </span>
                 Import Excel
               </Button>
               <Button onClick={handleAddUser} size="small">
@@ -300,13 +435,17 @@ export const AdminUsers = () => {
             </div>
           }
         >
-          {paginatedUsers.length === 0 ? (
+          {isLoading ? (
+            <div style={{ padding: '2rem' }}>
+              <Loading message="Memuat pengguna..." />
+            </div>
+          ) : paginatedUsers.length === 0 ? (
             <div style={{ padding: '2rem', textAlign: 'center', color: '#6b7280' }}>
               Tidak ada user yang ditemukan
             </div>
           ) : (
             <>
-              <Table columns={columns} data={paginatedUsers} />
+              <Table columns={tableColumns} data={paginatedUsers} />
               {totalPages > 1 && (
                 <Pagination
                   currentPage={currentPage}
@@ -325,6 +464,7 @@ export const AdminUsers = () => {
             setShowImportModal(false);
             setImportFile(null);
             setImportPreview([]);
+            setSelectedAcademicYearId('');
           }}
           title="Import Pengguna dari Excel"
           size="large"
@@ -338,7 +478,9 @@ export const AdminUsers = () => {
                   size="small"
                   onClick={() => excelService.downloadExample(selectedSubMenu as any)}
                 >
-                  <Icon name="download" size={16} style={{ marginRight: '0.25rem' }} />
+                  <span style={{ marginRight: '0.25rem' }}>
+                    <Icon name="download" size={16} />
+                  </span>
                   Download Template Excel
                 </Button>
               </div>
@@ -352,7 +494,7 @@ export const AdminUsers = () => {
                     <li><strong>Nama Lengkap</strong> - Nama lengkap siswa (wajib)</li>
                     <li><strong>Email</strong> - Email siswa (opsional)</li>
                     <li><strong>Tingkat Sekolah</strong> - sd, smp, atau sma (opsional)</li>
-                    <li><strong>Kelas ID</strong> - ID kelas siswa (opsional)</li>
+                    <li><strong>Kelas / Kelas ID</strong> - Nama kelas atau ID kelas (opsional)</li>
                     <li><strong>No. HP</strong> - Nomor HP (opsional)</li>
                     <li><strong>Tempat Lahir</strong> - Tempat lahir (opsional)</li>
                     <li><strong>Tanggal Lahir</strong> - Format: YYYY-MM-DD (opsional)</li>
@@ -366,7 +508,6 @@ export const AdminUsers = () => {
                     <li><strong>Password</strong> - Password untuk login (wajib)</li>
                     <li><strong>Nama Lengkap</strong> - Nama lengkap guru (wajib)</li>
                     <li><strong>Email</strong> - Email guru (opsional)</li>
-                    <li><strong>Tingkat Sekolah</strong> - sd, smp, atau sma (opsional)</li>
                     <li><strong>No. HP</strong> - Nomor HP (opsional)</li>
                     <li><strong>Tempat Lahir</strong> - Tempat lahir (opsional)</li>
                     <li><strong>Tanggal Lahir</strong> - Format: YYYY-MM-DD (opsional)</li>
@@ -380,7 +521,6 @@ export const AdminUsers = () => {
                     <li><strong>Password</strong> - Password untuk login (wajib)</li>
                     <li><strong>Nama Lengkap</strong> - Nama lengkap admin (wajib)</li>
                     <li><strong>Email</strong> - Email admin (opsional)</li>
-                    <li><strong>Tingkat Sekolah</strong> - sd, smp, atau sma (opsional)</li>
                     <li><strong>No. HP</strong> - Nomor HP (opsional)</li>
                     <li><strong>Tempat Lahir</strong> - Tempat lahir (opsional)</li>
                     <li><strong>Tanggal Lahir</strong> - Format: YYYY-MM-DD (opsional)</li>
@@ -392,6 +532,27 @@ export const AdminUsers = () => {
                 <strong>Catatan:</strong> Kolom dengan label (wajib) harus diisi. Pastikan username unik dan tidak duplikat.
               </p>
             </div>
+
+            {selectedSubMenu === 'student' && (
+              <div style={{ marginBottom: '1rem' }}>
+                <FormSelect
+                  label="Tahun Ajaran"
+                  value={selectedAcademicYearId}
+                  onChange={(e) => setSelectedAcademicYearId(e.target.value)}
+                  options={[
+                    { value: '', label: isLoadingAcademicYears ? 'Memuat tahun ajaran...' : 'Pilih tahun ajaran' },
+                    ...academicYears.map((year) => ({
+                      value: year.value,
+                      label: year.isActive ? `${year.label} (Aktif)` : year.label,
+                    })),
+                  ]}
+                  required
+                />
+                <p style={{ marginTop: '0.5rem', fontSize: '12px', color: '#6b7280' }}>
+                  Kelas yang dipilih di file Excel harus sesuai dengan tahun ajaran ini.
+                </p>
+              </div>
+            )}
 
             <FileUpload
               accept=".xlsx,.xls"
@@ -452,6 +613,7 @@ export const AdminUsers = () => {
                   setShowImportModal(false);
                   setImportFile(null);
                   setImportPreview([]);
+                  setSelectedAcademicYearId('');
                 }}
                 disabled={isImporting}
               >
@@ -480,6 +642,18 @@ export const AdminUsers = () => {
           message={`Apakah Anda yakin ingin menghapus pengguna "${selectedUser?.fullName}"? Tindakan ini tidak dapat dibatalkan.`}
           confirmLabel="Hapus"
           variant="danger"
+        />
+        <ConfirmDialog
+          isOpen={showResetDialog}
+          onClose={() => {
+            setShowResetDialog(false);
+            setSelectedUser(null);
+          }}
+          onConfirm={confirmResetPassword}
+          title="Reset Password"
+          message={`Reset password untuk "${selectedUser?.fullName}" ke password default?`}
+          confirmLabel={isResettingPassword ? 'Mereset...' : 'Reset'}
+          variant="warning"
         />
       </div>
     </DashboardLayout>

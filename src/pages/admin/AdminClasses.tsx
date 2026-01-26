@@ -81,6 +81,10 @@ export const AdminClasses = () => {
         <div>
           <strong>{item.name}</strong>
           <br />
+          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+            ID: {item.id}
+          </span>
+          <br />
           <Badge variant="secondary">{SCHOOL_LEVELS[item.schoolLevel]}</Badge>
         </div>
       ),
@@ -98,17 +102,22 @@ export const AdminClasses = () => {
     {
       key: 'studentCount',
       header: 'Siswa',
-      render: (item: any) => (
-        <div>
-          {(item as any).studentCount || 0}/{(item as any).maxStudents || 0}
-          <Badge
-            variant={(item as any).studentCount >= (item as any).maxStudents ? 'danger' : 'primary'}
-            style={{ marginLeft: '0.5rem' }}
-          >
-            {((item as any).studentCount || 0) >= ((item as any).maxStudents || 0) ? 'Penuh' : 'Tersedia'}
-          </Badge>
-        </div>
-      ),
+      render: (item: any) => {
+        const studentCount = (item as any).studentCount ?? 0;
+        const maxStudents = (item as any).maxStudents ?? 36;
+        const isFull = maxStudents > 0 && studentCount >= maxStudents;
+        return (
+          <div>
+            {studentCount}/{maxStudents}
+            <Badge
+              variant={isFull ? 'danger' : 'primary'}
+              style={{ marginLeft: '0.5rem' }}
+            >
+              {isFull ? 'Penuh' : 'Tersedia'}
+            </Badge>
+          </div>
+        );
+      },
     },
     {
       key: 'actions',

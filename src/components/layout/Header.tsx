@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { ROUTES } from '../../constants';
-import { Button } from '../common/Button';
 import { Icon } from '../common/Icon';
+import { notificationService } from '../../services';
+import { formatDateTime } from '../../utils/dateUtils';
 import './Header.css';
 
 interface HeaderProps {
@@ -16,6 +17,27 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
   const { settings, toggleDarkMode } = useSettings();
   const navigate = useNavigate();
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showAnnouncementMenu, setShowAnnouncementMenu] = useState(false);
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [unreadAnnouncements, setUnreadAnnouncements] = useState(0);
+
+  useEffect(() => {
+    const loadAnnouncements = async () => {
+      if (!user) return;
+      try {
+        const data = await notificationService.getNotifications({ limit: 20 });
+        const announcementItems = data
+          .filter((item) => item.type === 'announcement')
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        setAnnouncements(announcementItems);
+        setUnreadAnnouncements(announcementItems.filter((item) => !item.isRead).length);
+      } catch (error) {
+        console.error('Error loading announcements:', error);
+      }
+    };
+
+    loadAnnouncements();
+  }, [user]);
 
   const getProfileRoute = () => {
     if (!user) return '';
@@ -41,6 +63,22 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
     }
   };
 
+  const getAnnouncementRoute = () => {
+    if (!user) return '';
+    switch (user.role) {
+      case 'admin':
+        return ROUTES.ADMIN_ANNOUNCEMENTS;
+      case 'teacher':
+        return ROUTES.TEACHER_ANNOUNCEMENTS;
+      case 'student':
+        return ROUTES.STUDENT_DASHBOARD;
+      case 'parent':
+        return ROUTES.PARENT_DASHBOARD;
+      default:
+        return '';
+    }
+  };
+
   return (
     <header className="header">
       <div className="header-content">
@@ -55,7 +93,73 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         <nav className="header-nav">
           {user && (
             <>
-              <div className="header-user" onClick={() => setShowUserMenu(!showUserMenu)}>
+              {announcements.length > 0 && (
+                <div className="header-notification">
+                  <button
+                    className="header-notification-button"
+                    onClick={() => {
+                      setShowAnnouncementMenu(!showAnnouncementMenu);
+                      setShowUserMenu(false);
+                    }}
+                    aria-label="Pengumuman"
+                  >
+                    <Icon name="announcement" size={20} />
+                    {unreadAnnouncements > 0 && (
+                      <span className="header-notification-badge">{unreadAnnouncements}</span>
+                    )}
+                  </button>
+                  {showAnnouncementMenu && (
+                    <>
+                      <div
+                        className="header-notification-overlay"
+                        onClick={() => setShowAnnouncementMenu(false)}
+                      />
+                      <div className="header-notification-menu">
+                        <div className="header-notification-title">Pengumuman</div>
+                        {announcements.map((item) => (
+                          <button
+                            key={item.id}
+                            className="header-notification-item"
+                            onClick={async () => {
+                              try {
+                                if (!item.isRead) {
+                                  await notificationService.markAsRead(item.id);
+                                  setUnreadAnnouncements((prev) => Math.max(prev - 1, 0));
+                                }
+                                const fallbackRoute = getAnnouncementRoute();
+                                if (item.link) {
+                                  const match = item.link.match(/\/announcements\/([^/?#]+)/);
+                                  if (match && fallbackRoute) {
+                                    navigate(`${fallbackRoute}?announcementId=${match[1]}`);
+                                  } else {
+                                    navigate(item.link);
+                                  }
+                                } else if (fallbackRoute) {
+                                  navigate(`${fallbackRoute}?announcementId=${item.id}`);
+                                }
+                              } catch (error) {
+                                console.error('Error updating announcement:', error);
+                              } finally {
+                                setShowAnnouncementMenu(false);
+                              }
+                            }}
+                          >
+                            <div className="header-notification-item-title">{item.title}</div>
+                            <div className="header-notification-item-time">
+                              {formatDateTime(item.createdAt)}
+                            </div>
+                            <div className="header-notification-item-message">{item.message}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+              <div className="header-user" onClick={() => {
+                setShowUserMenu(!showUserMenu);
+                setShowAnnouncementMenu(false);
+              }}>
                 <span className="header-user-name">{user.fullName}</span>
                 <Icon name="user" size={20} style={{ marginLeft: '0.5rem', flexShrink: 0 }} />
                 {showUserMenu && (

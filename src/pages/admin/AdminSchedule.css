@@ -22,7 +22,7 @@
 
 .filter-group {
   flex: 1;
-  min-width: 150px;
+  min-width: 160px;
 }
 
 .filter-select {
@@ -82,6 +82,43 @@
   margin-top: 1rem;
 }
 
+.schedule-table-wrapper {
+  overflow-x: auto;
+  margin-top: 0.5rem;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 700px;
+}
+
+.schedule-table th,
+.schedule-table td {
+  border: 0.5px solid var(--ios-separator);
+  padding: 0.5rem;
+  text-align: left;
+  vertical-align: middle;
+  background-color: var(--ios-background);
+}
+
+.schedule-table th {
+  background-color: var(--ios-secondary-background);
+  font-weight: 600;
+}
+
+.schedule-time-col,
+.schedule-time-cell {
+  width: 120px;
+  white-space: nowrap;
+}
+
+.schedule-time-cell {
+  font-weight: 600;
+  color: var(--ios-blue);
+  font-size: 0.9rem;
+}
+
 .schedule-day-card {
   background-color: var(--ios-secondary-background);
   border-radius: 12px;
@@ -89,13 +126,27 @@
   border: 0.5px solid var(--ios-separator);
 }
 
+.schedule-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 0.5px solid var(--ios-separator);
+  margin-bottom: 1rem;
+}
+
 .schedule-day-title {
   font-size: 1.1rem;
   font-weight: 600;
-  margin: 0 0 1rem 0;
+  margin: 0;
   color: #000000;
-  padding-bottom: 0.75rem;
-  border-bottom: 0.5px solid var(--ios-separator);
+}
+
+.schedule-day-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .schedule-empty-day {
@@ -136,10 +187,35 @@
   gap: 0.25rem;
 }
 
-.schedule-subject {
+.schedule-item-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.schedule-slot-time {
   font-weight: 600;
-  color: #000000;
+  color: var(--ios-blue);
+  font-size: 0.85rem;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.schedule-slot-select {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
   font-size: 0.95rem;
+  border-radius: 8px;
+  border: 1px solid var(--ios-separator);
+  background-color: var(--ios-background);
+  color: #000000;
+  min-height: 36px;
+}
+
+.schedule-slot-select:focus {
+  outline: none;
+  border-color: var(--ios-blue);
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
 }
 
 .schedule-details {

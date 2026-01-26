@@ -69,6 +69,13 @@ export const AdminPayment = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
   const itemsPerPage = 10;
+  const yearOptions = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    return Array.from({ length: 4 }, (_, index) => {
+      const year = currentYear - index;
+      return { value: year.toString(), label: year.toString() };
+    });
+  }, []);
 
   const [formData, setFormData] = useState({
     selectedClasses: [] as string[],
@@ -76,6 +83,7 @@ export const AdminPayment = () => {
     year: new Date().getFullYear().toString(),
     amount: '',
     dueDate: '',
+    status: 'pending' as Payment['status'],
     paymentMethod: '',
     receiptNumber: '',
     notes: '',
@@ -145,6 +153,7 @@ export const AdminPayment = () => {
       year: new Date().getFullYear().toString(),
       amount: '',
       dueDate: '',
+      status: 'pending',
       paymentMethod: '',
       receiptNumber: '',
       notes: '',
@@ -180,6 +189,7 @@ export const AdminPayment = () => {
       year: payment.year.toString(),
       amount: payment.amount.toString(),
       dueDate: payment.dueDate.toISOString().split('T')[0],
+      status: payment.status,
       paymentMethod: payment.paymentMethod || '',
       receiptNumber: payment.receiptNumber || '',
       notes: payment.notes || '',
@@ -280,6 +290,7 @@ export const AdminPayment = () => {
         year: parseInt(formData.year),
         amount: parseFloat(formData.amount),
         dueDate: new Date(formData.dueDate),
+        status: formData.status,
         paymentMethod: formData.paymentMethod || undefined,
         receiptNumber: formData.receiptNumber || undefined,
         notes: formData.notes || undefined,
@@ -489,11 +500,7 @@ export const AdminPayment = () => {
                   setSelectedYear(e.target.value);
                   setCurrentPage(1);
                 }}
-                options={[
-                  { value: '2024', label: '2024' },
-                  { value: '2023', label: '2023' },
-                  { value: '2025', label: '2025' },
-                ]}
+                options={yearOptions}
               />
             </div>
           </div>
@@ -718,6 +725,17 @@ export const AdminPayment = () => {
                   label: method,
                 })),
               ]}
+            />
+            <FormSelect
+              label="Status"
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value as Payment['status'] })}
+              options={[
+                { value: 'pending', label: 'Belum Dibayar' },
+                { value: 'paid', label: 'Sudah Dibayar' },
+                { value: 'overdue', label: 'Terlambat' },
+              ]}
+              required
             />
             <FormInput
               label="No. Kwitansi"

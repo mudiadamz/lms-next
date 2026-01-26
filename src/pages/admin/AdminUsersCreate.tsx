@@ -4,78 +4,18 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, FormInput, FormSelect, FileUpload, Icon, FormTextarea, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
-import { classService, userService } from '../../services';
+import { classService, userService, subjectService } from '../../services';
 import './AdminUsers.css';
-
-// Mock data untuk dropdown
-const PROVINCES = [
-  { value: 'jabar', label: 'Jawa Barat' },
-  { value: 'jateng', label: 'Jawa Tengah' },
-  { value: 'jatim', label: 'Jawa Timur' },
-  { value: 'dki', label: 'DKI Jakarta' },
-  { value: 'banten', label: 'Banten' },
-  { value: 'yogyakarta', label: 'DI Yogyakarta' },
-];
-
-const CITIES: Record<string, Array<{ value: string; label: string }>> = {
-  jabar: [
-    { value: 'bandung', label: 'Bandung' },
-    { value: 'bekasi', label: 'Bekasi' },
-    { value: 'depok', label: 'Depok' },
-    { value: 'bogor', label: 'Bogor' },
-  ],
-  jateng: [
-    { value: 'semarang', label: 'Semarang' },
-    { value: 'surakarta', label: 'Surakarta' },
-    { value: 'magelang', label: 'Magelang' },
-  ],
-  jatim: [
-    { value: 'surabaya', label: 'Surabaya' },
-    { value: 'malang', label: 'Malang' },
-    { value: 'sidoarjo', label: 'Sidoarjo' },
-  ],
-  dki: [
-    { value: 'jakarta_selatan', label: 'Jakarta Selatan' },
-    { value: 'jakarta_utara', label: 'Jakarta Utara' },
-    { value: 'jakarta_barat', label: 'Jakarta Barat' },
-    { value: 'jakarta_timur', label: 'Jakarta Timur' },
-    { value: 'jakarta_pusat', label: 'Jakarta Pusat' },
-  ],
-  banten: [
-    { value: 'tangerang', label: 'Tangerang' },
-    { value: 'serang', label: 'Serang' },
-  ],
-  yogyakarta: [
-    { value: 'yogyakarta', label: 'Yogyakarta' },
-  ],
-};
-
-const DISTRICTS: Record<string, Array<{ value: string; label: string }>> = {
-  bandung: [
-    { value: 'coblong', label: 'Coblong' },
-    { value: 'sukajadi', label: 'Sukajadi' },
-    { value: 'cidadap', label: 'Cidadap' },
-  ],
-  jakarta_selatan: [
-    { value: 'kebayoran_baru', label: 'Kebayoran Baru' },
-    { value: 'kebayoran_lama', label: 'Kebayoran Lama' },
-  ],
-};
-
-const VILLAGES: Record<string, Array<{ value: string; label: string }>> = {
-  coblong: [
-    { value: 'dago', label: 'Dago' },
-    { value: 'ledeng', label: 'Ledeng' },
-  ],
-};
 
 export const AdminUsersCreate = () => {
   const navigate = useNavigate();
-  const { role } = useParams<{ role: string }>();
-  const selectedRole = role || 'admin';
+  const { role, id } = useParams<{ role?: string; id?: string }>();
+  const [selectedRole, setSelectedRole] = useState(role || 'admin');
+  const isEditMode = Boolean(id);
   const [isLoading, setIsLoading] = useState(true);
   const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
-  const [parents, setParents] = useState<Array<{ value: string; label: string }>>([]);
+  const [classesRaw, setClassesRaw] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<Array<{ value: string; label: string }>>([]);
 
   const [formData, setFormData] = useState({
     fullName: '',
@@ -84,12 +24,9 @@ export const AdminUsersCreate = () => {
     adminNumber: '',
     schoolLevel: '',
     phoneNumber: '',
+    gender: '',
     birthPlace: '',
     birthDate: '',
-    province: '',
-    city: '',
-    district: '',
-    village: '',
     fullAddress: '',
     classId: '',
     parentId: '',
@@ -99,18 +36,70 @@ export const AdminUsersCreate = () => {
   });
 
   const [isCreating, setIsCreating] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [homeroomClassId, setHomeroomClassId] = useState('');
+  const [teachingClassIds, setTeachingClassIds] = useState<string[]>([]);
+  const [teachingSubjectIds, setTeachingSubjectIds] = useState<string[]>([]);
+  const [createParent, setCreateParent] = useState(true);
+  const [parentData, setParentData] = useState({
+    fullName: '',
+    phoneNumber: '',
+    email: '',
+  });
+
+  useEffect(() => {
+    if (!id) {
+      setSelectedRole(role || 'admin');
+    }
+  }, [role, id]);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [classesData, parentsData] = await Promise.all([
+        const [classesData, subjectsData] = await Promise.all([
           classService.getClasses(),
-          userService.getUsers('parent'),
+          subjectService.getSubjects(),
         ]);
+        setClassesRaw(classesData);
         setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
-        setParents(parentsData.map(p => ({ value: p.id, label: p.fullName })));
+        setSubjects(
+          subjectsData.map((subject) => ({
+            value: subject.id,
+            label: `${subject.name}${subject.code ? ` (${subject.code})` : ''}`,
+          }))
+        );
+        if (id) {
+          const user = await userService.getUserById(id);
+          setSelectedRole(user.role || 'admin');
+          const homeroomClass = classesData.find((cls: any) => cls.homeroomTeacherId === user.id);
+          setHomeroomClassId(homeroomClass?.id || '');
+          if (user.role === 'teacher') {
+            const teacherSubjects = subjectsData.filter((subject) => subject.teacherId === user.id);
+            setTeachingSubjectIds(teacherSubjects.map((subject) => subject.id));
+            const classIds = new Set<string>();
+            teacherSubjects.forEach((subject) => {
+              (subject.classIds || []).forEach((classId: string) => classIds.add(classId));
+            });
+            setTeachingClassIds(Array.from(classIds));
+          }
+          setFormData((prev) => ({
+            ...prev,
+            fullName: user.fullName || '',
+            studentNumber: user.studentNumber || '',
+            teacherNumber: user.teacherNumber || '',
+            adminNumber: user.adminNumber || '',
+            schoolLevel: user.schoolLevel || '',
+            phoneNumber: user.phoneNumber || '',
+            gender: user.gender || '',
+            birthPlace: user.birthPlace || '',
+            birthDate: user.birthDate ? toDateInputValue(user.birthDate) : '',
+            fullAddress: user.address || '',
+            classId: user.classId || '',
+            parentId: user.studentId || '',
+          }));
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -118,7 +107,7 @@ export const AdminUsersCreate = () => {
       }
     };
     loadData();
-  }, []);
+  }, [id]);
 
   // Cleanup photo preview URL
   useEffect(() => {
@@ -143,19 +132,26 @@ export const AdminUsersCreate = () => {
   const getPageTitle = () => {
     switch (selectedRole) {
       case 'student':
-        return 'Tambah Murid';
+        return isEditMode ? 'Edit Murid' : 'Tambah Murid';
       case 'teacher':
-        return 'Tambah Guru';
+        return isEditMode ? 'Edit Guru' : 'Tambah Guru';
       case 'admin':
-        return 'Tambah Admin';
+        return isEditMode ? 'Edit Admin' : 'Tambah Admin';
       default:
-        return 'Tambah Pengguna';
+        return isEditMode ? 'Edit Pengguna' : 'Tambah Pengguna';
     }
+  };
+
+  const toDateInputValue = (value: string | Date) => {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toISOString().split('T')[0];
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsCreating(true);
+    setIsSaved(false);
 
     try {
       // Get nomor induk berdasarkan role
@@ -168,31 +164,115 @@ export const AdminUsersCreate = () => {
         numberInduk = formData.adminNumber;
       }
 
-      const address = formData.fullAddress 
-        ? `${formData.fullAddress}${formData.village ? `, ${formData.village}` : ''}${formData.district ? `, ${formData.district}` : ''}${formData.city ? `, ${formData.city}` : ''}${formData.province ? `, ${formData.province}` : ''}`
-        : undefined;
+      const address = formData.fullAddress || undefined;
+      const password = numberInduk || 'password';
+      const username = numberInduk || formData.fullName.toLowerCase().trim().replace(/\s+/g, '.');
 
-      await userService.createUser({
-        fullName: formData.fullName,
-        email: formData.fullName.toLowerCase().replace(/\s+/g, '.') + '@school.com', // Generate email
-        password: numberInduk,
-        role: selectedRole as 'student' | 'teacher' | 'admin' | 'parent',
-        phoneNumber: formData.phoneNumber || undefined,
-        address: address,
-        birthPlace: formData.birthPlace || undefined,
-        birthDate: formData.birthDate ? new Date(formData.birthDate).toISOString() : undefined,
-        schoolLevel: formData.schoolLevel || undefined,
-        studentNumber: selectedRole === 'student' ? formData.studentNumber : undefined,
-        teacherNumber: selectedRole === 'teacher' ? formData.teacherNumber : undefined,
-        adminNumber: selectedRole === 'admin' ? formData.adminNumber : undefined,
-        classId: selectedRole === 'student' ? formData.classId : undefined,
-        parentId: selectedRole === 'student' ? formData.parentId : undefined,
-      });
+      const updateTeacherAssignments = async (teacherId: string) => {
+        if (selectedRole !== 'teacher') return;
+        const subjectsData = await subjectService.getSubjects(undefined, teacherId);
+        const subjectsToRemove = subjectsData.filter((subject) => !teachingSubjectIds.includes(subject.id));
+        await Promise.all([
+          ...subjectsToRemove.map((subject) => subjectService.updateSubject(subject.id, { teacherId: null as unknown as string })),
+          ...teachingSubjectIds.map((subjectId) =>
+            subjectService.updateSubject(subjectId, {
+              teacherId,
+              classIds: teachingClassIds,
+            })
+          ),
+        ]);
+      };
 
-      navigate(ROUTES.ADMIN_USERS);
+      if (isEditMode && id) {
+        const updatedTeacher = await userService.updateUser(id, {
+          username: numberInduk ? numberInduk : undefined,
+          fullName: formData.fullName,
+          phoneNumber: formData.phoneNumber || undefined,
+          address: address || undefined,
+          gender: formData.gender || undefined,
+          birthPlace: formData.birthPlace || undefined,
+          birthDate: formData.birthDate ? new Date(formData.birthDate).toISOString() : undefined,
+          schoolLevel: selectedRole === 'teacher' || selectedRole === 'admin'
+            ? undefined
+            : (formData.schoolLevel ? (formData.schoolLevel as 'sd' | 'smp' | 'sma') : undefined),
+          studentNumber: selectedRole === 'student' ? (formData.studentNumber || undefined) : undefined,
+          teacherNumber: selectedRole === 'teacher' ? (formData.teacherNumber || undefined) : undefined,
+          adminNumber: selectedRole === 'admin' ? (formData.adminNumber || undefined) : undefined,
+          classId: selectedRole === 'student' ? (formData.classId || undefined) : undefined,
+          studentId: selectedRole === 'student' ? (formData.parentId || undefined) : undefined,
+        });
+        if (selectedRole === 'teacher') {
+          const teacherId = updatedTeacher.id;
+          const previousHomerooms = classesRaw.filter(
+            (cls: any) => cls.homeroomTeacherId === teacherId && cls.id !== homeroomClassId
+          );
+          await Promise.all(
+            previousHomerooms.map((cls: any) =>
+              classService.updateClass(cls.id, { homeroomTeacherId: null } as any)
+            )
+          );
+          if (homeroomClassId) {
+            await classService.updateClass(homeroomClassId, { homeroomTeacherId: teacherId } as any);
+          }
+          await updateTeacherAssignments(teacherId);
+        }
+      } else {
+        const createdUser = await userService.createUser({
+          username,
+          fullName: formData.fullName,
+          email: formData.fullName.toLowerCase().replace(/\s+/g, '.') + '@school.com', // Generate email
+          password,
+          role: selectedRole as 'student' | 'teacher' | 'admin' | 'parent',
+          phoneNumber: formData.phoneNumber || undefined,
+          gender: formData.gender || undefined,
+          address: address,
+          birthPlace: formData.birthPlace || undefined,
+          birthDate: formData.birthDate ? new Date(formData.birthDate).toISOString() : undefined,
+          schoolLevel: selectedRole === 'teacher' || selectedRole === 'admin'
+            ? undefined
+            : (formData.schoolLevel ? (formData.schoolLevel as 'sd' | 'smp' | 'sma') : undefined),
+          studentNumber: selectedRole === 'student' ? formData.studentNumber : undefined,
+          teacherNumber: selectedRole === 'teacher' ? formData.teacherNumber : undefined,
+          adminNumber: selectedRole === 'admin' ? formData.adminNumber : undefined,
+          classId: selectedRole === 'student' ? formData.classId : undefined,
+        });
+        if (selectedRole === 'teacher') {
+          const teacherId = createdUser.id;
+          if (homeroomClassId) {
+            await classService.updateClass(homeroomClassId, { homeroomTeacherId: teacherId } as any);
+          }
+          await updateTeacherAssignments(teacherId);
+        }
+
+        if (selectedRole === 'student' && createParent) {
+          const parentName = parentData.fullName || `Orang Tua ${formData.fullName}`;
+          const parentUsername = numberInduk
+            ? `${numberInduk}-ortu`
+            : `${formData.fullName.toLowerCase().trim().replace(/\s+/g, '.')}.ortu`;
+          try {
+            await userService.createUser({
+              username: parentUsername,
+              fullName: parentName,
+              email: parentData.email || `${parentUsername}@school.com`,
+              password: 'password',
+              role: 'parent',
+              phoneNumber: parentData.phoneNumber || undefined,
+              address: address,
+              studentId: createdUser.id,
+            });
+          } catch (error) {
+            console.error('Error creating parent user:', error);
+            alert('Murid berhasil dibuat, tetapi gagal membuat akun orang tua.');
+          }
+        }
+      }
+
+      navigate(`${ROUTES.ADMIN_USERS}?role=${selectedRole}`);
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 3000);
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Gagal menambah user');
+      alert(isEditMode ? 'Gagal memperbarui user' : 'Gagal menambah user');
     } finally {
       setIsCreating(false);
     }
@@ -245,6 +325,55 @@ export const AdminUsersCreate = () => {
               />
             )}
 
+            {selectedRole === 'teacher' && (
+              <>
+                <FormSelect
+                  label="Wali Kelas"
+                  value={homeroomClassId}
+                  onChange={(e) => setHomeroomClassId(e.target.value)}
+                  options={[
+                    { value: '', label: 'Pilih wali kelas (opsional)' },
+                    ...classes.map((cls) => ({
+                      value: cls.value,
+                      label: cls.label,
+                    })),
+                  ]}
+                />
+                <FormSelect
+                  label="Kelas yang Diajar"
+                  multiple
+                  value={teachingClassIds}
+                  onChange={(e) => {
+                    const values = Array.from(e.target.selectedOptions).map((option) => option.value);
+                    setTeachingClassIds(values);
+                  }}
+                  options={
+                    classes.length === 0
+                      ? [{ value: '', label: 'Tidak ada kelas tersedia' }]
+                      : classes
+                  }
+                  helperText="Gunakan Ctrl/Cmd untuk memilih banyak kelas"
+                  disabled={classes.length === 0}
+                />
+                <FormSelect
+                  label="Mata Pelajaran yang Diajar"
+                  multiple
+                  value={teachingSubjectIds}
+                  onChange={(e) => {
+                    const values = Array.from(e.target.selectedOptions).map((option) => option.value);
+                    setTeachingSubjectIds(values);
+                  }}
+                  options={
+                    subjects.length === 0
+                      ? [{ value: '', label: 'Tidak ada mata pelajaran tersedia' }]
+                      : subjects
+                  }
+                  helperText="Gunakan Ctrl/Cmd untuk memilih banyak mata pelajaran"
+                  disabled={subjects.length === 0}
+                />
+              </>
+            )}
+
             {selectedRole === 'admin' && (
               <FormInput
                 label="Nomor Induk Admin"
@@ -255,7 +384,7 @@ export const AdminUsersCreate = () => {
               />
             )}
 
-            {selectedRole !== 'parent' && (
+            {selectedRole !== 'parent' && selectedRole !== 'teacher' && selectedRole !== 'admin' && (
               <FormSelect
                 label="Tingkat Sekolah"
                 value={formData.schoolLevel}
@@ -282,15 +411,6 @@ export const AdminUsersCreate = () => {
                   ]}
                   required
                 />
-                <FormSelect
-                  label="Orang Tua"
-                  value={formData.parentId}
-                  onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
-                  options={[
-                    { value: '', label: 'Pilih orang tua' },
-                    ...parents,
-                  ]}
-                />
               </>
             )}
 
@@ -300,6 +420,17 @@ export const AdminUsersCreate = () => {
               value={formData.phoneNumber}
               onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
               placeholder="08xxxxxxxxxx"
+            />
+
+            <FormSelect
+              label="Jenis Kelamin"
+              value={formData.gender}
+              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
+              options={[
+                { value: '', label: 'Pilih jenis kelamin' },
+                { value: 'male', label: 'Laki-laki' },
+                { value: 'female', label: 'Perempuan' },
+              ]}
             />
 
             <div className="form-row">
@@ -319,73 +450,6 @@ export const AdminUsersCreate = () => {
 
             <div className="form-section">
               <h4 className="form-section-title">Alamat</h4>
-              <FormSelect
-                label="Provinsi"
-                value={formData.province}
-                onChange={(e) => {
-                  setFormData({ 
-                    ...formData, 
-                    province: e.target.value,
-                    city: '',
-                    district: '',
-                    village: '',
-                  });
-                }}
-                options={[
-                  { value: '', label: 'Pilih provinsi' },
-                  ...PROVINCES,
-                ]}
-              />
-              
-              {formData.province && (
-                <FormSelect
-                  label="Kota/Kabupaten"
-                  value={formData.city}
-                  onChange={(e) => {
-                    setFormData({ 
-                      ...formData, 
-                      city: e.target.value,
-                      district: '',
-                      village: '',
-                    });
-                  }}
-                  options={[
-                    { value: '', label: 'Pilih kota/kabupaten' },
-                    ...(CITIES[formData.province] || []),
-                  ]}
-                />
-              )}
-
-              {formData.city && (
-                <FormSelect
-                  label="Kecamatan"
-                  value={formData.district}
-                  onChange={(e) => {
-                    setFormData({ 
-                      ...formData, 
-                      district: e.target.value,
-                      village: '',
-                    });
-                  }}
-                  options={[
-                    { value: '', label: 'Pilih kecamatan' },
-                    ...(DISTRICTS[formData.city] || []),
-                  ]}
-                />
-              )}
-
-              {formData.district && (
-                <FormSelect
-                  label="Desa/Kelurahan"
-                  value={formData.village}
-                  onChange={(e) => setFormData({ ...formData, village: e.target.value })}
-                  options={[
-                    { value: '', label: 'Pilih desa/kelurahan' },
-                    ...(VILLAGES[formData.district] || []),
-                  ]}
-                />
-              )}
-
               <FormTextarea
                 label="Alamat Lengkap"
                 value={formData.fullAddress}
@@ -394,6 +458,47 @@ export const AdminUsersCreate = () => {
                 rows={3}
               />
             </div>
+
+            {selectedRole === 'student' && (
+              <div className="form-section">
+                <h4 className="form-section-title">Wali Murid</h4>
+                <label style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <input
+                    type="checkbox"
+                    checked={createParent}
+                    onChange={(e) => setCreateParent(e.target.checked)}
+                  />
+                  Buat akun wali murid otomatis
+                </label>
+                {createParent && (
+                  <>
+                    <FormInput
+                      label="Nama Wali Murid"
+                      value={parentData.fullName}
+                      onChange={(e) => setParentData({ ...parentData, fullName: e.target.value })}
+                      placeholder="Masukkan nama wali murid"
+                    />
+                    <FormInput
+                      label="No. HP Wali Murid"
+                      type="tel"
+                      value={parentData.phoneNumber}
+                      onChange={(e) => setParentData({ ...parentData, phoneNumber: e.target.value })}
+                      placeholder="08xxxxxxxxxx"
+                    />
+                    <FormInput
+                      label="Email Wali Murid"
+                      type="email"
+                      value={parentData.email}
+                      onChange={(e) => setParentData({ ...parentData, email: e.target.value })}
+                      placeholder="walimurid@example.com"
+                    />
+                    <p style={{ marginTop: '0.5rem', fontSize: '12px', color: '#6b7280' }}>
+                      Username wali murid dibuat otomatis dari NIS (contoh: 12345-ortu).
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="form-file-uploads">
               <div className="file-upload-wrapper">
@@ -500,6 +605,11 @@ export const AdminUsersCreate = () => {
             </div>
 
             <div className="form-actions">
+              {isSaved && (
+                <div className="settings-saved-message" style={{ marginRight: 'auto' }}>
+                  ✓ Data berhasil disimpan
+                </div>
+              )}
               <Button
                 type="button"
                 variant="outline"

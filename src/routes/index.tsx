@@ -77,30 +77,6 @@ import { AdminAuditLog } from '../pages/admin/AdminAuditLog';
 import { AdminProfile } from '../pages/admin/AdminProfile';
 import { AdminPayment } from '../pages/admin/AdminPayment';
 
-// Parent Pages
-import { ParentDashboard } from '../pages/parent/ParentDashboard';
-import { ParentChildProfile } from '../pages/parent/ParentChildProfile';
-import { ParentSchedule } from '../pages/parent/ParentSchedule';
-import { ParentGrades } from '../pages/parent/ParentGrades';
-import { ParentAttendance } from '../pages/parent/ParentAttendance';
-import { ParentAssignments } from '../pages/parent/ParentAssignments';
-import { ParentAssignmentDetail } from '../pages/parent/ParentAssignmentDetail';
-import { ParentMessages } from '../pages/parent/ParentMessages';
-import { ParentMessagesChat } from '../pages/parent/ParentMessagesChat';
-import { ParentCalendar } from '../pages/parent/ParentCalendar';
-import { ParentAnnouncements } from '../pages/parent/ParentAnnouncements';
-import { ParentProgress } from '../pages/parent/ParentProgress';
-import { ParentActivity } from '../pages/parent/ParentActivity';
-import { ParentSubjects } from '../pages/parent/ParentSubjects';
-import { ParentMaterials } from '../pages/parent/ParentMaterials';
-import { ParentMaterialDetail } from '../pages/parent/ParentMaterialDetail';
-import { ParentQuizzes } from '../pages/parent/ParentQuizzes';
-import { ParentQuizDetail } from '../pages/parent/ParentQuizDetail';
-import { ParentForum } from '../pages/parent/ParentForum';
-import { ParentForumDetail } from '../pages/parent/ParentForumDetail';
-import { ParentPortfolio } from '../pages/parent/ParentPortfolio';
-import { ParentProfile } from '../pages/parent/ParentProfile';
-
 export const AppRoutes = () => {
   const { isAuthenticated } = useAuth();
 
@@ -499,6 +475,14 @@ export const AppRoutes = () => {
         }
       />
       <Route
+        path={ROUTES.ADMIN_USERS_EDIT}
+        element={
+          <ProtectedRoute allowedRoles={['admin']}>
+            <AdminUsersCreate />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path={ROUTES.ADMIN_CLASSES}
         element={
           <ProtectedRoute allowedRoles={['admin']}>
@@ -640,7 +624,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_DASHBOARD}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentDashboard />
+            <StudentDashboard />
           </ProtectedRoute>
         }
       />
@@ -648,7 +632,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_CHILD_PROFILE}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentChildProfile />
+            <StudentProfile />
           </ProtectedRoute>
         }
       />
@@ -784,7 +768,7 @@ export const AppRoutes = () => {
         path={ROUTES.PARENT_PROFILE}
         element={
           <ProtectedRoute allowedRoles={['parent']}>
-            <ParentProfile />
+            <StudentProfile />
           </ProtectedRoute>
         }
       />

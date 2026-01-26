@@ -2,7 +2,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Icon } from '../../components/common/Icon';
-import { SCHOOL_LEVELS, ROLE_LABELS } from '../../constants';
+import { ROLE_LABELS } from '../../constants';
 import { formatDate, formatDateTime } from '../../utils/dateUtils';
 import './TeacherProfile.css';
 
@@ -63,10 +63,6 @@ export const TeacherProfile = () => {
             <div className="info-item">
               <strong>Role:</strong> 
               <span>{user?.role ? ROLE_LABELS[user.role] : '-'}</span>
-            </div>
-            <div className="info-item">
-              <strong>Jenjang Sekolah:</strong> 
-              <span>{user?.schoolLevel ? SCHOOL_LEVELS[user.schoolLevel] : '-'}</span>
             </div>
             <div className="info-item">
               <strong>ID Pengguna:</strong> 

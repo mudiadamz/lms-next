@@ -4,15 +4,18 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Badge, Icon, Table, Loading, EmptyState } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
-import { classService, subjectService, userService } from '../../services';
+import { classService, userService } from '../../services';
 import './AdminClasses.css';
 
 export const AdminClassesDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [classData, setClassData] = useState<any>(null);
-  const [subjects, setSubjects] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [students, setStudents] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [moveTargets, setMoveTargets] = useState<Record<string, string>>({});
+  const [isMovingStudentId, setIsMovingStudentId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,23 +24,34 @@ export const AdminClassesDetail = () => {
       
       try {
         setIsLoading(true);
-        const [classInfo, subjectsData, teachersData] = await Promise.all([
+        const [classInfo, teachersData, studentsData, classesData] = await Promise.all([
           classService.getClassById(id),
-          subjectService.getSubjects(),
           userService.getUsers('teacher'),
+          userService.getUsers('student'),
+          classService.getClasses(),
         ]);
 
         setClassData(classInfo);
-
-        // Get subjects for this class
-        const subjectIds = (classInfo as any).subjectIds || [];
-        const classSubjects = subjectsData.filter(s => subjectIds.includes(s.id));
-        setSubjects(classSubjects);
 
         // Create teacher map
         const teacherMap: Record<string, string> = {};
         teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
         setTeachers(teacherMap);
+
+        const classStudentIds = (classInfo as any).studentIds || [];
+        const classStudents = studentsData.filter((student) =>
+          student.classId === id || classStudentIds.includes(student.id)
+        );
+        setStudents(classStudents);
+
+        const availableClasses = classesData.filter((cls: any) => cls.id !== classInfo.id);
+        setClasses(availableClasses);
+
+        const studentTargets: Record<string, string> = {};
+        classStudents.forEach((student) => {
+          studentTargets[student.id] = '';
+        });
+        setMoveTargets(studentTargets);
       } catch (error) {
         console.error('Error loading class detail:', error);
       } finally {
@@ -48,15 +62,65 @@ export const AdminClassesDetail = () => {
     loadData();
   }, [id]);
 
-  const subjectColumns = [
+  const studentColumns = [
     {
-      key: 'name',
-      header: 'Mata Pelajaran',
+      key: 'fullName',
+      header: 'Nama',
+      render: (item: any) => item.fullName || '-',
     },
     {
-      key: 'teacher',
-      header: 'Guru',
-      render: (item: any) => teachers[item.teacherId] || '-',
+      key: 'studentNumber',
+      header: 'NIS',
+      render: (item: any) => item.studentNumber || '-',
+    },
+    {
+      key: 'email',
+      header: 'Email',
+      render: (item: any) => item.email || '-',
+    },
+    {
+      key: 'moveClass',
+      header: 'Pindah Kelas',
+      render: (item: any) => (
+        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+          <select
+            className="filter-select"
+            value={moveTargets[item.id] || ''}
+            onChange={(e) => setMoveTargets({ ...moveTargets, [item.id]: e.target.value })}
+            disabled={classes.length === 0 || isMovingStudentId === item.id}
+          >
+            <option value="">
+              {classes.length === 0 ? 'Tidak ada kelas lain' : 'Pilih kelas'}
+            </option>
+            {classes.map((cls: any) => (
+              <option key={cls.id} value={cls.id}>
+                {cls.name}
+              </option>
+            ))}
+          </select>
+          <Button
+            variant="outline"
+            size="small"
+            disabled={!moveTargets[item.id] || isMovingStudentId === item.id}
+            onClick={async () => {
+              const targetClassId = moveTargets[item.id];
+              if (!targetClassId) return;
+              try {
+                setIsMovingStudentId(item.id);
+                await userService.updateUser(item.id, { classId: targetClassId });
+                setStudents(students.filter((s) => s.id !== item.id));
+              } catch (error) {
+                console.error('Error moving student:', error);
+                alert('Gagal memindahkan siswa');
+              } finally {
+                setIsMovingStudentId(null);
+              }
+            }}
+          >
+            Pindah
+          </Button>
+        </div>
+      ),
     },
   ];
 
@@ -76,8 +140,7 @@ export const AdminClassesDetail = () => {
     );
   }
 
-  const studentIds = (classData as any).studentIds || [];
-  const studentCount = studentIds.length;
+  const studentCount = students.length || (classData as any).studentCount || 0;
   const maxStudents = 36; // Default
 
   return (
@@ -91,10 +154,6 @@ export const AdminClassesDetail = () => {
           <Button variant="outline" onClick={() => navigate(`${ROUTES.ADMIN_CLASSES_EDIT.replace(':id', id || '')}`)}>
             <Icon name="edit" size={16} style={{ marginRight: '0.5rem' }} />
             Edit Kelas
-          </Button>
-          <Button onClick={() => navigate(`${ROUTES.ADMIN_CLASSES_STUDENTS.replace(':id', id || '')}`)}>
-            <Icon name="users" size={16} style={{ marginRight: '0.5rem' }} />
-            Daftar Siswa
           </Button>
         </div>
 
@@ -140,11 +199,11 @@ export const AdminClassesDetail = () => {
           </div>
         </Card>
 
-        <Card title="Mata Pelajaran" variant="elevated">
-          {subjects.length === 0 ? (
-            <EmptyState icon="book" title="Tidak Ada Mata Pelajaran" message="Belum ada mata pelajaran yang ditambahkan untuk kelas ini." />
+        <Card title="Daftar Siswa" variant="elevated">
+          {students.length === 0 ? (
+            <EmptyState icon="users" title="Tidak Ada Siswa" message="Belum ada siswa yang terdaftar di kelas ini." />
           ) : (
-            <Table columns={subjectColumns} data={subjects} />
+            <Table columns={studentColumns} data={students} />
           )}
         </Card>
       </div>

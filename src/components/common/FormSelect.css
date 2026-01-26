@@ -32,6 +32,12 @@
   background-size: 10px;
 }
 
+.form-select--multiple {
+  background-image: none;
+  padding-right: 0.75rem;
+  min-height: 140px;
+}
+
 .form-select:focus {
   outline: none;
   border-color: var(--ios-blue);

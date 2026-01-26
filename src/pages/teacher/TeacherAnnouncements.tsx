@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
@@ -19,8 +20,11 @@ export const TeacherAnnouncements = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [detailAnnouncement, setDetailAnnouncement] = useState<Announcement | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [searchParams, setSearchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -58,6 +62,16 @@ export const TeacherAnnouncements = () => {
       loadData();
     }
   }, [user?.id]);
+
+  useEffect(() => {
+    const announcementId = searchParams.get('announcementId');
+    if (!announcementId || announcements.length === 0) return;
+    const match = announcements.find((item) => item.id === announcementId);
+    if (match) {
+      setDetailAnnouncement(match);
+      setShowDetailModal(true);
+    }
+  }, [searchParams, announcements]);
 
   const filteredAnnouncements = announcements.filter((announcement) => {
     const matchesSearch =
@@ -328,6 +342,33 @@ export const TeacherAnnouncements = () => {
             )}
           </div>
         )}
+
+        <Modal
+          isOpen={showDetailModal && !!detailAnnouncement}
+          onClose={() => {
+            setShowDetailModal(false);
+            setDetailAnnouncement(null);
+            if (searchParams.get('announcementId')) {
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.delete('announcementId');
+              setSearchParams(nextParams, { replace: true });
+            }
+          }}
+          title="Detail Pengumuman"
+          size="large"
+        >
+          {detailAnnouncement && (
+            <div className="announcement-detail">
+              <h3>{detailAnnouncement.title}</h3>
+              <p className="announcement-detail-meta">
+                {formatDate(detailAnnouncement.createdAt)} • {getTargetAudienceLabel(detailAnnouncement.targetAudience)}
+              </p>
+              <div className="announcement-detail-content">
+                {detailAnnouncement.content}
+              </div>
+            </div>
+          )}
+        </Modal>
 
         {/* Create/Edit Modal */}
         <Modal

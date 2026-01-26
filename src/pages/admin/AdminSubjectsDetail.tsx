@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon, Table, Loading, EmptyState } from '../../components/common';
+import { Badge, Table, Loading, EmptyState, Button, FormSelect } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
 import { subjectService, classService, userService } from '../../services';
 import './SubjectManagement.css';
@@ -11,9 +11,12 @@ export const AdminSubjectsDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [subjectData, setSubjectData] = useState<any>(null);
+  const [allClasses, setAllClasses] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [teacherName, setTeacherName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
+  const [isUpdatingClasses, setIsUpdatingClasses] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -28,6 +31,7 @@ export const AdminSubjectsDetail = () => {
         ]);
 
         setSubjectData(subjectInfo);
+        setAllClasses(classesData);
 
         // Get classes using this subject
         const classIds = (subjectInfo as any).classIds || [];
@@ -49,6 +53,7 @@ export const AdminSubjectsDetail = () => {
         // Get teacher name
         const teacher = teachersData.find(t => t.id === subjectInfo.teacherId);
         setTeacherName(teacher?.fullName || '-');
+        setSelectedClassIds([]);
       } catch (error) {
         console.error('Error loading subject detail:', error);
       } finally {
@@ -84,6 +89,32 @@ export const AdminSubjectsDetail = () => {
     },
   ];
 
+  const existingClassIds = (subjectData as any)?.classIds || [];
+  const availableClasses = allClasses.filter((cls) => !existingClassIds.includes(cls.id));
+
+  const handleAddClasses = async () => {
+    if (!id || selectedClassIds.length === 0) return;
+    try {
+      setIsUpdatingClasses(true);
+      const nextClassIds = Array.from(new Set([...existingClassIds, ...selectedClassIds]));
+      const updatedSubject = await subjectService.updateSubject(id, { classIds: nextClassIds });
+      setSubjectData(updatedSubject);
+      const subjectClasses = allClasses.filter(c => nextClassIds.includes(c.id));
+      const classesWithCounts = subjectClasses.map((c) => ({
+        id: c.id,
+        name: c.name,
+        studentCount: (c as any).studentIds?.length || 0,
+      }));
+      setClasses(classesWithCounts);
+      setSelectedClassIds([]);
+    } catch (error) {
+      console.error('Error updating subject classes:', error);
+      alert('Gagal menambahkan kelas ke mata pelajaran');
+    } finally {
+      setIsUpdatingClasses(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -105,19 +136,6 @@ export const AdminSubjectsDetail = () => {
       <div className="subject-detail">
         <div className="page-header">
           <h1>Detail Mata Pelajaran</h1>
-        </div>
-
-        <div className="detail-actions">
-          <Button
-            variant="outline"
-            onClick={() => {
-              // Navigate to edit - you can implement edit page or modal
-              console.log('Edit subject', id);
-            }}
-          >
-            <Icon name="edit" size={16} style={{ marginRight: '0.5rem' }} />
-            Edit Mata Pelajaran
-          </Button>
         </div>
 
         <Card title="Informasi Mata Pelajaran" variant="elevated">
@@ -154,6 +172,34 @@ export const AdminSubjectsDetail = () => {
         </Card>
 
         <Card title="Kelas yang Menggunakan Mata Pelajaran Ini" variant="elevated">
+          <div style={{ marginBottom: '1rem' }}>
+            <FormSelect
+              label="Tambah Kelas"
+              multiple
+              value={selectedClassIds}
+              onChange={(e) => {
+                const values = Array.from(e.target.selectedOptions).map((option) => option.value);
+                setSelectedClassIds(values);
+              }}
+              options={
+                availableClasses.length === 0
+                  ? [{ value: '', label: 'Tidak ada kelas tersedia' }]
+                  : availableClasses.map((cls) => ({ value: cls.id, label: cls.name }))
+              }
+              helperText="Gunakan Ctrl/Cmd untuk memilih banyak kelas"
+              disabled={availableClasses.length === 0}
+            />
+            <div style={{ marginTop: '0.5rem' }}>
+              <Button
+                variant="outline"
+                size="small"
+                disabled={selectedClassIds.length === 0 || isUpdatingClasses}
+                onClick={handleAddClasses}
+              >
+                Tambah Kelas
+              </Button>
+            </div>
+          </div>
           {classes.length === 0 ? (
             <EmptyState icon="class" title="Tidak Ada Kelas" message="Belum ada kelas yang menggunakan mata pelajaran ini." />
           ) : (

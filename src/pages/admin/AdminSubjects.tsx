@@ -99,7 +99,7 @@ export const AdminSubjects = () => {
           <h1>Mata Pelajaran</h1>
           <div className="header-actions">
             <Link to={ROUTES.ADMIN_SUBJECT_MANAGEMENT}>
-              <Button>Kelola Mata Pelajaran</Button>
+              <Button>Tambah Mata Pelajaran</Button>
             </Link>
           </div>
         </div>

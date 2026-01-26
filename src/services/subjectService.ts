@@ -42,7 +42,7 @@ export const subjectService = {
     return response.data;
   },
 
-  async updateSubject(id: string, subject: Partial<Subject>): Promise<Subject> {
+  async updateSubject(id: string, subject: Partial<Subject> & { teacherId?: string | null }): Promise<Subject> {
     const response = await apiClient.put<ApiResponse<Subject>>(`/subjects/${id}`, subject);
     
     if (!response.success || !response.data) {

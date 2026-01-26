@@ -108,11 +108,16 @@ export const TeacherClasses = () => {
                       {SCHOOL_LEVELS[classItem.schoolLevel]}
                     </Badge>
                   </div>
-                  <Badge
-                    variant={(classItem as any).studentCount >= (classItem as any).maxStudents ? 'danger' : 'primary'}
-                  >
-                    {(classItem as any).studentCount || 0}/{(classItem as any).maxStudents || 0}
-                  </Badge>
+                  {(() => {
+                    const studentCount = (classItem as any).studentCount ?? 0;
+                    const maxStudents = (classItem as any).maxStudents ?? 36;
+                    const isFull = maxStudents > 0 && studentCount >= maxStudents;
+                    return (
+                      <Badge variant={isFull ? 'danger' : 'primary'}>
+                        {studentCount}/{maxStudents}
+                      </Badge>
+                    );
+                  })()}
                 </div>
 
                 <div className="class-info">

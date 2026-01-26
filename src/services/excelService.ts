@@ -54,38 +54,37 @@ export const excelService = {
     const exampleRow: any = {};
 
     if (role === 'student') {
-      headers.push('NIS', 'Username', 'Password', 'Nama Lengkap', 'Email', 'Tingkat Sekolah', 'Kelas ID', 'No. HP', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat');
+      headers.push('NIS', 'Username', 'Password', 'Nama Lengkap', 'Email', 'Tingkat Sekolah', 'Kelas', 'Kelas ID', 'No. HP', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat');
       exampleRow['NIS'] = '2024001';
       exampleRow['Username'] = 'siswa001';
       exampleRow['Password'] = 'password123';
       exampleRow['Nama Lengkap'] = 'Budi Santoso';
       exampleRow['Email'] = 'budi@example.com';
       exampleRow['Tingkat Sekolah'] = 'sma';
+      exampleRow['Kelas'] = '10A';
       exampleRow['Kelas ID'] = 'class1';
       exampleRow['No. HP'] = '081234567890';
       exampleRow['Tempat Lahir'] = 'Jakarta';
       exampleRow['Tanggal Lahir'] = '2005-05-15';
       exampleRow['Alamat'] = 'Jl. Contoh No. 123';
     } else if (role === 'teacher') {
-      headers.push('NIP', 'Username', 'Password', 'Nama Lengkap', 'Email', 'Tingkat Sekolah', 'No. HP', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat');
+      headers.push('NIP', 'Username', 'Password', 'Nama Lengkap', 'Email', 'No. HP', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat');
       exampleRow['NIP'] = '1985001';
       exampleRow['Username'] = 'guru001';
       exampleRow['Password'] = 'password123';
       exampleRow['Nama Lengkap'] = 'Ibu Siti';
       exampleRow['Email'] = 'siti@example.com';
-      exampleRow['Tingkat Sekolah'] = 'sma';
       exampleRow['No. HP'] = '081234567891';
       exampleRow['Tempat Lahir'] = 'Bandung';
       exampleRow['Tanggal Lahir'] = '1985-03-20';
       exampleRow['Alamat'] = 'Jl. Contoh No. 456';
     } else if (role === 'admin') {
-      headers.push('NIP Admin', 'Username', 'Password', 'Nama Lengkap', 'Email', 'Tingkat Sekolah', 'No. HP', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat');
+      headers.push('NIP Admin', 'Username', 'Password', 'Nama Lengkap', 'Email', 'No. HP', 'Tempat Lahir', 'Tanggal Lahir', 'Alamat');
       exampleRow['NIP Admin'] = 'ADM001';
       exampleRow['Username'] = 'admin001';
       exampleRow['Password'] = 'password123';
       exampleRow['Nama Lengkap'] = 'Admin Sekolah';
       exampleRow['Email'] = 'admin@example.com';
-      exampleRow['Tingkat Sekolah'] = 'sma';
       exampleRow['No. HP'] = '081234567892';
       exampleRow['Tempat Lahir'] = 'Surabaya';
       exampleRow['Tanggal Lahir'] = '1980-01-10';
@@ -123,10 +122,13 @@ export const excelService = {
   /**
    * Import users from Excel file via API
    */
-  async importUsers(file: File, role: string): Promise<ExcelImportResult> {
+  async importUsers(file: File, role: string, academicYearId?: string): Promise<ExcelImportResult> {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('role', role);
+    if (academicYearId) {
+      formData.append('academicYearId', academicYearId);
+    }
 
     const token = localStorage.getItem('token');
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';

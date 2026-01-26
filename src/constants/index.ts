@@ -57,6 +57,7 @@ export const ROUTES = {
   ADMIN_DASHBOARD: '/admin/dashboard',
   ADMIN_USERS: '/admin/users',
   ADMIN_USERS_CREATE: '/admin/users/create',
+  ADMIN_USERS_EDIT: '/admin/users/edit/:id',
   ADMIN_CLASSES: '/admin/classes',
   ADMIN_CLASSES_CREATE: '/admin/classes/create',
   ADMIN_CLASSES_EDIT: '/admin/classes/edit/:id',

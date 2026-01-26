@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState, Pagination, Loading } from '../../components/common';
@@ -20,6 +21,9 @@ export const AdminAnnouncements = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
+  const [detailAnnouncement, setDetailAnnouncement] = useState<Announcement | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [formData, setFormData] = useState({
@@ -54,6 +58,16 @@ export const AdminAnnouncements = () => {
 
     loadData();
   }, []);
+
+  useEffect(() => {
+    const announcementId = searchParams.get('announcementId');
+    if (!announcementId || announcements.length === 0) return;
+    const match = announcements.find((item) => item.id === announcementId);
+    if (match) {
+      setDetailAnnouncement(match);
+      setShowDetailModal(true);
+    }
+  }, [searchParams, announcements]);
 
   const formatDate = (date: Date | undefined | null) => {
     if (!date || !(date instanceof Date) || isNaN(date.getTime())) {
@@ -240,8 +254,11 @@ export const AdminAnnouncements = () => {
     }
   };
 
-  const getTargetAudienceLabel = (audience: UserRole[] | 'all') => {
-    if (audience === 'all') return 'Semua';
+  const getTargetAudienceLabel = (audience: UserRole[] | UserRole | 'all' | undefined | null) => {
+    if (!audience || audience === 'all') return 'Semua';
+    if (!Array.isArray(audience)) {
+      return ROLE_LABELS[audience as UserRole] || String(audience);
+    }
     if (audience.length === 1) return ROLE_LABELS[audience[0]];
     return audience.map((role) => ROLE_LABELS[role]).join(', ');
   };
@@ -355,6 +372,34 @@ export const AdminAnnouncements = () => {
             )}
           </Card>
         )}
+
+        {/* Detail Modal */}
+        <Modal
+          isOpen={showDetailModal && !!detailAnnouncement}
+          onClose={() => {
+            setShowDetailModal(false);
+            setDetailAnnouncement(null);
+            if (searchParams.get('announcementId')) {
+              const nextParams = new URLSearchParams(searchParams);
+              nextParams.delete('announcementId');
+              setSearchParams(nextParams, { replace: true });
+            }
+          }}
+          title="Detail Pengumuman"
+          size="large"
+        >
+          {detailAnnouncement && (
+            <div className="announcement-detail">
+              <h3>{detailAnnouncement.title}</h3>
+              <p className="announcement-detail-meta">
+                {formatDate(detailAnnouncement.createdAt)} • {getTargetAudienceLabel(detailAnnouncement.targetAudience)}
+              </p>
+              <div className="announcement-detail-content">
+                {detailAnnouncement.content}
+              </div>
+            </div>
+          )}
+        </Modal>
 
         {/* Create Modal */}
         <Modal

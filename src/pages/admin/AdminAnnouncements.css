@@ -61,6 +61,24 @@
   gap: 1rem;
 }
 
+.announcement-detail h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.announcement-detail-meta {
+  margin: 0 0 1rem;
+  color: var(--ios-gray);
+  font-size: 0.85rem;
+}
+
+.announcement-detail-content {
+  white-space: pre-wrap;
+  color: #1f2937;
+  line-height: 1.5;
+}
+
 .form-checkbox {
   display: flex;
   align-items: center;

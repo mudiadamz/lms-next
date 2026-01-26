@@ -4,17 +4,20 @@ export type SchoolLevel = 'sd' | 'smp' | 'sma';
 
 export interface User {
   id: string;
+  username?: string;
   studentNumber?: string; // Nomor Induk Siswa (NIS)
   teacherNumber?: string; // Nomor Induk Pengajar (NIP)
   adminNumber?: string; // Nomor Induk Admin
   fullName: string;
   email?: string;
+  password?: string;
   role: UserRole;
   schoolLevel?: SchoolLevel;
   classId?: string;
   studentId?: string; // For parent role
   avatar?: string;
   phoneNumber?: string;
+  gender?: string;
   birthPlace?: string;
   birthDate?: string;
   kkFile?: string; // File name or URL
@@ -45,7 +48,7 @@ export interface Subject {
   code: string;
   description?: string;
   schoolLevel: SchoolLevel;
-  teacherId: string;
+  teacherId: string | null;
   classIds: string[];
 }
 
