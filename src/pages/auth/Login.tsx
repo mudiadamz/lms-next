@@ -56,13 +56,6 @@ export const Login = () => {
     await performLogin(studentNumber, password);
   };
 
-  const handleQuickLogin = async (username: string, password: string) => {
-    setStudentNumber(username);
-    setPassword(password);
-    await performLogin(username, password);
-  };
-
-
   return (
     <div className="login-page">
       <Card className="login-card">
@@ -100,48 +93,6 @@ export const Login = () => {
             Login
           </Button>
         </form>
-        
-        <div className="login-info">
-          <p className="login-info-title"><strong>Login Cepat (Demo):</strong></p>
-          <div className="login-buttons-grid">
-            <button
-              type="button"
-              className="login-quick-button login-quick-button--admin"
-              onClick={() => handleQuickLogin('admin', 'password')}
-              disabled={isLoading}
-            >
-              <Icon name="users" size={18} />
-              <span>Admin</span>
-            </button>
-            <button
-              type="button"
-              className="login-quick-button login-quick-button--teacher"
-              onClick={() => handleQuickLogin('teacher', 'password')}
-              disabled={isLoading}
-            >
-              <Icon name="user" size={18} />
-              <span>Guru</span>
-            </button>
-            <button
-              type="button"
-              className="login-quick-button login-quick-button--student"
-              onClick={() => handleQuickLogin('student', 'password')}
-              disabled={isLoading}
-            >
-              <Icon name="userGroup" size={18} />
-              <span>Murid</span>
-            </button>
-            <button
-              type="button"
-              className="login-quick-button login-quick-button--parent"
-              onClick={() => handleQuickLogin('parent', 'password')}
-              disabled={isLoading}
-            >
-              <Icon name="users" size={18} />
-              <span>Orang Tua</span>
-            </button>
-          </div>
-        </div>
       </Card>
     </div>
   );
