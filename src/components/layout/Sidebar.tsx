@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../constants';
 import { Icon, IconName } from '../common/Icon';
-import { assignmentService, quizService, paymentService, forumService, classService } from '../../services';
+import { badgeService } from '../../services/badgeService';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -59,6 +59,7 @@ const getMenuItems = (role: string): MenuItem[] => {
         { label: 'Absensi', path: ROUTES.TEACHER_ATTENDANCE, icon: 'checkCircle' },
         { label: 'Forum', path: ROUTES.TEACHER_FORUM, icon: 'forum' },
         { label: 'Jadwal', path: ROUTES.TEACHER_SCHEDULE, icon: 'schedule' },
+        { label: 'Kurikulum', path: ROUTES.ADMIN_CURRICULUM, icon: 'book' },
         { label: 'Rapor', path: ROUTES.TEACHER_REPORTS, icon: 'report' },
         { label: 'Pengumuman', path: ROUTES.TEACHER_ANNOUNCEMENTS, icon: 'announcement' },
         { label: 'Kalender', path: ROUTES.TEACHER_CALENDAR, icon: 'calendar' },
@@ -127,76 +128,28 @@ export const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     return getInitialExpandedMenus(menuItems);
   });
 
-  // Fetch badge counts for student and teacher
+  // Fetch all badge counts in ONE API call
   useEffect(() => {
     const fetchBadgeCounts = async () => {
       if (!user) return;
 
       try {
+        const badges = await badgeService.getBadges();
+
+        // Map badge counts to routes
+        const badgeMap: Record<string, number> = {};
+
         if (user.role === 'student') {
-          const [assignments, quizzes, payments] = await Promise.all([
-            assignmentService.getAssignments().catch(() => []),
-            quizService.getQuizzes().catch(() => []),
-            paymentService.getPayments().catch(() => []),
-          ]);
-
-          const now = new Date();
-          // Only count assignments that are:
-          // 1. Not yet submitted (status !== 'submitted')
-          // 2. Not yet graded (score === null)
-          // 3. Deadline hasn't passed
-          const pendingAssignments = assignments.filter(a => {
-            const dueDate = new Date(a.dueDate);
-            const notSubmitted = (a as any).status !== 'submitted';
-            const notGraded = (a as any).score === null || (a as any).score === undefined;
-            const notPastDue = dueDate >= now;
-            return notSubmitted && notGraded && notPastDue;
-          }).length;
-
-          // Only count quizzes that are active and not yet submitted
-          const activeQuizzes = quizzes.filter(q => {
-            const startDate = new Date(q.startDate);
-            const endDate = new Date(q.endDate);
-            const isActive = startDate <= now && endDate >= now;
-            const notSubmitted = (q as any).status !== 'submitted';
-            const notGraded = (q as any).score === null || (q as any).score === undefined;
-            return isActive && notSubmitted && notGraded;
-          }).length;
-
-          // Count unpaid payments (status = 'pending', 'overdue', or 'verifying')
-          const unpaidPayments = payments.filter(p => 
-            (p as any).status === 'pending' || 
-            (p as any).status === 'overdue' ||
-            (p as any).status === 'verifying'
-          ).length;
-
-          setMenuBadges({
-            [ROUTES.STUDENT_ASSIGNMENTS]: pendingAssignments,
-            [ROUTES.STUDENT_QUIZZES]: activeQuizzes,
-            [ROUTES.STUDENT_PAYMENT]: unpaidPayments,
-          });
+          if (badges.assignments) badgeMap[ROUTES.STUDENT_ASSIGNMENTS] = badges.assignments;
+          if (badges.quizzes) badgeMap[ROUTES.STUDENT_QUIZZES] = badges.quizzes;
+          if (badges.payments) badgeMap[ROUTES.STUDENT_PAYMENT] = badges.payments;
         } else if (user.role === 'teacher') {
-          // For teachers, count ungraded submissions and forum posts
-          const [assignments, classes] = await Promise.all([
-            assignmentService.getAssignments().catch(() => []),
-            classService.getClasses().catch(() => []),
-          ]);
-          
-          let ungradedCount = 0;
-          for (const assignment of assignments) {
-            try {
-              const submissions = await assignmentService.getSubmissions(assignment.id).catch(() => []);
-              const ungraded = submissions.filter((s: any) => s.score === null || s.score === undefined);
-              ungradedCount += ungraded.length;
-            } catch (error) {
-              // Skip if error
-            }
-          }
-
-          setMenuBadges({
-            [ROUTES.TEACHER_GRADING]: ungradedCount,
-          });
+          if (badges.grading) badgeMap[ROUTES.TEACHER_GRADING] = badges.grading;
+        } else if (user.role === 'admin') {
+          if (badges.payments) badgeMap[ROUTES.ADMIN_PAYMENT] = badges.payments;
         }
+
+        setMenuBadges(badgeMap);
       } catch (error) {
         console.error('Error fetching badge counts:', error);
       }

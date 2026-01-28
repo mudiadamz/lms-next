@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, ConfirmDialog, Icon, EmptyState, Loading } from '../../components/common';
+import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, FileUpload, ConfirmDialog, Icon, EmptyState, Loading } from '../../components/common';
 import { SCHOOL_LEVELS } from '../../constants';
 import { curriculumService } from '../../services';
 import './AdminCurriculum.css';
@@ -52,6 +52,7 @@ export const AdminCurriculum = () => {
     startDate: '',
     endDate: '',
   });
+  const [documentFile, setDocumentFile] = useState<File | null>(null);
 
   const filteredCurriculums = curriculums.filter((curriculum) => {
     const matchesLevel =
@@ -124,22 +125,18 @@ export const AdminCurriculum = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const curriculumData = {
+        name: formData.name,
+        description: formData.description,
+        schoolLevel: formData.schoolLevel as 'sd' | 'smp' | 'sma' | 'all',
+        startDate: formData.startDate ? new Date(formData.startDate) : undefined,
+        endDate: formData.endDate ? new Date(formData.endDate) : undefined,
+      };
+
       if (showEditModal && selectedCurriculum) {
-        await curriculumService.updateCurriculum(selectedCurriculum.id, {
-          name: formData.name,
-          description: formData.description,
-          schoolLevel: formData.schoolLevel as 'sd' | 'smp' | 'sma' | 'all',
-          startDate: new Date(formData.startDate),
-          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
-        });
+        await curriculumService.updateCurriculum(selectedCurriculum.id, curriculumData);
       } else {
-        await curriculumService.createCurriculum({
-          name: formData.name,
-          description: formData.description,
-          schoolLevel: formData.schoolLevel as 'sd' | 'smp' | 'sma' | 'all',
-          startDate: new Date(formData.startDate),
-          endDate: formData.endDate ? new Date(formData.endDate) : undefined,
-        });
+        await curriculumService.createCurriculum(curriculumData);
       }
 
       // Reload data
@@ -381,21 +378,12 @@ export const AdminCurriculum = () => {
               ]}
               required
             />
-            <div className="form-row">
-              <FormInput
-                label="Tanggal Mulai"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                required
-              />
-              <FormInput
-                label="Tanggal Selesai (Opsional)"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              />
-            </div>
+            <FileUpload
+              label="Dokumen Kurikulum (Opsional)"
+              accept=".pdf,.doc,.docx"
+              maxSize={10}
+              onFileSelect={(files) => setDocumentFile(files[0] || null)}
+            />
             <div className="modal-footer">
               <Button variant="outline" type="button" onClick={() => setShowCreateModal(false)}>
                 Batal
@@ -442,21 +430,12 @@ export const AdminCurriculum = () => {
               ]}
               required
             />
-            <div className="form-row">
-              <FormInput
-                label="Tanggal Mulai"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                required
-              />
-              <FormInput
-                label="Tanggal Selesai (Opsional)"
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              />
-            </div>
+            <FileUpload
+              label="Dokumen Kurikulum (Opsional)"
+              accept=".pdf,.doc,.docx"
+              maxSize={10}
+              onFileSelect={(files) => setDocumentFile(files[0] || null)}
+            />
             <div className="modal-footer">
               <Button variant="outline" type="button" onClick={() => setShowEditModal(false)}>
                 Batal

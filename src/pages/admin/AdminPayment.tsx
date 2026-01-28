@@ -18,7 +18,7 @@ interface Payment {
   year: number;
   amount: number;
   dueDate: Date;
-  status: 'paid' | 'pending' | 'overdue';
+  status: 'paid' | 'pending' | 'overdue' | 'verifying';
   paymentMethod?: string;
   receiptNumber?: string;
   receiptFileUrl?: string;
@@ -43,6 +43,8 @@ const getStatusBadge = (status: Payment['status']) => {
   switch (status) {
     case 'paid':
       return <Badge variant="success">Sudah Dibayar</Badge>;
+    case 'verifying':
+      return <Badge variant="info">Menunggu Verifikasi</Badge>;
     case 'pending':
       return <Badge variant="warning">Belum Dibayar</Badge>;
     case 'overdue':
@@ -83,7 +85,7 @@ export const AdminPayment = () => {
     year: new Date().getFullYear().toString(),
     amount: '',
     dueDate: '',
-    status: 'pending' as Payment['status'],
+    status: 'pending' as 'paid' | 'pending' | 'overdue' | 'verifying',
     paymentMethod: '',
     receiptNumber: '',
     notes: '',
@@ -464,6 +466,7 @@ export const AdminPayment = () => {
                 }}
                 options={[
                   { value: 'all', label: 'Semua Status' },
+                  { value: 'verifying', label: 'Menunggu Verifikasi' },
                   { value: 'paid', label: 'Sudah Dibayar' },
                   { value: 'pending', label: 'Belum Dibayar' },
                   { value: 'overdue', label: 'Terlambat' },

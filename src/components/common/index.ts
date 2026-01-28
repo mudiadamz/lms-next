@@ -17,5 +17,6 @@ export * from './Dropdown';
 export * from './EmptyState';
 export * from './ConfirmDialog';
 export * from './Icon';
+export * from './NotificationBell';
 export type { IconName } from './Icon';
 

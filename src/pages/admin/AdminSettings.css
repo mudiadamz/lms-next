@@ -176,6 +176,14 @@
   color: #f9fafb;
 }
 
+.dark-mode .settings-info {
+  color: #d1d5db;
+}
+
+.dark-mode .settings-info p {
+  color: #d1d5db;
+}
+
 /* Admin management section styles */
 .admin-management-section {
   padding: 0.5rem 0;

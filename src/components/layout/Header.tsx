@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useSettings } from '../../contexts/SettingsContext';
 import { ROUTES } from '../../constants';
 import { Icon } from '../common/Icon';
+import { NotificationBell } from '../common/NotificationBell';
 import { notificationService } from '../../services';
 import { formatDateTime } from '../../utils/dateUtils';
 import './Header.css';
@@ -93,6 +94,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
         <nav className="header-nav">
           {user && (
             <>
+              <NotificationBell />
               {announcements.length > 0 && (
                 <div className="header-notification">
                   <button
@@ -103,7 +105,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                     }}
                     aria-label="Pengumuman"
                   >
-                    <Icon name="announcement" size={20} />
+                    📢
                     {unreadAnnouncements > 0 && (
                       <span className="header-notification-badge">{unreadAnnouncements}</span>
                     )}

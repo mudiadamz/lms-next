@@ -96,70 +96,9 @@ export const TeacherGrading = () => {
         });
         setStudents(studentMap);
 
-        // Process pending submissions - show individual student submissions
+        // Simplified: Only show assignments/quizzes with ungraded count
+        // Submissions fetched on-demand in GradingInterface
         const pendingItems: PendingSubmission[] = [];
-        
-        // Get submissions for each assignment
-        for (const assignment of assignmentsData) {
-          try {
-            const submissions = await assignmentService.getSubmissions(assignment.id);
-            const ungradedSubmissions = submissions.filter((s: any) => s.score === null || s.score === undefined);
-            
-            ungradedSubmissions.forEach((submission: any) => {
-              const student = studentMap[submission.studentId];
-              if (student) {
-                pendingItems.push({
-                  submissionId: submission.id,
-                  assignmentId: assignment.id,
-                  type: 'assignment',
-                  title: assignment.title,
-                  studentId: submission.studentId,
-                  studentName: student.fullName,
-                  studentNumber: student.studentNumber,
-                  class: classMap[assignment.classId] || assignment.classId,
-                  subject: subjectMap[assignment.subjectId] || assignment.subjectId,
-                  submittedAt: new Date(submission.submittedAt),
-                  maxScore: assignment.maxScore || 100,
-                });
-              }
-            });
-          } catch (error) {
-            console.error(`Error loading submissions for assignment ${assignment.id}:`, error);
-          }
-        }
-
-        // Get submissions for each quiz
-        for (const quiz of quizzesData) {
-          try {
-            const submissions = await quizService.getSubmissions(quiz.id);
-            const ungradedSubmissions = submissions.filter((s: any) => s.score === null || s.score === undefined);
-            
-            ungradedSubmissions.forEach((submission: any) => {
-              const student = studentMap[submission.studentId];
-              if (student) {
-                pendingItems.push({
-                  submissionId: submission.id,
-                  assignmentId: quiz.id,
-                  type: 'quiz',
-                  title: quiz.title,
-                  studentId: submission.studentId,
-                  studentName: student.fullName,
-                  studentNumber: student.studentNumber,
-                  class: classMap[quiz.classId] || quiz.classId,
-                  subject: subjectMap[quiz.subjectId] || quiz.subjectId,
-                  submittedAt: new Date(submission.submittedAt),
-                  maxScore: quiz.maxScore || 100,
-                });
-              }
-            });
-          } catch (error) {
-            console.error(`Error loading submissions for quiz ${quiz.id}:`, error);
-          }
-        }
-
-        // Sort by submitted date (oldest first - FIFO)
-        pendingItems.sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
-        
         setPendingSubmissions(pendingItems);
 
         // Process graded items
