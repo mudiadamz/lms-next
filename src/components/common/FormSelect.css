@@ -73,3 +73,8 @@
   background-color: var(--ios-background);
   color: #000000;
 }
+
+.dark-mode .form-select option {
+  background-color: var(--ios-background);
+  color: #f9fafb;
+}

@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, FormInput, FormTextarea, FileUpload, Badge, Modal, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
-import { formatDateTime } from '../../utils';
+import { formatDateTime, getFileUrl, getFileName } from '../../utils';
 import { assignmentService, userService } from '../../services';
 import './GradingInterface.css';
 
@@ -182,8 +182,8 @@ export const GradingInterface = () => {
                 <ul>
                   {submission.attachments.map((file: string, index: number) => (
                     <li key={index}>
-                      <a href={file} download target="_blank" rel="noopener noreferrer">
-                        📎 {file.split('/').pop() || file}
+                      <a href={getFileUrl(file)} download target="_blank" rel="noopener noreferrer">
+                        📎 {getFileName(file)}
                       </a>
                     </li>
                   ))}

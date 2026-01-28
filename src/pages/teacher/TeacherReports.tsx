@@ -143,24 +143,44 @@ export const TeacherReports = () => {
       // Get students in the selected class
       const classData = await classService.getClassById(selectedClass);
       const studentIds = (classData as any).studentIds || [];
+      console.log('Generating report cards for class:', selectedClass);
+      console.log('Student IDs:', studentIds);
+      console.log('Academic Year:', selectedAcademicYear, 'Semester:', selectedSemester);
+
+      if (studentIds.length === 0) {
+        alert('Tidak ada siswa di kelas ini');
+        setIsGenerating(false);
+        return;
+      }
+
+      let successCount = 0;
+      let skippedCount = 0;
+      const errors: string[] = [];
 
       // Generate report cards for all students
-      await Promise.all(
-        studentIds.map(async (studentId: string) => {
-          try {
-            // Try to get existing report card, if not exists, create it
-            await reportCardService.getReportCard(
-              studentId,
-              selectedAcademicYear,
-              parseInt(selectedSemester)
-            );
-          } catch (error) {
-            // If report card doesn't exist, generate it
-            // Note: This might require a generate endpoint in the API
-            console.log('Generating report card for student:', studentId);
+      for (const studentId of studentIds) {
+        try {
+          console.log('Generating report for student:', studentId);
+          await reportCardService.generateReportCard({
+            studentId,
+            classId: selectedClass,
+            academicYear: selectedAcademicYear,
+            semester: parseInt(selectedSemester),
+          });
+          console.log('Success for student:', studentId);
+          successCount++;
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          console.log('Error for student:', studentId, errorMsg);
+          if (errorMsg.includes('already exists')) {
+            skippedCount++;
+          } else if (errorMsg.includes('No grades')) {
+            errors.push(`${students[studentId]?.fullName || studentId}: Belum ada nilai`);
+          } else {
+            errors.push(`${students[studentId]?.fullName || studentId}: ${errorMsg}`);
           }
-        })
-      );
+        }
+      }
 
       // Reload report cards
       const reportCardsData = await Promise.all(
@@ -184,7 +204,20 @@ export const TeacherReports = () => {
       );
 
       setReportCards(reportCardsData.filter(rc => rc !== null) as any[]);
-      setShowSuccessModal(true);
+      
+      // Show result message
+      let message = '';
+      if (successCount > 0) message += `✅ ${successCount} rapor berhasil di-generate\n`;
+      if (skippedCount > 0) message += `⚠️ ${skippedCount} rapor sudah ada (dilewati)\n`;
+      if (errors.length > 0) message += `\n❌ Error:\n${errors.join('\n')}`;
+      
+      if (message) {
+        alert(message.trim());
+      }
+      
+      if (successCount > 0) {
+        setShowSuccessModal(true);
+      }
     } catch (error) {
       console.error('Error generating report:', error);
       alert('Gagal generate rapor');
@@ -342,9 +375,19 @@ export const TeacherReports = () => {
                 icon="document"
                 title="Tidak Ada Rapor"
                 message={
-                  searchTerm || selectedClass
-                    ? 'Tidak ada rapor yang sesuai dengan filter yang dipilih.'
+                  searchTerm
+                    ? 'Tidak ada rapor yang sesuai dengan pencarian.'
+                    : selectedClass
+                    ? 'Rapor belum di-generate untuk periode ini. Klik tombol "Generate Rapor" di atas untuk membuat rapor siswa.'
                     : 'Pilih kelas, tahun ajaran, dan semester untuk melihat rapor.'
+                }
+                action={
+                  selectedClass && !searchTerm
+                    ? {
+                        label: 'Generate Rapor Sekarang',
+                        onClick: handleGenerate,
+                      }
+                    : undefined
                 }
               />
             ) : (

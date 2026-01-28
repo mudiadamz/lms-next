@@ -176,6 +176,10 @@
   overflow: hidden;
 }
 
+.dark-mode .portfolio-item-description {
+  color: #e5e7eb;
+}
+
 .portfolio-item-footer {
   display: flex;
   justify-content: space-between;
@@ -269,10 +273,20 @@
   color: #000000;
 }
 
+.dark-mode .detail-description h4,
+.dark-mode .detail-feedback h4,
+.dark-mode .detail-attachments h4 {
+  color: #f9fafb;
+}
+
 .detail-description p {
   margin: 0;
   line-height: 1.8;
   color: #000000;
+}
+
+.dark-mode .detail-description p {
+  color: #e5e7eb;
 }
 
 .feedback-content {

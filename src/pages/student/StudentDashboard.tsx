@@ -6,7 +6,7 @@ import { Badge, Button, Loading, Modal } from '../../components/common';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../constants';
 import { formatDate, formatDateTime, isPast } from '../../utils';
-import { assignmentService, quizService, gradeService, announcementService, scheduleService, attendanceService } from '../../services';
+import { assignmentService, quizService, gradeService, announcementService, scheduleService, attendanceService, subjectService } from '../../services';
 import './StudentDashboard.css';
 
 export const StudentDashboard = () => {
@@ -18,6 +18,7 @@ export const StudentDashboard = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [searchParams, setSearchParams] = useSearchParams();
   const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<Record<string, string>>({});
   const [stats, setStats] = useState({
     activeAssignments: 0,
     upcomingQuizzes: 0,
@@ -37,14 +38,20 @@ export const StudentDashboard = () => {
         const studentData = user?.id ? await (await import('../../services')).userService.getUserById(user.id) : null;
         const classId = (studentData as any)?.classId;
 
-        const [assignmentsData, quizzesData, gradesData, announcementsData, schedulesData, attendanceData] = await Promise.all([
+        const [assignmentsData, quizzesData, gradesData, announcementsData, schedulesData, attendanceData, subjectsData] = await Promise.all([
           assignmentService.getAssignments(classId ? { classId } : {}),
           quizService.getQuizzes(classId ? { classId } : {}),
           gradeService.getGrades(user?.id ? { studentId: user.id } : {}),
           announcementService.getAnnouncements({ targetAudience: 'student' }),
           scheduleService.getSchedules(classId ? { classId } : {}),
           attendanceService.getAttendance(user?.id ? { studentId: user.id } : {}),
+          subjectService.getSubjects(),
         ]);
+
+        // Create subject map
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach((s: any) => { subjectMap[s.id] = s.name; });
+        setSubjects(subjectMap);
 
         // Filter urgent assignments (due within 3 days)
         const threeDaysFromNow = new Date();
@@ -180,7 +187,7 @@ export const StudentDashboard = () => {
                       <div>
                         <strong>{assignment.title}</strong>
                         <p className="item-meta">
-                          {(assignment as any).subjectName || assignment.subjectId} • Deadline: {formatDate(new Date(assignment.dueDate))}
+                          {subjects[assignment.subjectId] || assignment.subjectId} • Deadline: {formatDate(new Date(assignment.dueDate))}
                         </p>
                       </div>
                       <Badge variant={isPast(new Date(assignment.dueDate)) ? 'danger' : 'warning'}>
@@ -205,7 +212,7 @@ export const StudentDashboard = () => {
                   {recentGrades.map((grade, index) => (
                     <div key={index} className="grade-item">
                       <div>
-                        <strong>{(grade as any).subjectName || grade.subjectId}</strong>
+                        <strong>{subjects[grade.subjectId] || grade.subjectId}</strong>
                         <p className="item-meta">{formatDate(new Date(grade.createdAt || grade.date || Date.now()))}</p>
                       </div>
                       <Badge variant="success">
@@ -248,7 +255,7 @@ export const StudentDashboard = () => {
                       .map((schedule) => (
                         <div key={schedule.id} className="schedule-item">
                           <span className="schedule-time">{schedule.startTime} - {schedule.endTime}</span>
-                          <span className="schedule-subject">{(schedule as any).subjectName || schedule.subjectId}</span>
+                          <span className="schedule-subject">{subjects[schedule.subjectId] || schedule.subjectId}</span>
                         </div>
                       ))}
                   </div>

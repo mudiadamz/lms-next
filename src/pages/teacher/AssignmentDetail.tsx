@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Badge, Table, ConfirmDialog, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
-import { formatDate, formatDateTime } from '../../utils';
+import { formatDate, formatDateTime, getFileUrl, getFileName } from '../../utils';
 import { assignmentService, classService, subjectService, userService } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
 import './AssignmentDetail.css';
@@ -89,6 +89,18 @@ export const AssignmentDetail = () => {
       header: 'Waktu Submit',
       render: (item: any) =>
         item.submittedAt ? formatDateTime(new Date(item.submittedAt)) : '-',
+    },
+    {
+      key: 'attachments',
+      header: 'Lampiran',
+      render: (item: any) => {
+        const attachments = item.attachments || [];
+        return attachments.length > 0 ? (
+          <Badge variant="info">{attachments.length} file</Badge>
+        ) : (
+          <span style={{ color: 'var(--ios-gray)', fontSize: '0.85rem' }}>-</span>
+        );
+      },
     },
     {
       key: 'score',
@@ -182,8 +194,8 @@ export const AssignmentDetail = () => {
               <ul>
                 {assignment.attachments.map((file: string, index: number) => (
                   <li key={index}>
-                    <a href={file} download target="_blank" rel="noopener noreferrer">
-                      📎 {file.split('/').pop() || file}
+                    <a href={getFileUrl(file)} download target="_blank" rel="noopener noreferrer">
+                      📎 {getFileName(file)}
                     </a>
                   </li>
                 ))}

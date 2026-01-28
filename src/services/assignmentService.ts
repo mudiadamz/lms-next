@@ -106,5 +106,27 @@ export const assignmentService = {
     
     return response.data;
   },
+
+  async uploadFile(file: File): Promise<{ url: string; name: string }> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
+    const response = await fetch(`${API_BASE_URL}/assignments/upload`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    
+    if (!data.success || !data.data) {
+      throw new Error(data.error || 'Failed to upload file');
+    }
+    
+    return data.data;
+  },
 };
 

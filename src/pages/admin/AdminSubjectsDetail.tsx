@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Badge, Table, Loading, EmptyState, Button, FormSelect } from '../../components/common';
+import { Badge, Table, Loading, EmptyState, Button } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
 import { subjectService, classService, userService } from '../../services';
 import './SubjectManagement.css';
@@ -15,7 +15,6 @@ export const AdminSubjectsDetail = () => {
   const [classes, setClasses] = useState<any[]>([]);
   const [teacherName, setTeacherName] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
   const [isUpdatingClasses, setIsUpdatingClasses] = useState(false);
 
   useEffect(() => {
@@ -53,7 +52,6 @@ export const AdminSubjectsDetail = () => {
         // Get teacher name
         const teacher = teachersData.find(t => t.id === subjectInfo.teacherId);
         setTeacherName(teacher?.fullName || '-');
-        setSelectedClassIds([]);
       } catch (error) {
         console.error('Error loading subject detail:', error);
       } finally {
@@ -90,15 +88,25 @@ export const AdminSubjectsDetail = () => {
   ];
 
   const existingClassIds = (subjectData as any)?.classIds || [];
-  const availableClasses = allClasses.filter((cls) => !existingClassIds.includes(cls.id));
 
-  const handleAddClasses = async () => {
-    if (!id || selectedClassIds.length === 0) return;
+  const handleToggleClass = async (classId: string, isChecked: boolean) => {
+    if (!id || isUpdatingClasses) return;
+    
     try {
       setIsUpdatingClasses(true);
-      const nextClassIds = Array.from(new Set([...existingClassIds, ...selectedClassIds]));
+      let nextClassIds: string[];
+      
+      if (isChecked) {
+        // Add class
+        nextClassIds = Array.from(new Set([...existingClassIds, classId]));
+      } else {
+        // Remove class
+        nextClassIds = existingClassIds.filter((id) => id !== classId);
+      }
+      
       const updatedSubject = await subjectService.updateSubject(id, { classIds: nextClassIds });
       setSubjectData(updatedSubject);
+      
       const subjectClasses = allClasses.filter(c => nextClassIds.includes(c.id));
       const classesWithCounts = subjectClasses.map((c) => ({
         id: c.id,
@@ -106,10 +114,9 @@ export const AdminSubjectsDetail = () => {
         studentCount: (c as any).studentIds?.length || 0,
       }));
       setClasses(classesWithCounts);
-      setSelectedClassIds([]);
     } catch (error) {
       console.error('Error updating subject classes:', error);
-      alert('Gagal menambahkan kelas ke mata pelajaran');
+      alert('Gagal mengupdate kelas mata pelajaran');
     } finally {
       setIsUpdatingClasses(false);
     }
@@ -173,31 +180,27 @@ export const AdminSubjectsDetail = () => {
 
         <Card title="Kelas yang Menggunakan Mata Pelajaran Ini" variant="elevated">
           <div style={{ marginBottom: '1rem' }}>
-            <FormSelect
-              label="Tambah Kelas"
-              multiple
-              value={selectedClassIds}
-              onChange={(e) => {
-                const values = Array.from(e.target.selectedOptions).map((option) => option.value);
-                setSelectedClassIds(values);
-              }}
-              options={
-                availableClasses.length === 0
-                  ? [{ value: '', label: 'Tidak ada kelas tersedia' }]
-                  : availableClasses.map((cls) => ({ value: cls.id, label: cls.name }))
-              }
-              helperText="Gunakan Ctrl/Cmd untuk memilih banyak kelas"
-              disabled={availableClasses.length === 0}
-            />
-            <div style={{ marginTop: '0.5rem' }}>
-              <Button
-                variant="outline"
-                size="small"
-                disabled={selectedClassIds.length === 0 || isUpdatingClasses}
-                onClick={handleAddClasses}
-              >
-                Tambah Kelas
-              </Button>
+            <div className="checkbox-group">
+              <label className="checkbox-group-label">Pilih Kelas</label>
+              {allClasses.length === 0 ? (
+                <div className="checkbox-empty">Tidak ada kelas tersedia</div>
+              ) : (
+                <div className="checkbox-grid">
+                  {allClasses.map((cls) => (
+                    <label key={cls.id} className="checkbox-item">
+                      <input
+                        type="checkbox"
+                        checked={existingClassIds.includes(cls.id)}
+                        disabled={isUpdatingClasses}
+                        onChange={(e) => {
+                          handleToggleClass(cls.id, e.target.checked);
+                        }}
+                      />
+                      <span>{cls.name}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           {classes.length === 0 ? (

@@ -132,6 +132,21 @@ export const CreateQuiz = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Frontend validation
+    const missingFields: string[] = [];
+    if (!formData.title.trim()) missingFields.push('Judul');
+    if (!formData.description.trim()) missingFields.push('Deskripsi');
+    if (!formData.subjectId) missingFields.push('Mata Pelajaran');
+    if (!formData.classId) missingFields.push('Kelas');
+    if (!formData.startDate) missingFields.push('Tanggal Mulai');
+    if (!formData.endDate) missingFields.push('Tanggal Selesai');
+
+    if (missingFields.length > 0) {
+      alert(`Field yang wajib diisi:\n- ${missingFields.join('\n- ')}`);
+      return;
+    }
+
     if (questions.length === 0) {
       alert('Minimal harus ada 1 soal');
       return;
@@ -189,7 +204,8 @@ export const CreateQuiz = () => {
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Error creating quiz:', error);
-      alert('Gagal membuat kuis/test/ujian. Silakan coba lagi.');
+      const errorMessage = error instanceof Error ? error.message : 'Gagal membuat kuis/test/ujian';
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -364,8 +380,6 @@ export const CreateQuiz = () => {
                     options={[
                       { value: 'multiple_choice', label: 'Pilihan Ganda' },
                       { value: 'true_false', label: 'Benar/Salah' },
-                      { value: 'short_answer', label: 'Jawaban Pendek' },
-                      { value: 'essay', label: 'Esai' },
                     ]}
                   />
 
@@ -433,14 +447,6 @@ export const CreateQuiz = () => {
                         { value: 'true', label: 'Benar' },
                         { value: 'false', label: 'Salah' },
                       ]}
-                    />
-                  )}
-
-                  {(activeQuestion.type === 'short_answer' || activeQuestion.type === 'essay') && (
-                    <FormInput
-                      label="Kunci Jawaban (opsional)"
-                      value={activeQuestion.correctAnswer}
-                      onChange={(e) => updateActiveQuestion({ correctAnswer: e.target.value })}
                     />
                   )}
 

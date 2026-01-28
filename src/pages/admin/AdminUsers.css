@@ -146,6 +146,10 @@
   text-align: right;
 }
 
+.dark-mode .user-detail-value {
+  color: #f9fafb;
+}
+
 .checkbox-group {
   display: flex;
   flex-direction: column;
@@ -155,6 +159,10 @@
 .checkbox-group-label {
   font-weight: 500;
   color: #111827;
+}
+
+.dark-mode .checkbox-group-label {
+  color: #f9fafb;
 }
 
 .checkbox-grid {
@@ -169,6 +177,10 @@
   gap: 0.5rem;
   font-size: 0.95rem;
   color: #111827;
+}
+
+.dark-mode .checkbox-item {
+  color: #f9fafb;
 }
 
 .checkbox-item input[type="checkbox"] {

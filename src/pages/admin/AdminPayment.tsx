@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Table, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FormInput, FormSelect, Loading, EmptyState, SearchBar } from '../../components/common';
-import { formatDate } from '../../utils/dateUtils';
+import { formatDate, getFileUrl, getFileName } from '../../utils';
 import { classService, paymentService } from '../../services';
 import { useSettings } from '../../contexts/SettingsContext';
 import './AdminPayment.css';
@@ -787,11 +787,8 @@ export const AdminPayment = () => {
                 {selectedPayment.receiptNumber && <p><strong>No. Kwitansi:</strong> {selectedPayment.receiptNumber}</p>}
               </div>
               {(() => {
-                const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
-                const fileUrl = selectedPayment.receiptFileUrl.startsWith('http') 
-                  ? selectedPayment.receiptFileUrl 
-                  : `${API_BASE_URL}${selectedPayment.receiptFileUrl}`;
-                const fileName = selectedPayment.receiptFileUrl.split('/').pop() || 'Bukti Pembayaran';
+                const fileUrl = getFileUrl(selectedPayment.receiptFileUrl);
+                const fileName = getFileName(selectedPayment.receiptFileUrl) || 'Bukti Pembayaran';
                 const isImage = fileName.match(/\.(jpg|jpeg|png|gif|webp)$/i);
                 const isPdf = fileName.match(/\.pdf$/i);
                 

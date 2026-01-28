@@ -101,6 +101,10 @@
   background-color: rgba(0, 122, 255, 0.05);
 }
 
+.dark-mode .checkbox-item:hover {
+  background-color: rgba(0, 122, 255, 0.15);
+}
+
 .checkbox-item--select-all {
   font-weight: 600;
   border-bottom: 0.5px solid var(--ios-separator);
@@ -123,6 +127,10 @@
   font-size: 15px;
   color: #000000;
   -webkit-tap-highlight-color: transparent;
+}
+
+.dark-mode .checkbox-item label {
+  color: #f9fafb;
 }
 
 .checkbox-item input[type="checkbox"] {

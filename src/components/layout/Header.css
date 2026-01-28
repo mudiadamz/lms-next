@@ -195,6 +195,24 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  transition: all 0.2s ease;
+}
+
+.header-notification-item--unread {
+  background-color: rgba(0, 122, 255, 0.08);
+  border-left: 3px solid var(--ios-blue);
+}
+
+.dark-mode .header-notification-item--unread {
+  background-color: rgba(0, 122, 255, 0.15);
+}
+
+.header-notification-item--read {
+  opacity: 0.65;
+}
+
+.header-notification-item--read:hover {
+  opacity: 1;
 }
 
 .header-notification-item-title {

@@ -81,10 +81,6 @@ export const AdminClasses = () => {
         <div>
           <strong>{item.name}</strong>
           <br />
-          <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-            ID: {item.id}
-          </span>
-          <br />
           <Badge variant="secondary">{SCHOOL_LEVELS[item.schoolLevel]}</Badge>
         </div>
       ),

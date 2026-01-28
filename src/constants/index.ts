@@ -52,6 +52,7 @@ export const ROUTES = {
   TEACHER_ANNOUNCEMENTS: '/teacher/announcements',
   TEACHER_ANALYTICS: '/teacher/analytics',
   TEACHER_QUESTION_BANK: '/teacher/question-bank',
+  TEACHER_CALENDAR: '/teacher/calendar',
   TEACHER_PROFILE: '/teacher/profile',
   
   // Admin Routes

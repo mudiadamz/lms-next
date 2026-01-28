@@ -64,6 +64,10 @@
   text-align: right;
 }
 
+.dark-mode .material-detail-value {
+  color: #f9fafb;
+}
+
 .material-detail-preview img {
   margin-top: 0.5rem;
   max-width: 100%;

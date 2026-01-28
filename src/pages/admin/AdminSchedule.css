@@ -13,45 +13,49 @@
   gap: 1rem;
 }
 
-.page-filters {
+.admin-schedule .page-filters {
   display: flex;
-  gap: 1rem;
+  flex-direction: row;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
-.filter-group {
-  flex: 1;
-  min-width: 160px;
+.admin-schedule .filter-group {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 140px;
+  max-width: 180px;
 }
 
-.filter-select {
+.admin-schedule .filter-select {
   width: 100%;
-  padding: 0.75rem 1rem;
-  font-size: 17px;
-  border-radius: 10px;
+  padding: 0.5rem 0.75rem;
+  font-size: 14px;
+  border-radius: 8px;
   border: 0.5px solid var(--ios-separator);
   background-color: var(--ios-background);
   color: #000000;
-  min-height: 44px;
+  min-height: 36px;
   -webkit-appearance: none;
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 1rem center;
-  background-size: 12px;
-  padding-right: 2.5rem;
+  background-position: right 0.75rem center;
+  background-size: 10px;
+  padding-right: 2rem;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.filter-select:focus {
+.admin-schedule .filter-select:focus {
   outline: none;
   border-color: var(--ios-blue);
   box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
 }
 
-.filter-select:hover {
+.admin-schedule .filter-select:hover {
   border-color: var(--ios-gray);
 }
 
@@ -350,12 +354,16 @@
     width: 100%;
   }
 
-  .page-filters {
-    flex-direction: column;
+  .admin-schedule .page-filters {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
 
-  .filter-group {
-    width: 100%;
+  .admin-schedule .filter-group {
+    flex: 1 1 auto;
+    min-width: 120px;
+    max-width: 180px;
   }
 
   .form-row {

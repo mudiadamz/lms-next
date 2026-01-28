@@ -94,6 +94,11 @@ export const quizService = {
     return response.data;
   },
 
+  // Alias for backward compatibility
+  async getSubmissions(quizId: string): Promise<QuizSubmission[]> {
+    return this.getQuizSubmissions(quizId);
+  },
+
   async gradeQuizSubmission(submissionId: string): Promise<QuizSubmission> {
     // Auto-grading is handled on submission, but we can fetch the graded submission
     const response = await apiClient.get<ApiResponse<QuizSubmission>>(

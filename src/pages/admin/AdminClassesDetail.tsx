@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Badge, Icon, Table, Loading, EmptyState } from '../../components/common';
 import { SCHOOL_LEVELS, ROUTES } from '../../constants';
-import { classService, userService } from '../../services';
+import { classService, userService, academicYearService } from '../../services';
 import './AdminClasses.css';
 
 export const AdminClassesDetail = () => {
@@ -12,6 +12,7 @@ export const AdminClassesDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [classData, setClassData] = useState<any>(null);
   const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [academicYears, setAcademicYears] = useState<Record<string, string>>({});
   const [students, setStudents] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [moveTargets, setMoveTargets] = useState<Record<string, string>>({});
@@ -24,11 +25,12 @@ export const AdminClassesDetail = () => {
       
       try {
         setIsLoading(true);
-        const [classInfo, teachersData, studentsData, classesData] = await Promise.all([
+        const [classInfo, teachersData, studentsData, classesData, academicYearsData] = await Promise.all([
           classService.getClassById(id),
           userService.getUsers('teacher'),
           userService.getUsers('student'),
           classService.getClasses(),
+          academicYearService.getAcademicYears(),
         ]);
 
         setClassData(classInfo);
@@ -37,6 +39,11 @@ export const AdminClassesDetail = () => {
         const teacherMap: Record<string, string> = {};
         teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
         setTeachers(teacherMap);
+
+        // Create academic year map
+        const academicYearMap: Record<string, string> = {};
+        academicYearsData.forEach(ay => { academicYearMap[ay.id] = ay.name; });
+        setAcademicYears(academicYearMap);
 
         const classStudentIds = (classInfo as any).studentIds || [];
         const classStudents = studentsData.filter((student) =>
@@ -178,7 +185,7 @@ export const AdminClassesDetail = () => {
             </div>
             <div className="info-row">
               <span className="info-label">Tahun Ajaran:</span>
-              <span className="info-value">{classData.academicYear}</span>
+              <span className="info-value">{academicYears[classData.academicYear] || classData.academicYear}</span>
             </div>
             <div className="info-row">
               <span className="info-label">Semester:</span>

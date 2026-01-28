@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Badge, Loading, EmptyState, Modal, FormInput, FormSelect, FormTextarea, ConfirmDialog, FileUpload } from '../../components/common';
 import { ROUTES } from '../../constants';
-import { formatDate } from '../../utils';
+import { formatDate, getFileUrl } from '../../utils';
 import { materialService, classService, subjectService } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
 import './TeacherMaterials.css';
@@ -311,7 +311,7 @@ export const TeacherMaterials = () => {
                       Buka Link
                     </a>
                   ) : detailMaterial.fileUrl ? (
-                    <a href={detailMaterial.fileUrl} target="_blank" rel="noreferrer">
+                    <a href={getFileUrl(detailMaterial.fileUrl)} target="_blank" rel="noreferrer">
                       Unduh/Lihat File
                     </a>
                   ) : (

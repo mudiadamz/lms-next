@@ -54,6 +54,7 @@ import { TeacherMessagesChat } from '../pages/teacher/TeacherMessagesChat';
 import { TeacherAnnouncements } from '../pages/teacher/TeacherAnnouncements';
 import { TeacherAnalytics } from '../pages/teacher/TeacherAnalytics';
 import { TeacherQuestionBank } from '../pages/teacher/TeacherQuestionBank';
+import { TeacherCalendar } from '../pages/teacher/TeacherCalendar';
 import { TeacherProfile } from '../pages/teacher/TeacherProfile';
 
 // Admin Pages
@@ -446,6 +447,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
             <TeacherQuestionBank />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.TEACHER_CALENDAR}
+        element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <TeacherCalendar />
           </ProtectedRoute>
         }
       />

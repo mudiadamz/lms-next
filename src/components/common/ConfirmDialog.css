@@ -8,6 +8,10 @@
   line-height: 1.6;
 }
 
+.dark-mode .confirm-dialog-message {
+  color: #e5e7eb;
+}
+
 .confirm-dialog-footer {
   display: flex;
   justify-content: flex-end;

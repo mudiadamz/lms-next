@@ -1,0 +1,11 @@
+@import '../student/StudentCalendar.css';
+
+.teacher-calendar h1 {
+  margin: 0;
+  font-size: 2rem;
+  color: #1f2937;
+}
+
+.dark-mode .teacher-calendar h1 {
+  color: #ffffff;
+}

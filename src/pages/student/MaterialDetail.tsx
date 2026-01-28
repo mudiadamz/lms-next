@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Badge, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
-import { formatDate } from '../../utils';
+import { formatDate, getFileUrl, getFileName } from '../../utils';
 import { materialService, subjectService, userService } from '../../services';
 import './MaterialDetail.css';
 
@@ -101,7 +101,7 @@ export const StudentMaterialDetail = () => {
             ) : material.type === 'link' ? (
               <div className="link-container">
                 <a
-                  href={material.fileUrl}
+                  href={material.type === 'link' ? material.fileUrl : getFileUrl(material.fileUrl)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="external-link"
@@ -127,7 +127,7 @@ export const StudentMaterialDetail = () => {
                   <p style={{ color: 'var(--ios-gray)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
                     File siap untuk diunduh
                   </p>
-                  <a href={material.fileUrl} download target="_blank" rel="noopener noreferrer">
+                  <a href={getFileUrl(material.fileUrl)} download target="_blank" rel="noopener noreferrer">
                     <Button variant="primary" size="large">
                       📥 Download Materi
                     </Button>
@@ -143,8 +143,8 @@ export const StudentMaterialDetail = () => {
               <ul>
                 {material.attachments.map((file: string, index: number) => (
                   <li key={index}>
-                    <a href={file} download target="_blank" rel="noopener noreferrer">
-                      📎 {file.split('/').pop() || file}
+                    <a href={getFileUrl(file)} download target="_blank" rel="noopener noreferrer">
+                      📎 {getFileName(file)}
                     </a>
                   </li>
                 ))}

@@ -5,7 +5,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Badge, Icon, EmptyState, Loading } from '../../components/common';
 import { ROUTES, SCHOOL_LEVELS } from '../../constants';
-import { classService, subjectService } from '../../services';
+import { classService, subjectService, academicYearService } from '../../services';
 import './TeacherClasses.css';
 
 export const TeacherClasses = () => {
@@ -13,15 +13,17 @@ export const TeacherClasses = () => {
   const { user } = useAuth();
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<Record<string, string>>({});
+  const [academicYears, setAcademicYears] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [classesData, subjectsData] = await Promise.all([
+        const [classesData, subjectsData, academicYearsData] = await Promise.all([
           classService.getClasses(),
           subjectService.getSubjects(undefined, user?.id),
+          academicYearService.getAcademicYears(),
         ]);
 
         const classIds = new Set<string>();
@@ -47,6 +49,11 @@ export const TeacherClasses = () => {
 
         setClasses(teacherClasses);
         setSubjects(subjectMap);
+
+        // Create academic year map
+        const academicYearMap: Record<string, string> = {};
+        academicYearsData.forEach(ay => { academicYearMap[ay.id] = ay.name; });
+        setAcademicYears(academicYearMap);
       } catch (error) {
         console.error('Error loading classes:', error);
       } finally {
@@ -118,7 +125,7 @@ export const TeacherClasses = () => {
                   {(classItem as any).academicYear && (
                     <div className="info-item">
                       <Icon name="calendar" size={18} />
-                      <span>{(classItem as any).academicYear} - Semester {(classItem as any).semester || 1}</span>
+                      <span>{academicYears[(classItem as any).academicYear] || (classItem as any).academicYear} - Semester {(classItem as any).semester || 1}</span>
                     </div>
                   )}
                 </div>

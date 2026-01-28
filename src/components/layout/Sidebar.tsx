@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../constants';
 import { Icon, IconName } from '../common/Icon';
-import { assignmentService, quizService, paymentService } from '../../services';
+import { assignmentService, quizService, paymentService, forumService, classService } from '../../services';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -45,8 +45,7 @@ const getMenuItems = (role: string): MenuItem[] => {
         { label: 'Absensi', path: ROUTES.STUDENT_ATTENDANCE, icon: 'checkCircle' },
         { label: 'Pembayaran SPP', path: ROUTES.STUDENT_PAYMENT, icon: 'analytics' },
         { label: 'Materi', path: ROUTES.STUDENT_MATERIALS, icon: 'document' },
-        { label: 'Nilai', path: ROUTES.STUDENT_GRADES, icon: 'grade' },
-        { label: 'Portofolio', path: ROUTES.STUDENT_PORTFOLIO, icon: 'folder' },
+        { label: 'Nilai', path: ROUTES.STUDENT_PORTFOLIO, icon: 'grade' },
         { label: 'Kalender', path: ROUTES.STUDENT_CALENDAR, icon: 'calendar' },
       ];
     case 'teacher':
@@ -55,13 +54,14 @@ const getMenuItems = (role: string): MenuItem[] => {
         { label: 'Kelas', path: ROUTES.TEACHER_CLASSES, icon: 'userGroup' },
         { label: 'Materi', path: ROUTES.TEACHER_MATERIALS, icon: 'document' },
         { label: 'Tugas', path: ROUTES.TEACHER_ASSIGNMENTS, icon: 'assignment' },
+        { label: 'Penilaian Tugas', path: ROUTES.TEACHER_GRADING, icon: 'grade' },
         { label: 'Kuis/Test/Ujian', path: ROUTES.TEACHER_QUIZZES, icon: 'quiz' },
-        { label: 'Penilaian', path: ROUTES.TEACHER_GRADING, icon: 'grade' },
         { label: 'Absensi', path: ROUTES.TEACHER_ATTENDANCE, icon: 'checkCircle' },
         { label: 'Forum', path: ROUTES.TEACHER_FORUM, icon: 'forum' },
         { label: 'Jadwal', path: ROUTES.TEACHER_SCHEDULE, icon: 'schedule' },
         { label: 'Rapor', path: ROUTES.TEACHER_REPORTS, icon: 'report' },
         { label: 'Pengumuman', path: ROUTES.TEACHER_ANNOUNCEMENTS, icon: 'announcement' },
+        { label: 'Kalender', path: ROUTES.TEACHER_CALENDAR, icon: 'calendar' },
       ];
     case 'admin':
       return [
@@ -176,8 +176,11 @@ export const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
             [ROUTES.STUDENT_PAYMENT]: unpaidPayments,
           });
         } else if (user.role === 'teacher') {
-          // For teachers, count ungraded submissions
-          const assignments = await assignmentService.getAssignments().catch(() => []);
+          // For teachers, count ungraded submissions and forum posts
+          const [assignments, classes] = await Promise.all([
+            assignmentService.getAssignments().catch(() => []),
+            classService.getClasses().catch(() => []),
+          ]);
           
           let ungradedCount = 0;
           for (const assignment of assignments) {

@@ -110,6 +110,11 @@
   border-radius: 0.375rem;
 }
 
+.dark-mode .file-upload-item {
+  background-color: #1f2937;
+  border-color: #374151;
+}
+
 .file-upload-item-name {
   flex: 1;
   color: #1f2937;
@@ -119,9 +124,17 @@
   white-space: nowrap;
 }
 
+.dark-mode .file-upload-item-name {
+  color: #f3f4f6;
+}
+
 .file-upload-item-size {
   color: #6b7280;
   font-size: 0.875rem;
+}
+
+.dark-mode .file-upload-item-size {
+  color: #9ca3af;
 }
 
 .file-upload-item-remove {
@@ -143,6 +156,10 @@
 
 .file-upload-item-remove:hover {
   background-color: #fee2e2;
+}
+
+.dark-mode .file-upload-item-remove:hover {
+  background-color: rgba(239, 68, 68, 0.2);
 }
 
 .file-upload-error {

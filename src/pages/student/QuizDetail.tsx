@@ -24,9 +24,10 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showStartModal, setShowStartModal] = useState(!readOnly);
+  const [showStartModal, setShowStartModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState(0);
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -35,7 +36,9 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
       
       try {
         setIsLoading(true);
+        console.log('Loading quiz:', id);
         const quizData = await quizService.getQuizById(id);
+        console.log('Quiz data received:', quizData);
         setQuiz(quizData);
 
         if (quizData.questions) {
@@ -53,40 +56,52 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
         // Check if already submitted - only if explicitly submitted or has score
         const hasScore = (quizData as any).score !== null && (quizData as any).score !== undefined;
         const hasSubmission = (quizData as any).status === 'submitted';
-        const isSubmitted = hasScore || hasSubmission;
+        const submissionExists = hasScore || hasSubmission;
         
         console.log('Quiz status check:', {
           quizId: id,
           status: (quizData as any).status,
           score: (quizData as any).score,
-          isSubmitted,
+          submissionExists,
         });
         
-        if (isSubmitted) {
-          // Don't show start modal if already submitted
+        if (submissionExists) {
+          // Already submitted - show results directly
+          setIsSubmitted(true);
           setShowStartModal(false);
           
           // Try to load their submission to show answers
           try {
             const submissions = await quizService.getSubmissions(id);
+            console.log('All submissions:', submissions);
             const studentSubmission = submissions.find((s: any) => s.studentId === user.id);
+            console.log('Student submission:', studentSubmission);
             if (studentSubmission && (studentSubmission as any).answers) {
+              console.log('Submission answers:', (studentSubmission as any).answers);
               // Pre-fill answers to show what they submitted
               const submittedAnswers: Record<string, string> = {};
               (studentSubmission as any).answers.forEach((ans: any) => {
                 submittedAnswers[ans.questionId] = ans.answer;
+                console.log('Mapping answer:', ans.questionId, '→', ans.answer);
               });
+              console.log('Final answers object:', submittedAnswers);
               setAnswers(submittedAnswers);
+            } else {
+              console.log('No answers found in submission');
             }
           } catch (error) {
             console.error('Error loading submission:', error);
           }
-        } else {
-          // Quiz belum submit - keep start modal TRUE
+        } else if (!readOnly) {
+          // Quiz belum submit - show start modal
+          setIsSubmitted(false);
+          setShowStartModal(true);
           console.log('Quiz not submitted - will show start modal and quiz form');
         }
       } catch (error) {
         console.error('Error loading quiz detail:', error);
+        console.error('Error details:', error instanceof Error ? error.message : error);
+        setQuiz(null);
       } finally {
         setIsLoading(false);
       }
@@ -125,11 +140,11 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
     setIsSubmitting(true);
     try {
       await quizService.submitQuiz(id, answers);
-      navigate(readOnly ? ROUTES.PARENT_QUIZZES : ROUTES.STUDENT_QUIZZES);
+      // Reload page to show results instead of navigating away
+      window.location.reload();
     } catch (error) {
       console.error('Error submitting quiz:', error);
       alert('Gagal mengumpulkan kuis');
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -138,6 +153,27 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const isImageValue = (value?: string) => {
+    if (!value) return false;
+    return value.startsWith('data:image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(value);
+  };
+
+  const normalizeOption = (option: any, index: number) => {
+    if (typeof option === 'string') {
+      return {
+        value: option,
+        text: isImageValue(option) ? '' : option,
+        imageUrl: isImageValue(option) ? option : undefined,
+      };
+    }
+    const value = option?.value || option?.text || `option-${index + 1}`;
+    return {
+      value,
+      text: option?.text || '',
+      imageUrl: option?.imageUrl,
+    };
   };
 
   if (isLoading) {
@@ -151,7 +187,17 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
   if (!quiz) {
     return (
       <DashboardLayout>
-        <EmptyState icon="quiz" title="Kuis/Test/Ujian Tidak Ditemukan" message="Kuis/test/ujian yang Anda cari tidak ditemukan." />
+        <div style={{ padding: '2rem' }}>
+          <EmptyState 
+            icon="quiz" 
+            title="Kuis/Test/Ujian Tidak Ditemukan" 
+            message="Kuis/test/ujian yang Anda cari tidak ditemukan atau terjadi kesalahan saat memuat data. Silakan cek browser console untuk detail error."
+            action={{
+              label: 'Kembali ke Daftar Kuis',
+              onClick: () => navigate(ROUTES.STUDENT_QUIZZES)
+            }}
+          />
+        </div>
       </DashboardLayout>
     );
   }
@@ -203,17 +249,12 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
   }
 
   // If already submitted, show results view (no popup!)
-  const hasScore = (quiz as any).score !== null && (quiz as any).score !== undefined;
-  const hasSubmittedStatus = (quiz as any).status === 'submitted';
-  const isSubmitted = hasScore || hasSubmittedStatus;
-  const isGraded = hasScore;
+  const isGraded = (quiz as any).score !== null && (quiz as any).score !== undefined;
 
   console.log('QuizDetail render check:', {
     quizId: id,
     status: (quiz as any).status,
     score: (quiz as any).score,
-    hasScore,
-    hasSubmittedStatus,
     isSubmitted,
     willShowResults: isSubmitted,
     willShowForm: !isSubmitted,
@@ -239,12 +280,30 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
             </div>
           </Card>
 
-          <Card title="Status" variant="elevated">
+          <Card title="Status & Nilai" variant="elevated">
             <div style={{ padding: '1rem' }}>
-              <Badge variant={isGraded ? 'success' : 'info'} style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
-                {isGraded ? `Sudah Dinilai - ${(quiz as any).score}/${quiz.maxScore}` : 'Menunggu Penilaian'}
-              </Badge>
-              {isGraded && (quiz as any).feedback && (
+              <div style={{ marginBottom: '1rem' }}>
+                <Badge variant="success" style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
+                  ✅ Sudah Dinilai
+                </Badge>
+              </div>
+              <div style={{ 
+                padding: '1.5rem', 
+                backgroundColor: 'var(--ios-secondary-background)',
+                borderRadius: '10px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '0.85rem', color: 'var(--ios-gray)', marginBottom: '0.5rem' }}>
+                  Nilai Anda
+                </div>
+                <div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--ios-blue)' }}>
+                  {(quiz as any).score !== null && (quiz as any).score !== undefined ? (quiz as any).score : 0}/{quiz.maxScore}
+                </div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--ios-gray)', marginTop: '0.25rem' }}>
+                  ({((((quiz as any).score || 0) / quiz.maxScore) * 100).toFixed(1)}%)
+                </div>
+              </div>
+              {(quiz as any).feedback && (
                 <div style={{ 
                   marginTop: '1rem', 
                   padding: '1rem', 
@@ -261,8 +320,17 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
 
           <Card title="Jawaban Anda" variant="elevated">
             <div className="quiz-results">
+              {console.log('Rendering results - Answers object:', answers)}
+              {console.log('Questions:', questions.map(q => ({ id: q.id, question: q.question })))}
               {questions.map((question, index) => {
                 const studentAnswer = answers[question.id];
+                console.log(`Question ${index + 1} (${question.id}):`, 'Answer:', studentAnswer);
+                const normalizedOptions = (question.options || []).map((option: any, optIndex: number) =>
+                  normalizeOption(option, optIndex)
+                );
+                const selectedOption = normalizedOptions.find((opt: any) => opt.value === studentAnswer);
+                console.log('Selected option:', selectedOption);
+                
                 return (
                   <div key={question.id} className="result-item" style={{ 
                     padding: '1rem', 
@@ -274,6 +342,18 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
                     <div style={{ marginBottom: '0.75rem' }}>
                       <strong>Soal {index + 1}:</strong>
                       <p style={{ margin: '0.5rem 0', lineHeight: '1.6' }}>{question.question}</p>
+                      {question.questionImage && (
+                        <img 
+                          src={question.questionImage} 
+                          alt={`Soal ${index + 1}`}
+                          style={{ 
+                            maxWidth: '100%', 
+                            maxHeight: '200px', 
+                            marginTop: '0.5rem',
+                            borderRadius: '8px'
+                          }}
+                        />
+                      )}
                     </div>
                     <div style={{ 
                       padding: '0.75rem', 
@@ -282,7 +362,21 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
                       borderLeft: '3px solid var(--ios-blue)'
                     }}>
                       <strong style={{ color: 'var(--ios-blue)' }}>Jawaban Anda:</strong>
-                      <p style={{ margin: '0.5rem 0 0 0' }}>{studentAnswer || '(Tidak dijawab)'}</p>
+                      <p style={{ margin: '0.5rem 0 0 0' }}>
+                        {selectedOption ? (selectedOption.text || selectedOption.value) : (studentAnswer || '(Tidak dijawab)')}
+                      </p>
+                      {selectedOption?.imageUrl && (
+                        <img 
+                          src={selectedOption.imageUrl} 
+                          alt="Jawaban"
+                          style={{ 
+                            maxWidth: '100%', 
+                            maxHeight: '150px', 
+                            marginTop: '0.5rem',
+                            borderRadius: '6px'
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 );
@@ -293,27 +387,6 @@ export const StudentQuizDetail = ({ readOnly = false }: StudentQuizDetailProps =
       </DashboardLayout>
     );
   }
-
-  const isImageValue = (value?: string) => {
-    if (!value) return false;
-    return value.startsWith('data:image/') || /\.(png|jpe?g|gif|webp|svg)$/i.test(value);
-  };
-
-  const normalizeOption = (option: any, index: number) => {
-    if (typeof option === 'string') {
-      return {
-        value: option,
-        text: isImageValue(option) ? '' : option,
-        imageUrl: isImageValue(option) ? option : undefined,
-      };
-    }
-    const value = option?.value || option?.text || `option-${index + 1}`;
-    return {
-      value,
-      text: option?.text || '',
-      imageUrl: option?.imageUrl,
-    };
-  };
 
   return (
     <DashboardLayout>

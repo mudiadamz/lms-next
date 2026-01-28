@@ -29,6 +29,18 @@ export const reportCardService = {
     return response.data;
   },
 
+  async getReportCard(studentId: string, academicYear: string, semester: number): Promise<ReportCard> {
+    const response = await apiClient.get<ApiResponse<ReportCard[]>>('/report-cards', {
+      studentId,
+      academicYear,
+      semester: semester.toString(),
+    });
+    if (!response.success || !response.data || response.data.length === 0) {
+      throw new Error(response.error || 'Report card not found');
+    }
+    return response.data[0];
+  },
+
   async generateReportCard(data: {
     studentId: string;
     classId: string;

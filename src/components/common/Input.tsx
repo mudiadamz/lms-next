@@ -25,9 +25,6 @@ export const Input = ({
     if (onChange) {
       onChange(event);
     }
-    if ((type === 'date' || type === 'datetime-local') && event.target?.value) {
-      window.setTimeout(() => event.target.blur(), 0);
-    }
   };
 
   return (

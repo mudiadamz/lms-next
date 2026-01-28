@@ -23,6 +23,8 @@ export const TeacherForumDetail = () => {
   const [selectedComment, setSelectedComment] = useState<any | null>(null);
   const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -104,6 +106,33 @@ export const TeacherForumDetail = () => {
     }
   };
 
+  const handleSubmitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyContent.trim() || !id || !replyToCommentId) return;
+
+    setIsSubmitting(true);
+    try {
+      const comment = await forumService.addComment(id, {
+        content: replyContent,
+        parentCommentId: replyToCommentId,
+      });
+      setComments([...comments, comment]);
+      setReplyContent('');
+      setReplyToCommentId(null);
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+      alert(error instanceof Error ? error.message : 'Gagal mengirim balasan');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Group comments by parent
+  const topLevelComments = comments.filter(c => !(c as any).parentCommentId);
+  const getReplies = (commentId: string) => {
+    return comments.filter(c => (c as any).parentCommentId === commentId);
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -165,8 +194,9 @@ export const TeacherForumDetail = () => {
             />
           ) : (
             <div className="comments-list">
-              {comments.map((comment) => (
-                <div key={comment.id} className="comment-item">
+              {topLevelComments.map((comment) => (
+                <div key={comment.id}>
+                  <div className="comment-item">
                   <div className="comment-header">
                     <div className="comment-author">
                       <Icon
@@ -218,8 +248,85 @@ export const TeacherForumDetail = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="comment-content">
-                      <p>{comment.content}</p>
+                    <>
+                      <div className="comment-content">
+                        <p>{comment.content}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setReplyToCommentId(comment.id);
+                          setReplyContent('');
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--ios-blue)',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          padding: '0.25rem 0',
+                          marginTop: '0.5rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.25rem'
+                        }}
+                      >
+                        <Icon name="chat" size={14} />
+                        Balas
+                      </button>
+                    </>
+                  )}
+                  </div>
+
+                  {/* Replies */}
+                  {getReplies(comment.id).length > 0 && (
+                    <div className="comment-replies" style={{ marginLeft: '2rem', marginTop: '0.75rem', paddingLeft: '1rem', borderLeft: '2px solid var(--ios-separator)' }}>
+                      {getReplies(comment.id).map((reply) => (
+                        <div key={reply.id} className="comment-item" style={{ marginBottom: '0.75rem' }}>
+                          <div className="comment-header">
+                            <div className="comment-author">
+                              <Icon
+                                name={reply.authorRole === 'teacher' ? 'user' : 'users'}
+                                size={18}
+                                style={{ marginRight: '0.5rem' }}
+                              />
+                              <strong>{reply.authorName}</strong>
+                              {reply.authorRole === 'teacher' && (
+                                <Badge variant="primary" size="small" style={{ marginLeft: '0.5rem' }}>
+                                  Guru
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="comment-meta">
+                              <span>{getRelativeTime(new Date(reply.createdAt || reply.date || Date.now()))}</span>
+                            </div>
+                          </div>
+                          <div className="comment-content">
+                            <p>{reply.content}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Reply Form */}
+                  {replyToCommentId === comment.id && (
+                    <div style={{ marginLeft: '2rem', marginTop: '0.75rem' }}>
+                      <form onSubmit={handleSubmitReply} className="reply-form">
+                        <FormTextarea
+                          value={replyContent}
+                          onChange={(e) => setReplyContent(e.target.value)}
+                          placeholder={`Balas ke ${comment.authorName}...`}
+                          rows={2}
+                        />
+                        <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                          <Button type="submit" size="small" isLoading={isSubmitting} disabled={!replyContent.trim()}>
+                            Kirim Balasan
+                          </Button>
+                          <Button type="button" variant="outline" size="small" onClick={() => setReplyToCommentId(null)}>
+                            Batal
+                          </Button>
+                        </div>
+                      </form>
                     </div>
                   )}
                 </div>

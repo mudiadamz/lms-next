@@ -63,12 +63,19 @@ export const forumService = {
     }
   },
 
-  async addComment(postId: string, content: string): Promise<ForumComment> {
-    const response = await apiClient.post<ApiResponse<any>>(`/forums/posts/${postId}/comments`, { content });
+  async addComment(postId: string, comment: { content: string; parentCommentId?: string } | string): Promise<ForumComment> {
+    const body = typeof comment === 'string' ? { content: comment } : comment;
+    const response = await apiClient.post<ApiResponse<any>>(`/forums/posts/${postId}/comments`, body);
     if (!response.success || !response.data) {
       throw new Error(response.error || 'Failed to add comment');
     }
     return mapForumComment(response.data);
+  },
+  
+  async getComments(postId: string): Promise<ForumComment[]> {
+    // Comments are included in getPostById, but this function can be used separately if needed
+    const post = await this.getPostById(postId);
+    return post.comments || [];
   },
 
   async updateComment(id: string, content: string): Promise<ForumComment> {

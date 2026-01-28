@@ -47,6 +47,10 @@
   font-size: 0.9rem;
 }
 
+.dark-mode .schedule-details strong {
+  color: #f9fafb;
+}
+
 .schedule-meta {
   display: flex;
   align-items: center;

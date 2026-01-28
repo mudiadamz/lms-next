@@ -5,7 +5,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Badge, Icon, EmptyState, Pagination, Modal, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
-import { formatDate, formatDateTime } from '../../utils';
+import { formatDate, formatDateTime, getFileUrl, getFileName } from '../../utils';
 import { assignmentService, quizService, gradeService, subjectService, userService } from '../../services';
 import './StudentPortfolio.css';
 
@@ -162,14 +162,106 @@ export const StudentPortfolio = () => {
     setShowDetailModal(true);
   };
 
+  // Calculate statistics
+  const gradedItems = portfolioItems.filter(item => item.score !== undefined && item.score !== null);
+  console.log('Portfolio items:', portfolioItems.length);
+  console.log('Graded items:', gradedItems.length);
+  console.log('Graded items detail:', gradedItems);
+  const averageScore = gradedItems.length > 0
+    ? gradedItems.reduce((sum, item) => sum + (item.score! / item.maxScore * 100), 0) / gradedItems.length
+    : 0;
+  console.log('Average score:', averageScore);
+  
+  const subjectScores: Record<string, { total: number; count: number; name: string }> = {};
+  gradedItems.forEach(item => {
+    if (!subjectScores[item.subjectId]) {
+      subjectScores[item.subjectId] = { 
+        total: 0, 
+        count: 0, 
+        name: subjects[item.subjectId] || item.subject 
+      };
+    }
+    subjectScores[item.subjectId].total += (item.score! / item.maxScore * 100);
+    subjectScores[item.subjectId].count += 1;
+  });
+
   return (
     <DashboardLayout>
       <div className="student-portfolio">
         <div className="page-header">
-          <h1>Portofolio</h1>
+          <h1>Nilai</h1>
         </div>
 
+        {/* Grades Summary */}
+        {!isLoading && gradedItems.length > 0 && (
+          <div className="grades-summary" style={{ marginBottom: '1.5rem' }}>
+            <Card title="Ringkasan Nilai" variant="elevated">
+              <div className="summary-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div className="stat-box" style={{ 
+                  padding: '1rem', 
+                  backgroundColor: 'var(--ios-secondary-background)', 
+                  borderRadius: '10px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--ios-blue)' }}>
+                    {averageScore.toFixed(1)}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--ios-gray)', marginTop: '0.25rem' }}>
+                    Rata-rata Nilai
+                  </div>
+                </div>
+                <div className="stat-box" style={{ 
+                  padding: '1rem', 
+                  backgroundColor: 'var(--ios-secondary-background)', 
+                  borderRadius: '10px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--ios-blue)' }}>
+                    {gradedItems.length}
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--ios-gray)', marginTop: '0.25rem' }}>
+                    Total Nilai
+                  </div>
+                </div>
+              </div>
+              
+              {Object.keys(subjectScores).length > 0 && (
+                <div className="subject-grades">
+                  <h3 style={{ margin: '0 0 1rem 0', fontSize: '1rem', fontWeight: 600 }}>Nilai Per Mata Pelajaran</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {Object.entries(subjectScores).map(([subjectId, data]) => {
+                      const avg = data.total / data.count;
+                      return (
+                        <div key={subjectId} style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          padding: '0.75rem',
+                          backgroundColor: 'var(--ios-secondary-background)',
+                          borderRadius: '8px',
+                          border: '0.5px solid var(--ios-separator)'
+                        }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 500, marginBottom: '0.25rem' }}>{data.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--ios-gray)' }}>
+                              {data.count} nilai
+                            </div>
+                          </div>
+                          <Badge variant={getScoreColor(avg, 100)} size="large">
+                            {avg.toFixed(1)}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </Card>
+          </div>
+        )}
+
         {/* Portfolio Grid */}
+        <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 600 }}>Riwayat Tugas & Kuis</h2>
         {isLoading ? (
           <Loading />
         ) : paginatedItems.length === 0 ? (
@@ -323,11 +415,13 @@ export const StudentPortfolio = () => {
                     {selectedItem.attachments.map((file, index) => (
                       <div key={index} className="attachment-item">
                         <Icon name="document" size={18} style={{ marginRight: '0.5rem' }} />
-                        <span>{file}</span>
-                        <Button variant="outline" size="small">
-                          <Icon name="download" size={14} style={{ marginRight: '0.25rem' }} />
-                          Unduh
-                        </Button>
+                        <span>{getFileName(file)}</span>
+                        <a href={getFileUrl(file)} download target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" size="small">
+                            <Icon name="download" size={14} style={{ marginRight: '0.25rem' }} />
+                            Unduh
+                          </Button>
+                        </a>
                       </div>
                     ))}
                   </div>

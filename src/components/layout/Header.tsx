@@ -119,7 +119,7 @@ export const Header = ({ onMenuClick }: HeaderProps) => {
                         {announcements.map((item) => (
                           <button
                             key={item.id}
-                            className="header-notification-item"
+                            className={`header-notification-item ${item.isRead ? 'header-notification-item--read' : 'header-notification-item--unread'}`}
                             onClick={async () => {
                               try {
                                 if (!item.isRead) {

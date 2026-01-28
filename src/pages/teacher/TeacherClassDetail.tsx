@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Badge, Table, Loading, EmptyState } from '../../components/common';
 import { SCHOOL_LEVELS } from '../../constants';
-import { classService, subjectService, userService } from '../../services';
+import { classService, subjectService, userService, academicYearService } from '../../services';
 import './TeacherClasses.css';
 
 export const TeacherClassDetail = () => {
@@ -13,6 +13,7 @@ export const TeacherClassDetail = () => {
   const [subjects, setSubjects] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<Record<string, string>>({});
+  const [academicYears, setAcademicYears] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -21,11 +22,12 @@ export const TeacherClassDetail = () => {
       
       try {
         setIsLoading(true);
-        const [classInfo, subjectsData, teachersData, studentsData] = await Promise.all([
+        const [classInfo, subjectsData, teachersData, studentsData, academicYearsData] = await Promise.all([
           classService.getClassById(id),
           subjectService.getSubjects(),
           userService.getUsers('teacher'),
           userService.getUsers('student'),
+          academicYearService.getAcademicYears(),
         ]);
 
         setClassData(classInfo);
@@ -43,6 +45,11 @@ export const TeacherClassDetail = () => {
         const teacherMap: Record<string, string> = {};
         teachersData.forEach(t => { teacherMap[t.id] = t.fullName; });
         setTeachers(teacherMap);
+
+        // Create academic year map
+        const academicYearMap: Record<string, string> = {};
+        academicYearsData.forEach(ay => { academicYearMap[ay.id] = ay.name; });
+        setAcademicYears(academicYearMap);
       } catch (error) {
         console.error('Error loading class detail:', error);
       } finally {
@@ -124,7 +131,7 @@ export const TeacherClassDetail = () => {
             </div>
             <div className="info-row">
               <span className="info-label">Tahun Ajaran:</span>
-              <span className="info-value">{classData.academicYear}</span>
+              <span className="info-value">{academicYears[classData.academicYear] || classData.academicYear}</span>
             </div>
             <div className="info-row">
               <span className="info-label">Semester:</span>

@@ -768,7 +768,7 @@ export const AdminSettings = () => {
           }}
           onConfirm={confirmResetPassword}
           title="Reset Password"
-          message={`Reset password untuk "${selectedAdmin?.fullName}" ke password default?`}
+          message={`Reset password untuk "${selectedAdmin?.fullName}" ke password default?\n\nPassword default adalah Nomor Admin.`}
           confirmLabel={isResettingPassword ? 'Mereset...' : 'Reset'}
           variant="warning"
         />

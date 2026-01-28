@@ -23,20 +23,25 @@ export const StudentForumDetail = ({ readOnly = false }: StudentForumDetailProps
   const [newComment, setNewComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
       if (!id) return;
       try {
         setIsLoading(true);
-        const [postData, commentsData] = await Promise.all([
-          forumService.getPost(id),
-          forumService.getComments(id),
-        ]);
+        setError(null);
+        const postData = await forumService.getPostById(id);
         setPost(postData);
-        setComments(commentsData);
-      } catch (error) {
-        console.error('Error loading forum post:', error);
+        // Comments are included in the post data
+        setComments(postData.comments || []);
+      } catch (err) {
+        console.error('Error loading forum post:', err);
+        const errorMessage = err instanceof Error ? err.message : 'Terjadi kesalahan';
+        setError(errorMessage);
+        setPost(null);
       } finally {
         setIsLoading(false);
       }
@@ -64,6 +69,33 @@ export const StudentForumDetail = ({ readOnly = false }: StudentForumDetailProps
     }
   };
 
+  const handleSubmitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!replyContent.trim() || !id || !replyToCommentId) return;
+
+    setIsSubmitting(true);
+    try {
+      const comment = await forumService.addComment(id, {
+        content: replyContent,
+        parentCommentId: replyToCommentId,
+      });
+      setComments([...comments, comment]);
+      setReplyContent('');
+      setReplyToCommentId(null);
+    } catch (error) {
+      console.error('Error submitting reply:', error);
+      alert(error instanceof Error ? error.message : 'Gagal mengirim balasan');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Group comments by parent
+  const topLevelComments = comments.filter(c => !c.parentCommentId);
+  const getReplies = (commentId: string) => {
+    return comments.filter(c => c.parentCommentId === commentId);
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -77,7 +109,21 @@ export const StudentForumDetail = ({ readOnly = false }: StudentForumDetailProps
       <DashboardLayout>
         <div className="forum-detail">
           <Card>
-            <p>Post tidak ditemukan</p>
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <p style={{ fontSize: '1.1rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+                {error?.includes('Insufficient permissions') 
+                  ? 'Anda tidak memiliki akses ke post ini' 
+                  : 'Post tidak ditemukan'}
+              </p>
+              <p style={{ fontSize: '0.9rem', color: 'var(--ios-gray)', marginBottom: '1.5rem' }}>
+                {error?.includes('Insufficient permissions')
+                  ? 'Post ini mungkin untuk kelas lain atau sudah dihapus.'
+                  : 'Post yang Anda cari tidak ada atau sudah dihapus.'}
+              </p>
+              <Button variant="outline" onClick={() => navigate(readOnly ? ROUTES.PARENT_FORUM : ROUTES.STUDENT_FORUM)}>
+                ← Kembali ke Forum
+              </Button>
+            </div>
           </Card>
         </div>
       </DashboardLayout>
@@ -109,17 +155,79 @@ export const StudentForumDetail = ({ readOnly = false }: StudentForumDetailProps
 
         <Card title={`Komentar (${comments.length})`}>
           <div className="comments-list">
-            {comments.map((comment) => (
-              <div key={comment.id} className="comment-item">
-                <div className="comment-header">
-                  <span className="comment-author">
-                    {comment.authorRole === 'teacher' ? '👨‍🏫' : '👨‍🎓'} {comment.authorName}
-                  </span>
-                  <span className="comment-date">
-                    {getRelativeTime(new Date(comment.createdAt || comment.date || Date.now()))}
-                  </span>
+            {topLevelComments.map((comment) => (
+              <div key={comment.id}>
+                <div className="comment-item">
+                  <div className="comment-header">
+                    <span className="comment-author">
+                      {comment.authorRole === 'teacher' ? '👨‍🏫' : '👨‍🎓'} {comment.authorName}
+                    </span>
+                    <span className="comment-date">
+                      {getRelativeTime(new Date(comment.createdAt || comment.date || Date.now()))}
+                    </span>
+                  </div>
+                  <div className="comment-content">{comment.content}</div>
+                  {!readOnly && (
+                    <button
+                      onClick={() => {
+                        setReplyToCommentId(comment.id);
+                        setReplyContent('');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--ios-blue)',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        padding: '0.25rem 0',
+                        marginTop: '0.5rem'
+                      }}
+                    >
+                      💬 Balas
+                    </button>
+                  )}
                 </div>
-                <div className="comment-content">{comment.content}</div>
+
+                {/* Replies */}
+                {getReplies(comment.id).length > 0 && (
+                  <div className="comment-replies" style={{ marginLeft: '2rem', marginTop: '0.75rem', paddingLeft: '1rem', borderLeft: '2px solid var(--ios-separator)' }}>
+                    {getReplies(comment.id).map((reply) => (
+                      <div key={reply.id} className="comment-item" style={{ marginBottom: '0.75rem' }}>
+                        <div className="comment-header">
+                          <span className="comment-author">
+                            {reply.authorRole === 'teacher' ? '👨‍🏫' : '👨‍🎓'} {reply.authorName}
+                          </span>
+                          <span className="comment-date">
+                            {getRelativeTime(new Date(reply.createdAt || reply.date || Date.now()))}
+                          </span>
+                        </div>
+                        <div className="comment-content">{reply.content}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Reply Form */}
+                {replyToCommentId === comment.id && !readOnly && (
+                  <div style={{ marginLeft: '2rem', marginTop: '0.75rem' }}>
+                    <form onSubmit={handleSubmitReply} className="reply-form">
+                      <FormTextarea
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        placeholder={`Balas ke ${comment.authorName}...`}
+                        rows={2}
+                      />
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                        <Button type="submit" size="small" isLoading={isSubmitting} disabled={!replyContent.trim()}>
+                          Kirim Balasan
+                        </Button>
+                        <Button type="button" variant="outline" size="small" onClick={() => setReplyToCommentId(null)}>
+                          Batal
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </div>
             ))}
           </div>

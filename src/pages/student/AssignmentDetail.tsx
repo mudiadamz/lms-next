@@ -4,7 +4,7 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Badge, FileUpload, FormTextarea, Modal, Loading, EmptyState } from '../../components/common';
 import { ROUTES } from '../../constants';
-import { formatDate, formatDateTime, isPast } from '../../utils';
+import { formatDate, formatDateTime, isPast, getFileUrl, getFileName } from '../../utils';
 import { assignmentService, subjectService, userService } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
 import './AssignmentDetail.css';
@@ -39,12 +39,19 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
         ]);
 
         setAssignment(assignmentData);
+        console.log('Assignment data:', assignmentData);
+        console.log('Assignment attachments:', assignmentData.attachments);
 
         // Find student's submission
         const studentSubmission = submissionsData.find(s => s.studentId === user.id);
+        console.log('Student submission:', studentSubmission);
         if (studentSubmission) {
           setSubmission(studentSubmission);
           setContent(studentSubmission.content || '');
+          console.log('Submission attachments:', studentSubmission.attachments);
+          console.log('Attachments detail:', JSON.stringify(studentSubmission.attachments, null, 2));
+          console.log('Attachments length:', studentSubmission.attachments?.length);
+          console.log('Is array?', Array.isArray(studentSubmission.attachments));
         }
 
         // Get subject name - teacher name already included in assignment data
@@ -78,18 +85,37 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
 
     setIsSubmitting(true);
     try {
+      // Upload files first
+      const uploadedAttachments: string[] = [];
+      if (files.length > 0) {
+        for (const file of files) {
+          try {
+            const uploaded = await assignmentService.uploadFile(file);
+            uploadedAttachments.push(uploaded.url);
+          } catch (error) {
+            console.error('Error uploading file:', error);
+            alert(`Gagal mengupload file: ${file.name}`);
+            setIsSubmitting(false);
+            return;
+          }
+        }
+      }
+
       await assignmentService.submitAssignment(id, {
         content,
-        attachments: [], // TODO: Handle file uploads
+        attachments: uploadedAttachments,
       });
       
       // Reload to get updated submission
       const submissionsData = await assignmentService.getSubmissions(id).catch(() => []);
       const studentSubmission = submissionsData.find(s => s.studentId === user?.id);
+      console.log('After submit - new submission:', studentSubmission);
       if (studentSubmission) {
         setSubmission(studentSubmission);
+        console.log('Updated submission attachments:', studentSubmission.attachments);
       }
       
+      setFiles([]);
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Error submitting assignment:', error);
@@ -168,8 +194,8 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
               <ul>
                 {assignment.attachments.map((file: string, index: number) => (
                   <li key={index}>
-                    <a href={file} download target="_blank" rel="noopener noreferrer">
-                      📎 {file.split('/').pop() || file}
+                    <a href={getFileUrl(file)} download target="_blank" rel="noopener noreferrer">
+                      📎 {getFileName(file)}
                     </a>
                   </li>
                 ))}
@@ -213,13 +239,80 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
                   required
                 />
 
+                {/* Show existing attachments if already submitted */}
+                {isSubmitted && submission.attachments && submission.attachments.length > 0 && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label style={{ 
+                      display: 'block',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      color: 'var(--ios-gray)',
+                      marginBottom: '0.5rem'
+                    }}>
+                      Lampiran Saat Ini:
+                    </label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                      {submission.attachments.map((file: string, index: number) => (
+                        <div
+                          key={index}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.75rem',
+                            backgroundColor: 'var(--ios-secondary-background)',
+                            borderRadius: '8px',
+                            border: '0.5px solid var(--ios-separator)',
+                          }}
+                        >
+                          <span style={{ fontSize: '1.2rem' }}>📎</span>
+                          <span style={{ flex: 1, fontSize: '0.85rem', color: '#000' }}>
+                            {getFileName(file)}
+                          </span>
+                          <a 
+                            href={getFileUrl(file)} 
+                            download 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{ fontSize: '0.85rem', color: 'var(--ios-blue)', textDecoration: 'none' }}
+                          >
+                            Download
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ 
+                      fontSize: '0.75rem', 
+                      color: 'var(--ios-gray)', 
+                      marginTop: '0.5rem',
+                      fontStyle: 'italic' 
+                    }}>
+                      💡 Upload file baru di bawah untuk mengganti lampiran yang ada
+                    </p>
+                  </div>
+                )}
+
                 <FileUpload
                   label="Upload File Jawaban (Opsional)"
                   onFileSelect={setFiles}
-                  multiple={false}
+                  multiple={true}
+                  maxFiles={5}
                   maxSize={10}
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 />
+                
+                {files.length > 0 && (
+                  <div style={{ 
+                    padding: '0.75rem', 
+                    backgroundColor: 'var(--ios-secondary-background)',
+                    borderRadius: '8px',
+                    border: '0.5px solid var(--ios-separator)',
+                    fontSize: '0.85rem',
+                    color: 'var(--ios-gray)'
+                  }}>
+                    ✓ {files.length} file siap diupload: {files.map(f => f.name).join(', ')}
+                  </div>
+                )}
 
                 <div className="form-actions">
                   <Button type="submit" isLoading={isSubmitting}>
@@ -291,16 +384,16 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
                       {submission.content || 'Tidak ada konten'}
                     </p>
                   </div>
-                  {submission.attachments && submission.attachments.length > 0 && (
-                    <div className="submission-attachments" style={{ marginTop: '1.5rem' }}>
-                      <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: 'var(--ios-gray)' }}>
-                        Lampiran ({submission.attachments.length}):
-                      </h4>
+                  <div className="submission-attachments" style={{ marginTop: '1.5rem' }}>
+                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: 'var(--ios-gray)' }}>
+                      Lampiran: {console.log('Rendering attachments, length:', submission?.attachments?.length, 'data:', submission?.attachments)}
+                    </h4>
+                    {submission.attachments && submission.attachments.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         {submission.attachments.map((file: string, index: number) => (
                           <a 
                             key={index}
-                            href={file} 
+                            href={getFileUrl(file)} 
                             download 
                             target="_blank" 
                             rel="noopener noreferrer"
@@ -321,7 +414,7 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
                           >
                             <span style={{ fontSize: '1.5rem' }}>📎</span>
                             <span style={{ flex: 1, fontWeight: '500' }}>
-                              {file.split('/').pop() || file}
+                              {getFileName(file)}
                             </span>
                             <span style={{ fontSize: '0.85rem', color: 'var(--ios-gray)' }}>
                               Download →
@@ -329,8 +422,21 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
                           </a>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    ) : (
+                      <p style={{ 
+                        margin: 0, 
+                        padding: '0.75rem', 
+                        fontSize: '0.85rem', 
+                        color: 'var(--ios-gray)', 
+                        fontStyle: 'italic',
+                        backgroundColor: 'var(--ios-secondary-background)',
+                        borderRadius: '8px',
+                        border: '0.5px solid var(--ios-separator)'
+                      }}>
+                        Tidak ada lampiran
+                      </p>
+                    )}
+                  </div>
                 </div>
               </Card>
             )}
