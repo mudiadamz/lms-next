@@ -167,6 +167,10 @@
   font-size: 0.875rem;
 }
 
+.dark-mode .grade-info .info-value {
+  color: #e5e7eb;
+}
+
 .modal-footer {
   display: flex;
   justify-content: flex-end;

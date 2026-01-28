@@ -251,6 +251,14 @@
   color: #f9fafb;
 }
 
+.dark-mode .payment-amount {
+  color: #ffffff;
+}
+
+.dark-mode .summary-table-title {
+  color: #ffffff;
+}
+
 @media (max-width: 768px) {
   .student-payment h1 {
     font-size: 1.25rem;

@@ -174,34 +174,6 @@ export const StudentSchedule = () => {
             })}
           </div>
         )}
-
-        {/* Summary Card */}
-        {hasAnySchedule && (
-          <Card variant="elevated" className="schedule-summary">
-            <div className="summary-content">
-              <div className="summary-item">
-                <div className="summary-icon summary-icon--calendar">
-                  <Icon name="calendar" size={20} />
-                </div>
-                <div className="summary-info">
-                  <div className="summary-value">{filteredSchedules.length}</div>
-                  <div className="summary-label">Total Mata Pelajaran</div>
-                </div>
-              </div>
-              <div className="summary-item">
-                <div className="summary-icon summary-icon--clock">
-                  <Icon name="clock" size={20} />
-                </div>
-                <div className="summary-info">
-                  <div className="summary-value">
-                    {new Set(filteredSchedules.map((s) => s.dayOfWeek)).size}
-                  </div>
-                  <div className="summary-label">Hari Aktif</div>
-                </div>
-              </div>
-            </div>
-          </Card>
-        )}
       </div>
     </DashboardLayout>
   );

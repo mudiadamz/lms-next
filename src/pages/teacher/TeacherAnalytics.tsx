@@ -102,7 +102,7 @@ export const TeacherAnalytics = () => {
         // Calculate performance by type
         const typePerformance: Record<string, number[]> = {};
         allGrades.forEach(grade => {
-          const type = grade.type === 'assignment' ? 'Tugas' : grade.type === 'quiz' ? 'Kuis' : 'Lainnya';
+          const type = grade.type === 'assignment' ? 'Tugas' : grade.type === 'quiz' ? 'Kuis/Test/Ujian' : 'Lainnya';
           if (!typePerformance[type]) {
             typePerformance[type] = [];
           }

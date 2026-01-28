@@ -19,17 +19,15 @@ export const StudentAssignments = ({ readOnly = false }: StudentAssignmentsProps
   const [subjects, setSubjects] = useState<Record<string, string>>({});
   const [teachers, setTeachers] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedSubject, setSelectedSubject] = useState<string>('all');
 
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const studentData = user?.id ? await userService.getUserById(user.id) : null;
-        const classId = (studentData as any)?.classId;
+        const classId = (user as any)?.classId;
 
         const [assignmentsData, subjectsData] = await Promise.all([
-          assignmentService.getAssignments(classId ? { classId } : {}),
+          assignmentService.getAssignments(classId ? String(classId) : undefined),
           subjectService.getSubjects(),
         ]);
 
@@ -58,16 +56,12 @@ export const StudentAssignments = ({ readOnly = false }: StudentAssignmentsProps
     }
   }, [user?.id]);
 
-  const uniqueSubjects = Array.from(new Set(assignments.map(a => a.subjectId).filter(Boolean)));
-  const subjectOptions = [
-    { value: 'all', label: 'Semua Mata Pelajaran' },
-    ...uniqueSubjects.map((subjectId) => ({ value: subjectId, label: subjects[subjectId] || subjectId })),
-  ];
-
-  const filteredAssignments =
-    selectedSubject === 'all'
-      ? assignments
-      : assignments.filter((assignment) => assignment.subjectId === selectedSubject);
+  // Sort assignments by due date (nearest first)
+  const sortedAssignments = [...assignments].sort((a, b) => {
+    const aDate = new Date(a.dueDate);
+    const bDate = new Date(b.dueDate);
+    return aDate.getTime() - bDate.getTime();
+  });
 
   const getStatusBadge = (assignment: any) => {
     if (assignment.score !== null && assignment.score !== undefined) {
@@ -87,29 +81,17 @@ export const StudentAssignments = ({ readOnly = false }: StudentAssignmentsProps
       <div className="student-assignments">
         <h1>Tugas</h1>
 
-        <div className="page-filters">
-          <FormSelect
-            value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            options={subjectOptions}
-          />
-        </div>
-
         {isLoading ? (
           <Loading />
-        ) : filteredAssignments.length === 0 ? (
+        ) : sortedAssignments.length === 0 ? (
           <EmptyState
             icon="📝"
             title="Tidak Ada Tugas"
-            message={
-              selectedSubject !== 'all'
-                ? `Tidak ada tugas untuk mata pelajaran ${subjects[selectedSubject] || selectedSubject}.`
-                : 'Belum ada tugas yang diberikan untuk Anda saat ini.'
-            }
+            message="Belum ada tugas yang diberikan untuk Anda saat ini."
           />
         ) : (
           <div className="assignments-list">
-            {filteredAssignments.map((assignment) => (
+            {sortedAssignments.map((assignment) => (
               <Card key={assignment.id} variant="elevated" className="assignment-card">
                 <div className="assignment-header">
                   <div>
@@ -118,6 +100,8 @@ export const StudentAssignments = ({ readOnly = false }: StudentAssignmentsProps
                       <span>{subjects[assignment.subjectId] || assignment.subjectId}</span>
                       <span>•</span>
                       <span>{(assignment as any).teacherName || teachers[assignment.teacherId] || assignment.teacherId}</span>
+                      <span>•</span>
+                      <span>Mulai: {formatDate(new Date(assignment.startDate || assignment.createdAt))}</span>
                       <span>•</span>
                       <span>Deadline: {formatDate(new Date(assignment.dueDate))}</span>
                     </div>

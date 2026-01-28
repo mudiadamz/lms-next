@@ -80,7 +80,7 @@ export const TeacherClassManage = () => {
     { id: 'students', label: 'Siswa' },
     { id: 'materials', label: 'Materi' },
     { id: 'assignments', label: 'Tugas' },
-    { id: 'quizzes', label: 'Kuis' },
+    { id: 'quizzes', label: 'Kuis/Test/Ujian' },
     { id: 'attendance', label: 'Absensi' },
     { id: 'grades', label: 'Nilai' },
   ];
@@ -144,7 +144,7 @@ export const TeacherClassManage = () => {
                     <Icon name="quiz" size={24} />
                     <div>
                       <div className="overview-value">{stats.activeQuizzes}</div>
-                      <div className="overview-label">Kuis Aktif</div>
+                      <div className="overview-label">Kuis/Test/Ujian Aktif</div>
                     </div>
                   </div>
                   <div className="overview-card">
@@ -187,10 +187,10 @@ export const TeacherClassManage = () => {
 
             {activeTab === 'quizzes' && (
               <div className="tab-content">
-                <h3>Kuis</h3>
+                <h3>Kuis/Test/Ujian</h3>
                 <Button onClick={() => navigate(ROUTES.TEACHER_QUIZZES_CREATE)}>
                   <Icon name="plus" size={16} style={{ marginRight: '0.5rem' }} />
-                  Buat Kuis
+                  Buat Kuis/Test/Ujian
                 </Button>
               </div>
             )}

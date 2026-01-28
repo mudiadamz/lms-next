@@ -22,6 +22,7 @@ export const TeacherForum = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedPost, setSelectedPost] = useState<ForumPost | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [formData, setFormData] = useState({
@@ -98,11 +99,25 @@ export const TeacherForum = () => {
   );
 
   const handleCreatePost = () => {
+    setIsEditMode(false);
+    setSelectedPost(null);
     setFormData({
       title: '',
       content: '',
-      classId: 'all',
+      classId: '',
       isPinned: false,
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleEditPost = (post: ForumPost) => {
+    setIsEditMode(true);
+    setSelectedPost(post);
+    setFormData({
+      title: post.title,
+      content: post.content,
+      classId: post.classId,
+      isPinned: post.isPinned || false,
     });
     setShowCreateModal(true);
   };
@@ -117,15 +132,28 @@ export const TeacherForum = () => {
         return;
       }
 
-      const newPost = await forumService.createPost({
-        classId: formData.classId,
-        title: formData.title,
-        content: formData.content,
-        isPinned: formData.isPinned,
-      });
+      if (isEditMode && selectedPost) {
+        // Update existing post
+        const updatedPost = await forumService.updatePost(selectedPost.id, {
+          title: formData.title,
+          content: formData.content,
+          isPinned: formData.isPinned,
+        });
+        setPosts(posts.map((p) => (p.id === selectedPost.id ? updatedPost : p)));
+      } else {
+        // Create new post
+        const newPost = await forumService.createPost({
+          classId: formData.classId,
+          title: formData.title,
+          content: formData.content,
+          isPinned: formData.isPinned,
+        });
+        setPosts([newPost, ...posts]);
+      }
 
-      setPosts([newPost, ...posts]);
       setShowCreateModal(false);
+      setIsEditMode(false);
+      setSelectedPost(null);
       setFormData({
         title: '',
         content: '',
@@ -133,8 +161,8 @@ export const TeacherForum = () => {
         isPinned: false,
       });
     } catch (error) {
-      console.error('Error creating post:', error);
-      alert(error instanceof Error ? error.message : 'Gagal membuat post');
+      console.error('Error saving post:', error);
+      alert(error instanceof Error ? error.message : `Gagal ${isEditMode ? 'mengupdate' : 'membuat'} post`);
     } finally {
       setIsSubmitting(false);
     }
@@ -264,7 +292,7 @@ export const TeacherForum = () => {
                     trigger={<Button variant="outline" size="small">⋯</Button>}
                     items={[
                       { label: post.isPinned ? 'Lepas Pin' : 'Pin', onClick: () => handleTogglePin(post) },
-                      { label: 'Edit', onClick: () => console.log('Edit', post.id) },
+                      { label: 'Edit', onClick: () => handleEditPost(post) },
                       { divider: true },
                       { label: 'Hapus', onClick: () => handleDelete(post) },
                     ]}
@@ -298,11 +326,13 @@ export const TeacherForum = () => {
           </div>
         )}
 
-        {/* Create Post Modal */}
+        {/* Create/Edit Post Modal */}
         <Modal
           isOpen={showCreateModal}
           onClose={() => {
             setShowCreateModal(false);
+            setIsEditMode(false);
+            setSelectedPost(null);
             setFormData({
               title: '',
               content: '',
@@ -310,7 +340,7 @@ export const TeacherForum = () => {
               isPinned: false,
             });
           }}
-          title="Buat Post Baru"
+          title={isEditMode ? 'Edit Post' : 'Buat Post Baru'}
           size="large"
         >
           <form onSubmit={handleSubmitPost} className="forum-post-form">
@@ -332,6 +362,7 @@ export const TeacherForum = () => {
                 { value: '', label: 'Pilih kelas' },
                 ...classes,
               ]}
+              disabled={isEditMode}
               required
             />
             <FormInput
@@ -355,10 +386,12 @@ export const TeacherForum = () => {
                 type="button"
                 onClick={() => {
                   setShowCreateModal(false);
+                  setIsEditMode(false);
+                  setSelectedPost(null);
                   setFormData({
                     title: '',
                     content: '',
-                    classId: 'all',
+                    classId: '',
                     isPinned: false,
                   });
                 }}
@@ -366,7 +399,10 @@ export const TeacherForum = () => {
                 Batal
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? 'Mempublikasikan...' : 'Publikasikan'}
+                {isSubmitting 
+                  ? (isEditMode ? 'Menyimpan...' : 'Mempublikasikan...')
+                  : (isEditMode ? 'Simpan Perubahan' : 'Publikasikan')
+                }
               </Button>
             </div>
           </form>

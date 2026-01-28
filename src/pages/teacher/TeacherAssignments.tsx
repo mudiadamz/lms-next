@@ -21,12 +21,13 @@ export const TeacherAssignments = () => {
       try {
         setIsLoading(true);
         const [assignmentsData, classesData, subjectsData] = await Promise.all([
-          assignmentService.getAssignments({ teacherId: user?.id }),
+          assignmentService.getAssignments(),
           classService.getClasses(),
           subjectService.getSubjects(),
         ]);
 
-        setAssignments(assignmentsData);
+        const teacherAssignments = assignmentsData.filter((assignment) => assignment.teacherId === user?.id);
+        setAssignments(teacherAssignments);
         const classMap: Record<string, string> = {};
         classesData.forEach(c => { classMap[c.id] = c.name; });
         setClasses(classMap);
@@ -58,6 +59,11 @@ export const TeacherAssignments = () => {
           </span>
         </div>
       ),
+    },
+    {
+      key: 'startDate',
+      header: 'Mulai',
+      render: (item: any) => formatDate(new Date(item.startDate || item.createdAt)),
     },
     {
       key: 'dueDate',

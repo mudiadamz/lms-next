@@ -36,6 +36,30 @@ const DIFFICULTY_COLORS = {
   hard: 'danger',
 } as const;
 
+const getOptionLabel = (option: any, index: number) => {
+  if (typeof option === 'string') {
+    return option;
+  }
+  if (option?.text) return option.text;
+  if (option?.imageUrl) return `Gambar Opsi ${index + 1}`;
+  return '';
+};
+
+const resolveCorrectAnswer = (options: any[], correctAnswer: string | string[]) => {
+  const target = Array.isArray(correctAnswer) ? correctAnswer[0] : correctAnswer;
+  const match = options.find((opt, index) => {
+    if (typeof opt === 'string') {
+      return opt === target;
+    }
+    return opt?.value === target || opt?.text === target;
+  });
+  if (match !== undefined) {
+    if (typeof match === 'string') return match;
+    return match?.text || (match?.imageUrl ? 'Gambar Opsi' : target);
+  }
+  return target || '';
+};
+
 export const TeacherQuestionBank = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
@@ -83,8 +107,8 @@ export const TeacherQuestionBank = () => {
                 id: `${quiz.id}-${q.id || index}`,
                 question: q.question,
                 type: q.type,
-                options: q.options || [],
-                correctAnswer: Array.isArray(q.correctAnswer) ? q.correctAnswer[0] : q.correctAnswer,
+                options: (q.options || []).map((opt: any, optIndex: number) => getOptionLabel(opt, optIndex)),
+                correctAnswer: resolveCorrectAnswer(q.options || [], q.correctAnswer),
                 points: q.points,
                 subjectId: quiz.subjectId,
                 subjectName: '',

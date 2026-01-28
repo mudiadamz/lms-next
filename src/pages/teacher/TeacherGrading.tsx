@@ -2,23 +2,25 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Table, Badge, Dropdown, Modal, FormInput, FormTextarea, FormSelect, Icon, EmptyState, Pagination, Loading } from '../../components/common';
+import { Button, Table, Badge, Icon, EmptyState, Pagination, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate } from '../../utils';
 import { assignmentService, quizService, gradeService, classService, subjectService, userService } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
 import './TeacherGrading.css';
 
-// Interface untuk item yang perlu dinilai
-interface PendingGrading {
-  id: string;
+// Interface untuk submission yang perlu dinilai
+interface PendingSubmission {
+  submissionId: string;
+  assignmentId: string;
   type: 'assignment' | 'quiz';
   title: string;
+  studentId: string;
+  studentName: string;
+  studentNumber: string;
   class: string;
   subject: string;
-  dueDate: Date;
-  submittedCount: number;
-  totalStudents: number;
+  submittedAt: Date;
   maxScore: number;
 }
 
@@ -43,17 +45,8 @@ export const TeacherGrading = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<'pending' | 'graded'>('pending');
-  const [selectedClass, setSelectedClass] = useState<string>('all');
-  const [selectedSubject, setSelectedSubject] = useState<string>('all');
-  const [selectedType, setSelectedType] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [showGradeModal, setShowGradeModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<PendingGrading | null>(null);
-  const [formData, setFormData] = useState({
-    score: '',
-    notes: '',
-  });
-  const [pendingGradings, setPendingGradings] = useState<PendingGrading[]>([]);
+  const [pendingSubmissions, setPendingSubmissions] = useState<PendingSubmission[]>([]);
   const [grades, setGrades] = useState<GradeRecord[]>([]);
   const [classes, setClasses] = useState<Record<string, string>>({});
   const [subjects, setSubjects] = useState<Record<string, string>>({});
@@ -103,46 +96,71 @@ export const TeacherGrading = () => {
         });
         setStudents(studentMap);
 
-        // Process pending gradings from assignments and quizzes
-        const pendingItems: PendingGrading[] = [];
+        // Process pending submissions - show individual student submissions
+        const pendingItems: PendingSubmission[] = [];
         
-        assignmentsData.forEach(assignment => {
-          const submissionCount = (assignment as any).submissionCount || 0;
-          const totalStudents = (assignment as any).totalStudents || 0;
-          if (submissionCount < totalStudents || submissionCount === 0) {
-            pendingItems.push({
-              id: assignment.id,
-              type: 'assignment',
-              title: assignment.title,
-              class: classMap[assignment.classId] || assignment.classId,
-              subject: subjectMap[assignment.subjectId] || assignment.subjectId,
-              dueDate: new Date(assignment.dueDate),
-              submittedCount: submissionCount,
-              totalStudents: totalStudents,
-              maxScore: assignment.maxScore || 100,
+        // Get submissions for each assignment
+        for (const assignment of assignmentsData) {
+          try {
+            const submissions = await assignmentService.getSubmissions(assignment.id);
+            const ungradedSubmissions = submissions.filter((s: any) => s.score === null || s.score === undefined);
+            
+            ungradedSubmissions.forEach((submission: any) => {
+              const student = studentMap[submission.studentId];
+              if (student) {
+                pendingItems.push({
+                  submissionId: submission.id,
+                  assignmentId: assignment.id,
+                  type: 'assignment',
+                  title: assignment.title,
+                  studentId: submission.studentId,
+                  studentName: student.fullName,
+                  studentNumber: student.studentNumber,
+                  class: classMap[assignment.classId] || assignment.classId,
+                  subject: subjectMap[assignment.subjectId] || assignment.subjectId,
+                  submittedAt: new Date(submission.submittedAt),
+                  maxScore: assignment.maxScore || 100,
+                });
+              }
             });
+          } catch (error) {
+            console.error(`Error loading submissions for assignment ${assignment.id}:`, error);
           }
-        });
+        }
 
-        quizzesData.forEach(quiz => {
-          const submissionCount = (quiz as any).submissionCount || 0;
-          const totalStudents = (quiz as any).totalStudents || 0;
-          if (submissionCount < totalStudents || submissionCount === 0) {
-            pendingItems.push({
-              id: quiz.id,
-              type: 'quiz',
-              title: quiz.title,
-              class: classMap[quiz.classId] || quiz.classId,
-              subject: subjectMap[quiz.subjectId] || quiz.subjectId,
-              dueDate: new Date(quiz.endDate || quiz.endTime || Date.now()),
-              submittedCount: submissionCount,
-              totalStudents: totalStudents,
-              maxScore: quiz.maxScore || 100,
+        // Get submissions for each quiz
+        for (const quiz of quizzesData) {
+          try {
+            const submissions = await quizService.getSubmissions(quiz.id);
+            const ungradedSubmissions = submissions.filter((s: any) => s.score === null || s.score === undefined);
+            
+            ungradedSubmissions.forEach((submission: any) => {
+              const student = studentMap[submission.studentId];
+              if (student) {
+                pendingItems.push({
+                  submissionId: submission.id,
+                  assignmentId: quiz.id,
+                  type: 'quiz',
+                  title: quiz.title,
+                  studentId: submission.studentId,
+                  studentName: student.fullName,
+                  studentNumber: student.studentNumber,
+                  class: classMap[quiz.classId] || quiz.classId,
+                  subject: subjectMap[quiz.subjectId] || quiz.subjectId,
+                  submittedAt: new Date(submission.submittedAt),
+                  maxScore: quiz.maxScore || 100,
+                });
+              }
             });
+          } catch (error) {
+            console.error(`Error loading submissions for quiz ${quiz.id}:`, error);
           }
-        });
+        }
 
-        setPendingGradings(pendingItems);
+        // Sort by submitted date (oldest first - FIFO)
+        pendingItems.sort((a, b) => a.submittedAt.getTime() - b.submittedAt.getTime());
+        
+        setPendingSubmissions(pendingItems);
 
         // Process graded items
         const gradedItems: GradeRecord[] = gradesData.map(grade => {
@@ -181,57 +199,14 @@ export const TeacherGrading = () => {
     }
   }, [user?.id]);
 
-  const uniqueClasses = Array.from(new Set([...pendingGradings.map(p => p.class), ...grades.map(g => g.class)]));
-  const uniqueSubjects = Array.from(new Set([...pendingGradings.map(p => p.subject), ...grades.map(g => g.subject)]));
-
-  const filteredPending = pendingGradings.filter((item) => {
-    const matchesClass = selectedClass === 'all' || item.class === selectedClass;
-    const matchesSubject = selectedSubject === 'all' || item.subject === selectedSubject;
-    const matchesType = selectedType === 'all' || item.type === selectedType;
-    return matchesClass && matchesSubject && matchesType;
-  });
-
-  const filteredGraded = grades.filter((item) => {
-    const matchesClass = selectedClass === 'all' || item.class === selectedClass;
-    const matchesSubject = selectedSubject === 'all' || item.subject === selectedSubject;
-    const matchesType = selectedType === 'all' || item.type === selectedType;
-    return matchesClass && matchesSubject && matchesType;
-  });
-
-  const currentData = activeTab === 'pending' ? filteredPending : filteredGraded;
+  const currentData = activeTab === 'pending' ? pendingSubmissions : grades;
   const totalPages = Math.ceil(currentData.length / itemsPerPage);
   const paginatedData = currentData.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  const handleGrade = (item: PendingGrading) => {
-    setSelectedItem(item);
-    setFormData({
-      score: '',
-      notes: '',
-    });
-    setShowGradeModal(true);
-  };
 
-  const handleEditGrade = (grade: GradeRecord) => {
-    setSelectedItem({
-      id: grade.id,
-      type: grade.type,
-      title: grade.title,
-      class: grade.class,
-      subject: grade.subject,
-      dueDate: new Date(),
-      submittedCount: 0,
-      totalStudents: 0,
-      maxScore: grade.maxScore,
-    });
-    setFormData({
-      score: grade.score.toString(),
-      notes: grade.notes || '',
-    });
-    setShowGradeModal(true);
-  };
 
   const handleSubmitGrade = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -359,64 +334,52 @@ export const TeacherGrading = () => {
 
   const pendingColumns = [
     {
-      key: 'title',
-      header: 'Judul',
-      render: (item: PendingGrading) => (
+      key: 'student',
+      header: 'Siswa',
+      render: (item: PendingSubmission) => (
+        <div>
+          <strong>{item.studentName}</strong>
+          <div style={{ fontSize: '0.85rem', color: 'var(--ios-gray)', marginTop: '0.25rem' }}>
+            NIS: {item.studentNumber}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'assignment',
+      header: 'Tugas/Kuis',
+      render: (item: PendingSubmission) => (
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Icon
-              name={item.type === 'assignment' ? 'assignment' : 'quiz'}
-              size={18}
-            />
+            <Icon name={item.type === 'assignment' ? 'assignment' : 'quiz'} size={16} />
             <strong>{item.title}</strong>
           </div>
-          <div style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '0.25rem' }}>
-            {item.subject} - {item.class}
+          <div style={{ fontSize: '0.85rem', color: 'var(--ios-gray)', marginTop: '0.25rem' }}>
+            {item.subject} • {item.class}
           </div>
         </div>
       ),
     },
     {
-      key: 'dueDate',
-      header: 'Deadline',
-      render: (item: PendingGrading) => formatDate(item.dueDate),
-    },
-    {
-      key: 'submissions',
-      header: 'Pengumpulan',
-      render: (item: PendingGrading) => (
-        <div>
-          <Badge
-            variant={item.submittedCount === item.totalStudents ? 'success' : 'warning'}
-          >
-            {item.submittedCount}/{item.totalStudents}
-          </Badge>
-          <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.25rem' }}>
-            {item.totalStudents - item.submittedCount} belum dinilai
-          </div>
-        </div>
-      ),
+      key: 'submittedAt',
+      header: 'Waktu Submit',
+      render: (item: PendingSubmission) => formatDate(item.submittedAt),
     },
     {
       key: 'maxScore',
       header: 'Nilai Maks',
-      render: (item: PendingGrading) => `${item.maxScore}`,
+      render: (item: PendingSubmission) => `${item.maxScore}`,
     },
     {
       key: 'actions',
-      header: 'Aksi',
-      render: (item: PendingGrading) => (
+      header: '',
+      render: (item: PendingSubmission) => (
         <Button
-          onClick={() => {
-            if (item.type === 'assignment') {
-              navigate(`${ROUTES.TEACHER_ASSIGNMENT_GRADE.replace(':assignmentId', item.id).replace(':submissionId', 'all')}`);
-            } else {
-              handleGrade(item);
-            }
-          }}
+          onClick={() => navigate(ROUTES.TEACHER_ASSIGNMENT_GRADE
+            .replace(':assignmentId', item.assignmentId)
+            .replace(':submissionId', item.submissionId))}
           size="small"
         >
-          <Icon name="grade" size={16} style={{ marginRight: '0.5rem' }} />
           Nilai
         </Button>
       ),
@@ -474,67 +437,21 @@ export const TeacherGrading = () => {
       render: (item: GradeRecord) => formatDate(item.gradedAt),
     },
     {
-      key: 'actions',
-      header: 'Aksi',
-      render: (item: GradeRecord) => (
-        <Dropdown
-          trigger={<Button variant="outline" size="small">Kelola</Button>}
-          items={[
-            { label: 'Edit Nilai', onClick: () => handleEditGrade(item) },
-            { label: 'Lihat Detail', onClick: () => console.log('View detail', item.id) },
-          ]}
-          align="right"
-        />
-      ),
+      key: 'gradedAt',
+      header: 'Tanggal',
+      render: (item: GradeRecord) => formatDate(item.gradedAt),
     },
   ];
 
   // Calculate statistics
-  const pendingCount = pendingGradings.length;
+  const pendingCount = pendingSubmissions.length;
   const gradedCount = grades.length;
-  const averageScore =
-    grades.length > 0
-      ? Math.round(
-          grades.reduce((sum, g) => sum + g.percentage, 0) / grades.length
-        )
-      : 0;
 
   return (
     <DashboardLayout>
       <div className="teacher-grading">
         <div className="page-header">
           <h1>Penilaian</h1>
-        </div>
-
-        {/* Statistics Cards */}
-        <div className="grading-stats">
-          <Card variant="elevated" className="stat-card">
-            <div className="stat-icon" style={{ backgroundColor: 'rgba(255, 149, 0, 0.1)' }}>
-              <Icon name="assignment" size={18} style={{ color: '#ff9500' }} />
-            </div>
-            <div className="stat-content">
-              <div className="stat-value">{pendingCount}</div>
-              <div className="stat-label">Menunggu Penilaian</div>
-            </div>
-          </Card>
-          <Card variant="elevated" className="stat-card">
-            <div className="stat-icon" style={{ backgroundColor: 'rgba(52, 199, 89, 0.1)' }}>
-              <Icon name="checkCircle" size={18} style={{ color: '#34c759' }} />
-            </div>
-            <div className="stat-content">
-              <div className="stat-value">{gradedCount}</div>
-              <div className="stat-label">Sudah Dinilai</div>
-            </div>
-          </Card>
-          <Card variant="elevated" className="stat-card">
-            <div className="stat-icon" style={{ backgroundColor: 'rgba(0, 122, 255, 0.1)' }}>
-              <Icon name="grade" size={18} style={{ color: '#007aff' }} />
-            </div>
-            <div className="stat-content">
-              <div className="stat-value">{averageScore}%</div>
-              <div className="stat-label">Rata-rata Nilai</div>
-            </div>
-          </Card>
         </div>
 
         {/* Tabs */}
@@ -561,62 +478,12 @@ export const TeacherGrading = () => {
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="page-filters">
-          <div className="filter-group">
-            <select
-              value={selectedClass}
-              onChange={(e) => {
-                setSelectedClass(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="filter-select"
-            >
-              <option value="all">Semua Kelas</option>
-              {uniqueClasses.map(cls => (
-                <option key={cls} value={cls}>{cls}</option>
-              ))}
-            </select>
-          </div>
-          <div className="filter-group">
-            <select
-              value={selectedSubject}
-              onChange={(e) => {
-                setSelectedSubject(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="filter-select"
-            >
-              <option value="all">Semua Mata Pelajaran</option>
-              {uniqueSubjects.map(subj => (
-                <option key={subj} value={subj}>{subj}</option>
-              ))}
-            </select>
-          </div>
-          <div className="filter-group">
-            <select
-              value={selectedType}
-              onChange={(e) => {
-                setSelectedType(e.target.value);
-                setCurrentPage(1);
-              }}
-              className="filter-select"
-            >
-              <option value="all">Semua Jenis</option>
-              <option value="assignment">Tugas</option>
-              <option value="quiz">Kuis</option>
-            </select>
-          </div>
-        </div>
-
         {/* Table */}
         {paginatedData.length === 0 ? (
           <EmptyState
             icon={activeTab === 'pending' ? 'clock' : 'checkCircle'}
             title={`Tidak Ada ${activeTab === 'pending' ? 'Tugas/Kuis yang Menunggu Penilaian' : 'Nilai'}`}
-            message={selectedClass !== 'all' || selectedSubject !== 'all' || selectedType !== 'all'
-              ? 'Tidak ada data yang sesuai dengan filter yang dipilih.'
-              : activeTab === 'pending'
+            message={activeTab === 'pending'
               ? 'Tidak ada tugas atau kuis yang menunggu penilaian.'
               : 'Belum ada nilai yang diberikan.'}
           />
@@ -638,73 +505,6 @@ export const TeacherGrading = () => {
             )}
           </Card>
         )}
-
-        {/* Grade Modal */}
-        <Modal
-          isOpen={showGradeModal}
-          onClose={() => {
-            setShowGradeModal(false);
-            setSelectedItem(null);
-            setFormData({
-              score: '',
-              notes: '',
-            });
-          }}
-          title={selectedItem ? `Nilai ${selectedItem.title}` : 'Nilai'}
-          size="medium"
-        >
-          {selectedItem && (
-            <form onSubmit={handleSubmitGrade} className="grade-form">
-              <div className="grade-info">
-                <div className="info-row">
-                  <span className="info-label">Kelas:</span>
-                  <span className="info-value">{selectedItem.class}</span>
-                </div>
-                <div className="info-row">
-                  <span className="info-label">Mata Pelajaran:</span>
-                  <span className="info-value">{selectedItem.subject}</span>
-                </div>
-                <div className="info-row">
-                  <span className="info-label">Nilai Maksimal:</span>
-                  <span className="info-value">{selectedItem.maxScore}</span>
-                </div>
-              </div>
-
-              <FormInput
-                label="Nilai"
-                type="number"
-                value={formData.score}
-                onChange={(e) => setFormData({ ...formData, score: e.target.value })}
-                placeholder={`0 - ${selectedItem.maxScore}`}
-                min="0"
-                max={selectedItem.maxScore.toString()}
-                required
-              />
-
-              <FormTextarea
-                label="Catatan (Opsional)"
-                value={formData.notes}
-                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Masukkan catatan atau feedback untuk siswa"
-                rows={4}
-              />
-
-              <div className="modal-footer">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => {
-                    setShowGradeModal(false);
-                    setSelectedItem(null);
-                  }}
-                >
-                  Batal
-                </Button>
-                <Button type="submit" isLoading={isSubmitting}>Simpan Nilai</Button>
-              </div>
-            </form>
-          )}
-        </Modal>
       </div>
     </DashboardLayout>
   );

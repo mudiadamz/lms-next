@@ -22,6 +22,7 @@ export const EditAssignment = () => {
     description: '',
     subjectId: '',
     classId: '',
+    startDate: '',
     dueDate: '',
     maxScore: '',
   });
@@ -44,6 +45,7 @@ export const EditAssignment = () => {
           description: assignmentData.description,
           subjectId: assignmentData.subjectId,
           classId: assignmentData.classId,
+          startDate: new Date(assignmentData.startDate || assignmentData.createdAt).toISOString().slice(0, 16),
           dueDate: new Date(assignmentData.dueDate).toISOString().slice(0, 16),
           maxScore: assignmentData.maxScore.toString(),
         });
@@ -72,6 +74,7 @@ export const EditAssignment = () => {
         description: formData.description,
         subjectId: formData.subjectId,
         classId: formData.classId,
+        startDate: new Date(formData.startDate),
         dueDate: new Date(formData.dueDate),
         maxScore: parseFloat(formData.maxScore),
       });
@@ -139,6 +142,13 @@ export const EditAssignment = () => {
             </div>
 
             <div className="form-row">
+              <FormInput
+                label="Waktu Mulai"
+                type="datetime-local"
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                required
+              />
               <FormInput
                 label="Deadline"
                 type="datetime-local"

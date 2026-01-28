@@ -13,11 +13,22 @@ export const Input = ({
   helperText,
   id,
   className = '',
+  onChange,
+  type,
   ...props
 }: InputProps) => {
   const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
   const errorClass = error ? 'input--error' : '';
   const hasHelperText = error || helperText;
+
+  const handleChange: InputHTMLAttributes<HTMLInputElement>['onChange'] = (event) => {
+    if (onChange) {
+      onChange(event);
+    }
+    if ((type === 'date' || type === 'datetime-local') && event.target?.value) {
+      window.setTimeout(() => event.target.blur(), 0);
+    }
+  };
 
   return (
     <div className="input-wrapper">
@@ -31,6 +42,8 @@ export const Input = ({
         className={`input ${errorClass} ${className}`}
         aria-invalid={!!error}
         aria-describedby={hasHelperText ? `${inputId}-helper` : undefined}
+        type={type}
+        onChange={handleChange}
         {...props}
       />
       {hasHelperText && (

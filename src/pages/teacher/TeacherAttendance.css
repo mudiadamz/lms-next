@@ -91,6 +91,19 @@
   flex-wrap: wrap;
 }
 
+.input-filters,
+.history-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.input-filters > *,
+.history-filters > * {
+  max-width: 300px;
+}
+
 .filter-group {
   flex: 1;
   min-width: 150px;
@@ -146,6 +159,33 @@
   gap: 1rem;
 }
 
+.attendance-bulk-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.attendance-input-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 520px;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+.attendance-input-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background-color: var(--ios-secondary-background);
+  border-radius: 10px;
+  border: 0.5px solid var(--ios-separator);
+  gap: 0.75rem;
+}
+
 .attendance-date-info {
   padding: 0.75rem 1rem;
   background-color: var(--ios-secondary-background);
@@ -177,8 +217,21 @@
 .student-info {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
   flex: 1;
+  min-width: 0;
+}
+
+.student-info strong {
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-info span {
+  font-size: 0.8rem;
+  color: var(--ios-gray);
 }
 
 .attendance-controls {
@@ -186,6 +239,12 @@
   flex-direction: column;
   gap: 0.5rem;
   min-width: 200px;
+}
+
+.attendance-input-item > div:nth-child(2),
+.attendance-input-item > div:nth-child(3) {
+  max-width: 180px;
+  min-width: 150px;
 }
 
 .status-select {
@@ -261,6 +320,43 @@
   margin-top: 1rem;
 }
 
+/* History Table Simplification */
+.teacher-attendance table {
+  font-size: 0.9rem;
+}
+
+.teacher-attendance table td {
+  padding: 0.75rem;
+}
+
+.teacher-attendance table th {
+  padding: 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Dark Mode Support */
+.dark-mode .teacher-attendance h1 {
+  color: #ffffff;
+}
+
+.dark-mode .stat-value {
+  color: #ffffff;
+}
+
+.dark-mode .attendance-tab:hover {
+  color: #ffffff;
+}
+
+.dark-mode .filter-select,
+.dark-mode .status-select,
+.dark-mode .notes-input {
+  color: #ffffff;
+}
+
+.dark-mode .form-group div {
+  color: #ffffff;
+}
+
 @media (max-width: 768px) {
   .attendance-stats {
     grid-template-columns: 1fr;
@@ -268,6 +364,16 @@
 
   .page-filters {
     flex-direction: column;
+  }
+
+  .input-filters,
+  .history-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .input-filters > *,
+  .history-filters > * {
+    max-width: none;
   }
 
   .filter-group {
@@ -282,11 +388,23 @@
     grid-template-columns: 1fr;
   }
 
-  .student-attendance-item {
+  .student-attendance-item,
+  .attendance-input-item {
     flex-direction: column;
+    align-items: flex-start;
   }
 
   .attendance-controls {
     width: 100%;
+  }
+
+  .attendance-input-item > div:nth-child(2),
+  .attendance-input-item > div:nth-child(3) {
+    width: 100%;
+    max-width: none;
+  }
+
+  .student-info strong {
+    white-space: normal;
   }
 }

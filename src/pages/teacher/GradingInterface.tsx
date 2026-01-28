@@ -12,13 +12,16 @@ export const GradingInterface = () => {
   const { assignmentId, submissionId } = useParams<{ assignmentId: string; submissionId: string }>();
   const navigate = useNavigate();
   const [submission, setSubmission] = useState<any>(null);
+  const [submissions, setSubmissions] = useState<any[]>([]);
   const [assignment, setAssignment] = useState<any>(null);
   const [studentName, setStudentName] = useState('');
+  const [studentNumber, setStudentNumber] = useState('');
   const [score, setScore] = useState('');
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showAllSubmissions, setShowAllSubmissions] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -32,16 +35,21 @@ export const GradingInterface = () => {
         ]);
 
         setAssignment(assignmentData);
-        const submissionData = submissionsData.find(s => s.id === submissionId);
+        setSubmissions(submissionsData);
         
-        if (submissionData) {
-          setSubmission(submissionData);
-          setScore(submissionData.score?.toString() || '');
-          setFeedback(submissionData.feedback || '');
-
-          // Get student name
-          const student = await userService.getUserById(submissionData.studentId);
-          setStudentName(student.fullName);
+        // If submissionId is 'all', show list of all submissions
+        if (submissionId === 'all') {
+          setShowAllSubmissions(true);
+        } else {
+          const submissionData = submissionsData.find(s => s.id === submissionId);
+          
+          if (submissionData) {
+            setSubmission(submissionData);
+            setScore(submissionData.score?.toString() || '');
+            setFeedback(submissionData.feedback || '');
+            setStudentName((submissionData as any).studentName || submissionData.studentId);
+            setStudentNumber((submissionData as any).studentNumber || '');
+          }
         }
       } catch (error) {
         console.error('Error loading submission:', error);
@@ -80,6 +88,52 @@ export const GradingInterface = () => {
     );
   }
 
+  // Show list of all submissions if submissionId is 'all'
+  if (showAllSubmissions && assignment) {
+    const ungradedSubmissions = submissions.filter(s => s.score === null || s.score === undefined);
+    
+    return (
+      <DashboardLayout>
+        <div className="grading-interface">
+          <div className="grading-header">
+            <h1>Penilaian: {assignment.title}</h1>
+          </div>
+
+          <Card title={`Pengumpulan (${submissions.length} total, ${ungradedSubmissions.length} belum dinilai)`} variant="elevated">
+            {ungradedSubmissions.length === 0 ? (
+              <EmptyState
+                icon="checkCircle"
+                title="Semua Sudah Dinilai"
+                message="Semua pengumpulan untuk tugas ini sudah dinilai."
+              />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {ungradedSubmissions.map((sub) => (
+                  <Card key={sub.id} variant="elevated">
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <strong>{sub.studentName || sub.studentId}</strong>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--ios-gray)', marginTop: '0.25rem' }}>
+                          Submit: {formatDateTime(new Date(sub.submittedAt))}
+                        </div>
+                      </div>
+                      <Button
+                        size="small"
+                        onClick={() => navigate(`/teacher/assignments/${assignmentId}/submissions/${sub.id}/grade`)}
+                      >
+                        Nilai
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (!submission || !assignment) {
     return (
       <DashboardLayout>
@@ -92,6 +146,7 @@ export const GradingInterface = () => {
     <DashboardLayout>
       <div className="grading-interface">
         <div className="grading-header">
+          <h1>Penilaian: {assignment.title}</h1>
         </div>
 
         <Card title={`Penilaian: ${assignment.title}`}>
@@ -99,13 +154,26 @@ export const GradingInterface = () => {
             <div className="info-row">
               <strong>Siswa:</strong> {studentName}
             </div>
+            {studentNumber && (
+              <div className="info-row">
+                <strong>NIS:</strong> {studentNumber}
+              </div>
+            )}
             <div className="info-row">
               <strong>Waktu Submit:</strong> {formatDateTime(new Date(submission.submittedAt))}
             </div>
           </div>
         </Card>
 
-        <Card title="Jawaban Siswa">
+        {assignment.description && (
+          <Card title="Soal / Deskripsi Tugas" variant="elevated">
+            <div className="assignment-question">
+              <p>{assignment.description}</p>
+            </div>
+          </Card>
+        )}
+
+        <Card title="Jawaban Siswa" variant="elevated">
           <div className="submission-content">
             <p>{submission.content || 'Tidak ada konten'}</p>
             {submission.attachments && submission.attachments.length > 0 && (
@@ -150,7 +218,7 @@ export const GradingInterface = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate(`${ROUTES.TEACHER_ASSIGNMENTS}/${assignmentId}`)}
+                onClick={() => navigate(ROUTES.TEACHER_GRADING)}
               >
                 Batal
               </Button>
@@ -165,12 +233,20 @@ export const GradingInterface = () => {
           isOpen={showSuccessModal}
           onClose={() => {
             setShowSuccessModal(false);
-            navigate(`${ROUTES.TEACHER_ASSIGNMENTS}/${assignmentId}`);
+            navigate(ROUTES.TEACHER_GRADING);
           }}
           title="Berhasil"
           size="small"
         >
-          <p>Nilai berhasil disimpan!</p>
+          <div style={{ textAlign: 'center', padding: '1rem' }}>
+            <p style={{ marginBottom: '1rem' }}>Nilai berhasil disimpan!</p>
+            <Button onClick={() => {
+              setShowSuccessModal(false);
+              navigate(ROUTES.TEACHER_GRADING);
+            }}>
+              Kembali ke Penilaian
+            </Button>
+          </div>
         </Modal>
       </div>
     </DashboardLayout>

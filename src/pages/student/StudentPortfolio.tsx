@@ -31,7 +31,7 @@ interface PortfolioItem {
 const TYPE_LABELS = {
   assignment: 'Tugas',
   project: 'Proyek',
-  quiz: 'Kuis',
+  quiz: 'Kuis/Test/Ujian',
 };
 
 const TYPE_ICONS = {

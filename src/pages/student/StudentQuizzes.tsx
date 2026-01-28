@@ -71,17 +71,27 @@ export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps) => {
 
   const getStatusBadge = (quiz: any) => {
     const now = new Date();
-    if (quiz.score !== null && quiz.score !== undefined) {
-      return <Badge variant="success">Selesai - {quiz.score}/100</Badge>;
-    }
     const startDate = new Date(quiz.startDate || quiz.startTime || 0);
     const endDate = new Date(quiz.endDate || quiz.endTime || 0);
+    
+    // Priority 1: Check if graded
+    if (quiz.score !== null && quiz.score !== undefined) {
+      return <Badge variant="success">Sudah Dinilai - {quiz.score}/{quiz.maxScore || 100}</Badge>;
+    }
+    
+    // Priority 2: Check if submitted but not graded yet
+    if ((quiz as any).status === 'submitted') {
+      return <Badge variant="info">Menunggu Penilaian</Badge>;
+    }
+    
+    // Priority 3: Check time availability
     if (now < startDate) {
       return <Badge variant="info">Belum Dimulai</Badge>;
     }
     if (isPast(endDate)) {
       return <Badge variant="danger">Sudah Berakhir</Badge>;
     }
+    
     return <Badge variant="warning">Tersedia</Badge>;
   };
 
@@ -89,13 +99,18 @@ export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps) => {
     const now = new Date();
     const startDate = new Date(quiz.startDate || quiz.startTime || 0);
     const endDate = new Date(quiz.endDate || quiz.endTime || 0);
-    return now >= startDate && now <= endDate && (quiz.score === null || quiz.score === undefined);
+    const notSubmitted = (quiz as any).status !== 'submitted';
+    const notGraded = quiz.score === null || quiz.score === undefined;
+    const inActivePeriod = now >= startDate && now <= endDate;
+    
+    // Can take ONLY if: active period + not submitted + not graded
+    return inActivePeriod && notSubmitted && notGraded;
   };
 
   return (
     <DashboardLayout>
       <div className="student-quizzes">
-        <h1>Kuis</h1>
+        <h1>Kuis/Test/Ujian</h1>
 
         <div className="page-filters">
           <FormSelect
@@ -110,11 +125,11 @@ export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps) => {
         ) : filteredQuizzes.length === 0 ? (
           <EmptyState
             icon="📝"
-            title="Tidak Ada Kuis"
+            title="Tidak Ada Kuis/Test/Ujian"
             message={
               selectedSubject !== 'all'
-                ? `Tidak ada kuis untuk mata pelajaran ${subjects[selectedSubject] || selectedSubject}.`
-                : 'Belum ada kuis yang tersedia untuk Anda saat ini.'
+                ? `Tidak ada kuis/test/ujian untuk mata pelajaran ${subjects[selectedSubject] || selectedSubject}.`
+                : 'Belum ada kuis/test/ujian yang tersedia untuk Anda saat ini.'
             }
           />
         ) : (
@@ -132,7 +147,11 @@ export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps) => {
                     <strong>Waktu:</strong> {quiz.timeLimit || quiz.duration || 0} menit
                   </p>
                   <p>
-                    <strong>Jumlah Soal:</strong> {quiz.questionCount || quiz.questions || 0}
+                    <strong>Jumlah Soal:</strong>{' '}
+                    {quiz.questionCount ?? (Array.isArray(quiz.questions) ? quiz.questions.length : quiz.questions || 0)}
+                  </p>
+                  <p>
+                    <strong>Mulai:</strong> {formatDate(new Date(quiz.startDate || quiz.startTime || Date.now()))}
                   </p>
                   <p>
                     <strong>Batas Waktu:</strong> {formatDate(new Date(quiz.endDate || quiz.endTime || Date.now()))}
@@ -150,13 +169,13 @@ export const StudentQuizzes = ({ readOnly = false }: StudentQuizzesProps) => {
                 ) : canTakeQuiz(quiz) ? (
                   <Link to={`${ROUTES.STUDENT_QUIZZES}/${quiz.id}`}>
                     <Button variant="primary" className="quiz-action-button">
-                      Mulai Kuis
+                      Mulai Kuis/Test/Ujian
                     </Button>
                   </Link>
                 ) : quiz.score !== null && quiz.score !== undefined ? (
                   <Link to={`${ROUTES.STUDENT_QUIZZES}/${quiz.id}`}>
                     <Button variant="outline" className="quiz-action-button">
-                      Lihat Hasil
+                      Lihat Hasil Kuis/Test/Ujian
                     </Button>
                   </Link>
                 ) : (

@@ -43,9 +43,10 @@ export const attendanceService = {
     return response.data;
   },
 
-  async bulkCreateAttendance(classId: string, date: Date, attendances: Array<{ studentId: string; status: AttendanceStatus }>): Promise<Attendance[]> {
+  async bulkCreateAttendance(classId: string, subjectId: string, date: Date, attendances: Array<{ studentId: string; status: AttendanceStatus }>): Promise<Attendance[]> {
     const response = await apiClient.post<ApiResponse<Attendance[]>>('/attendance/bulk', {
       classId,
+      subjectId,
       date: date.toISOString().split('T')[0],
       attendances,
     });

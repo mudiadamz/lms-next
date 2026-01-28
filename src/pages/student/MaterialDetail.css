@@ -117,3 +117,31 @@
   text-decoration: underline;
 }
 
+/* Dark Mode Support */
+.dark-mode .material-header h1 {
+  color: #ffffff;
+}
+
+.dark-mode .material-meta {
+  color: #8e8e93;
+}
+
+.dark-mode .material-description,
+.dark-mode .material-content,
+.dark-mode .material-attachments {
+  border-top-color: #374151;
+}
+
+.dark-mode .material-description h3,
+.dark-mode .material-attachments h3 {
+  color: #ffffff;
+}
+
+.dark-mode .material-description p {
+  color: #ffffff;
+}
+
+.dark-mode .document-preview {
+  border-color: #374151;
+}
+

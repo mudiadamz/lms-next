@@ -11,9 +11,6 @@ export const StudentGrades = () => {
   const [grades, setGrades] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedSubject, setSelectedSubject] = useState<string>('all');
-  const [selectedSemester, setSelectedSemester] = useState<string>('all');
-  const [selectedYear, setSelectedYear] = useState<string>('all');
 
   useEffect(() => {
     const loadData = async () => {
@@ -40,23 +37,13 @@ export const StudentGrades = () => {
     }
   }, [user?.id]);
 
-  const uniqueSubjects = Array.from(new Set(grades.map(g => g.subjectId).filter(Boolean)));
-  const subjectOptions = [
-    { value: 'all', label: 'Semua Mata Pelajaran' },
-    ...uniqueSubjects.map((subjectId) => ({ value: subjectId, label: subjects[subjectId] || subjectId })),
-  ];
-
-  const uniqueSemesters = Array.from(new Set(grades.map(g => g.semester).filter(Boolean)));
-  const semesterOptions = [
-    { value: 'all', label: 'Semua Semester' },
-    ...uniqueSemesters.map((sem) => ({ value: sem.toString(), label: `Semester ${sem}` })),
-  ];
-
-  const uniqueYears = Array.from(new Set(grades.map(g => g.academicYear).filter(Boolean)));
-  const yearOptions = [
-    { value: 'all', label: 'Semua Tahun Ajaran' },
-    ...uniqueYears.map((year) => ({ value: year, label: year })),
-  ];
+  // Sort grades by date (newest first)
+  const sortedGrades = [...grades].sort((a, b) => {
+    const aDate = new Date(a.date || a.createdAt);
+    const bDate = new Date(b.date || b.createdAt);
+    if (isNaN(aDate.getTime()) || isNaN(bDate.getTime())) return 0;
+    return bDate.getTime() - aDate.getTime();
+  });
 
   const getGradeBadge = (score: number, maxScore: number) => {
     const percentage = (score / maxScore) * 100;
@@ -66,13 +53,6 @@ export const StudentGrades = () => {
     return <Badge variant="danger">Perlu Perbaikan</Badge>;
   };
 
-  const filteredGrades = grades.filter((grade) => {
-    const matchesSubject = selectedSubject === 'all' || grade.subjectId === selectedSubject;
-    const matchesSemester = selectedSemester === 'all' || grade.semester?.toString() === selectedSemester;
-    const matchesYear = selectedYear === 'all' || grade.academicYear === selectedYear;
-    return matchesSubject && matchesSemester && matchesYear;
-  });
-
   const columns = [
     {
       key: 'subject',
@@ -80,9 +60,32 @@ export const StudentGrades = () => {
       render: (item: any) => <strong>{subjects[item.subjectId] || item.subjectId}</strong>,
     },
     {
-      key: 'assignment',
-      header: 'Tugas/Evaluasi',
-      render: (item: any) => item.assignmentName || item.assignment || '-',
+      key: 'type',
+      header: 'Jenis',
+      render: (item: any) => {
+        const typeLabels: Record<string, { label: string; icon: string }> = {
+          assignment: { label: 'Tugas', icon: '📝' },
+          quiz: { label: 'Kuis', icon: '📋' },
+          midterm: { label: 'UTS', icon: '📊' },
+          final: { label: 'UAS', icon: '📈' },
+        };
+        const typeInfo = typeLabels[item.type] || { label: item.type || '-', icon: '📎' };
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>{typeInfo.icon}</span>
+            <span>{typeInfo.label}</span>
+          </div>
+        );
+      },
+    },
+    {
+      key: 'title',
+      header: 'Judul',
+      render: (item: any) => (
+        <div>
+          <strong>{item.assignmentName || item.quizName || item.title || '-'}</strong>
+        </div>
+      ),
     },
     {
       key: 'score',
@@ -94,27 +97,6 @@ export const StudentGrades = () => {
         </div>
       ),
     },
-    {
-      key: 'type',
-      header: 'Jenis',
-      render: (item: any) => {
-        const typeLabels: Record<string, string> = {
-          assignment: 'Tugas',
-          quiz: 'Kuis',
-          midterm: 'UTS',
-          final: 'UAS',
-        };
-        return typeLabels[item.type] || item.type || '-';
-      },
-    },
-    {
-      key: 'date',
-      header: 'Tanggal',
-      render: (item: any) => {
-        const date = item.date || item.createdAt;
-        return date ? new Date(date).toLocaleDateString('id-ID') : '-';
-      },
-    },
   ];
 
   return (
@@ -124,35 +106,17 @@ export const StudentGrades = () => {
           <h1>Nilai</h1>
         </div>
 
-        <div className="page-filters">
-          <FormSelect
-            value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
-            options={subjectOptions}
-          />
-          <FormSelect
-            value={selectedSemester}
-            onChange={(e) => setSelectedSemester(e.target.value)}
-            options={semesterOptions}
-          />
-          <FormSelect
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            options={yearOptions}
-          />
-        </div>
-
         {isLoading ? (
           <Loading />
-        ) : filteredGrades.length === 0 ? (
+        ) : sortedGrades.length === 0 ? (
           <EmptyState
             icon="grade"
             title="Tidak Ada Nilai"
             message="Belum ada nilai yang tersedia."
           />
         ) : (
-          <Card title={`Daftar Nilai (${filteredGrades.length})`} variant="elevated">
-            <Table columns={columns} data={filteredGrades} />
+          <Card title={`Daftar Nilai (${sortedGrades.length})`} variant="elevated">
+            <Table columns={columns} data={sortedGrades} />
           </Card>
         )}
       </div>

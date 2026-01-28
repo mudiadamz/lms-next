@@ -40,6 +40,7 @@ import { AssignmentDetail } from '../pages/teacher/AssignmentDetail';
 import { EditAssignment } from '../pages/teacher/EditAssignment';
 import { GradingInterface } from '../pages/teacher/GradingInterface';
 import { TeacherQuizzes } from '../pages/teacher/TeacherQuizzes';
+import { TeacherQuizDetail } from '../pages/teacher/TeacherQuizDetail';
 import { CreateQuiz } from '../pages/teacher/CreateQuiz';
 import { TeacherGrading } from '../pages/teacher/TeacherGrading';
 import { TeacherAttendance } from '../pages/teacher/TeacherAttendance';
@@ -333,6 +334,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute allowedRoles={['teacher']}>
             <TeacherQuizzes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path={ROUTES.TEACHER_QUIZ_DETAIL}
+        element={
+          <ProtectedRoute allowedRoles={['teacher']}>
+            <TeacherQuizDetail />
           </ProtectedRoute>
         }
       />

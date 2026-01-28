@@ -25,6 +25,10 @@
   color: #f9fafb;
 }
 
+.dark-mode .quiz-card-info p {
+  color: #ffffff;
+}
+
 @media (max-width: 768px) {
   .student-quizzes h1 {
     font-size: 1.25rem;

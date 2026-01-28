@@ -14,7 +14,6 @@ export const TeacherClasses = () => {
   const [classes, setClasses] = useState<any[]>([]);
   const [subjects, setSubjects] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedLevel, setSelectedLevel] = useState<string>('all');
 
   useEffect(() => {
     const loadData = async () => {
@@ -22,18 +21,31 @@ export const TeacherClasses = () => {
         setIsLoading(true);
         const [classesData, subjectsData] = await Promise.all([
           classService.getClasses(),
-          subjectService.getSubjects(),
+          subjectService.getSubjects(undefined, user?.id),
         ]);
 
-        // Filter classes taught by this teacher
-        const teacherClasses = classesData.filter(c => {
-          const teacherIds = (c as any).teacherIds || [];
-          return teacherIds.includes(user?.id);
+        const classIds = new Set<string>();
+        const classSubjectsMap: Record<string, string[]> = {};
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach((subject) => {
+          subjectMap[subject.id] = subject.name;
+          (subject.classIds || []).forEach((classId) => {
+            classIds.add(classId);
+            if (!classSubjectsMap[classId]) {
+              classSubjectsMap[classId] = [];
+            }
+            classSubjectsMap[classId].push(subject.id);
+          });
         });
 
+        const teacherClasses = classesData
+          .filter((cls) => classIds.has(cls.id))
+          .map((cls) => ({
+            ...cls,
+            subjects: classSubjectsMap[cls.id] || [],
+          }));
+
         setClasses(teacherClasses);
-        const subjectMap: Record<string, string> = {};
-        subjectsData.forEach(s => { subjectMap[s.id] = s.name; });
         setSubjects(subjectMap);
       } catch (error) {
         console.error('Error loading classes:', error);
@@ -47,17 +59,8 @@ export const TeacherClasses = () => {
     }
   }, [user?.id]);
 
-  const filteredClasses = classes.filter((cls) => {
-    const matchesLevel = selectedLevel === 'all' || cls.schoolLevel === selectedLevel;
-    return matchesLevel;
-  });
-
   const handleViewClass = (classId: string) => {
     navigate(`${ROUTES.TEACHER_CLASSES_DETAIL.replace(':id', classId)}`);
-  };
-
-  const handleManageClass = (classId: string) => {
-    navigate(`${ROUTES.TEACHER_CLASSES_MANAGE.replace(':id', classId)}`);
   };
 
   return (
@@ -72,34 +75,17 @@ export const TeacherClasses = () => {
           </div>
         </div>
 
-        <div className="page-filters">
-          <div className="filter-group">
-            <select
-              value={selectedLevel}
-              onChange={(e) => setSelectedLevel(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">Semua Tingkat</option>
-              <option value="sd">SD</option>
-              <option value="smp">SMP</option>
-              <option value="sma">SMA</option>
-            </select>
-          </div>
-        </div>
-
         {isLoading ? (
           <Loading />
-        ) : filteredClasses.length === 0 ? (
+        ) : classes.length === 0 ? (
           <EmptyState
             icon="userGroup"
             title="Tidak Ada Kelas"
-            message={selectedLevel !== 'all'
-              ? 'Tidak ada kelas yang sesuai dengan filter yang dipilih.'
-              : 'Anda belum memiliki kelas yang diajar.'}
+            message="Anda belum memiliki kelas yang diajar."
           />
         ) : (
           <div className="classes-grid">
-            {filteredClasses.map((classItem) => (
+            {classes.map((classItem) => (
               <Card key={classItem.id} variant="elevated" className="class-card">
                 <div className="class-card-header">
                   <div>
@@ -158,13 +144,6 @@ export const TeacherClasses = () => {
                   >
                     <Icon name="eye" size={16} style={{ marginRight: '0.5rem' }} />
                     Detail
-                  </Button>
-                  <Button
-                    onClick={() => handleManageClass(classItem.id)}
-                    style={{ flex: 1 }}
-                  >
-                    <Icon name="settings" size={16} style={{ marginRight: '0.5rem' }} />
-                    Kelola
                   </Button>
                 </div>
               </Card>

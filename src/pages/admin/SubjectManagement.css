@@ -111,6 +111,10 @@
   align-items: center;
 }
 
+.dark-mode .subject-detail .info-value {
+  color: #e5e7eb;
+}
+
 @media (max-width: 768px) {
   .subject-detail .detail-actions {
     flex-direction: column;

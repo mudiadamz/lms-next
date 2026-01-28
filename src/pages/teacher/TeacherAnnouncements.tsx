@@ -31,6 +31,7 @@ export const TeacherAnnouncements = () => {
     classId: '',
     targetAudience: 'student' as 'student' | 'parent' | 'all',
     isPinned: false,
+    startDate: new Date().toISOString().split('T')[0],
     endDate: '',
   });
 
@@ -110,6 +111,7 @@ export const TeacherAnnouncements = () => {
       classId: '',
       targetAudience: 'student',
       isPinned: false,
+      startDate: new Date().toISOString().split('T')[0],
       endDate: '',
     });
     setShowCreateModal(true);
@@ -127,6 +129,7 @@ export const TeacherAnnouncements = () => {
           : 'parent'
         : 'all',
       isPinned: announcement.isPinned,
+      startDate: announcement.startDate ? announcement.startDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
       endDate: announcement.endDate ? announcement.endDate.toISOString().split('T')[0] : '',
     });
     setShowCreateModal(true);
@@ -172,7 +175,8 @@ export const TeacherAnnouncements = () => {
         classId: formData.classId || undefined,
         targetAudience,
         isPinned: formData.isPinned,
-        endDate: formData.endDate ? new Date(formData.endDate).toISOString() : undefined,
+        startDate: formData.startDate,
+        endDate: formData.endDate ? formData.endDate : undefined,
       };
 
       if (selectedAnnouncement) {
@@ -196,6 +200,7 @@ export const TeacherAnnouncements = () => {
         classId: '',
         targetAudience: 'student',
         isPinned: false,
+        startDate: new Date().toISOString().split('T')[0],
         endDate: '',
       });
       setSelectedAnnouncement(null);
@@ -441,6 +446,13 @@ export const TeacherAnnouncements = () => {
               required
             />
             <FormInput
+              label="Tanggal Mulai"
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+              required
+            />
+            <FormInput
               label="Tanggal Berakhir (Opsional)"
               type="date"
               value={formData.endDate}
@@ -458,6 +470,7 @@ export const TeacherAnnouncements = () => {
                     classId: '',
                     targetAudience: 'student',
                     isPinned: false,
+                    startDate: new Date().toISOString().split('T')[0],
                     endDate: '',
                   });
                   setSelectedAnnouncement(null);

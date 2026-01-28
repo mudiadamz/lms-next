@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../constants';
 import { Icon, IconName } from '../common/Icon';
+import { assignmentService, quizService, paymentService } from '../../services';
 import './Sidebar.css';
 
 interface SidebarProps {
@@ -14,6 +15,7 @@ interface MenuItem {
   label: string;
   path: string;
   icon?: IconName;
+  badge?: number;
   subMenu?: SubMenuItem[];
 }
 
@@ -23,20 +25,27 @@ interface SubMenuItem {
   role?: string;
 }
 
+const normalizeRole = (role: string) => {
+  const normalized = role.toLowerCase();
+  if (normalized === 'guru') return 'teacher';
+  if (normalized === 'murid' || normalized === 'siswa') return 'student';
+  if (normalized === 'ortu' || normalized === 'wali') return 'parent';
+  return normalized;
+};
+
 const getMenuItems = (role: string): MenuItem[] => {
-  switch (role) {
+  switch (normalizeRole(role)) {
     case 'student':
       return [
         { label: 'Dashboard', path: ROUTES.STUDENT_DASHBOARD, icon: 'home' },
+        { label: 'Tugas', path: ROUTES.STUDENT_ASSIGNMENTS, icon: 'assignment' },
+        { label: 'Kuis/Test/Ujian', path: ROUTES.STUDENT_QUIZZES, icon: 'quiz' },
+        { label: 'Forum', path: ROUTES.STUDENT_FORUM, icon: 'forum' },
         { label: 'Jadwal', path: ROUTES.STUDENT_SCHEDULE, icon: 'schedule' },
         { label: 'Absensi', path: ROUTES.STUDENT_ATTENDANCE, icon: 'checkCircle' },
         { label: 'Pembayaran SPP', path: ROUTES.STUDENT_PAYMENT, icon: 'analytics' },
         { label: 'Materi', path: ROUTES.STUDENT_MATERIALS, icon: 'document' },
-        { label: 'Tugas', path: ROUTES.STUDENT_ASSIGNMENTS, icon: 'assignment' },
-        { label: 'Kuis', path: ROUTES.STUDENT_QUIZZES, icon: 'quiz' },
         { label: 'Nilai', path: ROUTES.STUDENT_GRADES, icon: 'grade' },
-        { label: 'Forum', path: ROUTES.STUDENT_FORUM, icon: 'forum' },
-        { label: 'Pesan', path: ROUTES.STUDENT_MESSAGES, icon: 'message' },
         { label: 'Portofolio', path: ROUTES.STUDENT_PORTFOLIO, icon: 'folder' },
         { label: 'Kalender', path: ROUTES.STUDENT_CALENDAR, icon: 'calendar' },
       ];
@@ -46,30 +55,19 @@ const getMenuItems = (role: string): MenuItem[] => {
         { label: 'Kelas', path: ROUTES.TEACHER_CLASSES, icon: 'userGroup' },
         { label: 'Materi', path: ROUTES.TEACHER_MATERIALS, icon: 'document' },
         { label: 'Tugas', path: ROUTES.TEACHER_ASSIGNMENTS, icon: 'assignment' },
-        { label: 'Kuis', path: ROUTES.TEACHER_QUIZZES, icon: 'quiz' },
+        { label: 'Kuis/Test/Ujian', path: ROUTES.TEACHER_QUIZZES, icon: 'quiz' },
         { label: 'Penilaian', path: ROUTES.TEACHER_GRADING, icon: 'grade' },
         { label: 'Absensi', path: ROUTES.TEACHER_ATTENDANCE, icon: 'checkCircle' },
         { label: 'Forum', path: ROUTES.TEACHER_FORUM, icon: 'forum' },
         { label: 'Jadwal', path: ROUTES.TEACHER_SCHEDULE, icon: 'schedule' },
         { label: 'Rapor', path: ROUTES.TEACHER_REPORTS, icon: 'report' },
-        { label: 'Pesan', path: ROUTES.TEACHER_MESSAGES, icon: 'message' },
         { label: 'Pengumuman', path: ROUTES.TEACHER_ANNOUNCEMENTS, icon: 'announcement' },
-        { label: 'Analitik', path: ROUTES.TEACHER_ANALYTICS, icon: 'analytics' },
-        { label: 'Bank Soal', path: ROUTES.TEACHER_QUESTION_BANK, icon: 'question' },
       ];
     case 'admin':
       return [
         { label: 'Dashboard', path: ROUTES.ADMIN_DASHBOARD, icon: 'home' },
-        { 
-          label: 'Pengguna', 
-          path: ROUTES.ADMIN_USERS, 
-          icon: 'users',
-          subMenu: [
-            { label: 'Admin', path: `${ROUTES.ADMIN_USERS}?role=admin`, role: 'admin' },
-            { label: 'Guru', path: `${ROUTES.ADMIN_USERS}?role=teacher`, role: 'teacher' },
-            { label: 'Murid', path: `${ROUTES.ADMIN_USERS}?role=student`, role: 'student' },
-          ]
-        },
+        { label: 'Guru', path: `${ROUTES.ADMIN_USERS}?role=teacher`, icon: 'user' },
+        { label: 'Murid', path: `${ROUTES.ADMIN_USERS}?role=student`, icon: 'users' },
         { label: 'Pembayaran SPP', path: ROUTES.ADMIN_PAYMENT, icon: 'analytics' },
         { label: 'Kelas', path: ROUTES.ADMIN_CLASSES, icon: 'userGroup' },
         { label: 'Mata Pelajaran', path: ROUTES.ADMIN_SUBJECTS, icon: 'book' },
@@ -88,10 +86,9 @@ const getMenuItems = (role: string): MenuItem[] => {
         { label: 'Pembayaran SPP', path: ROUTES.PARENT_PAYMENT, icon: 'analytics' },
         { label: 'Materi', path: ROUTES.PARENT_MATERIALS, icon: 'document' },
         { label: 'Tugas', path: ROUTES.PARENT_ASSIGNMENTS, icon: 'assignment' },
-        { label: 'Kuis', path: ROUTES.PARENT_QUIZZES, icon: 'quiz' },
+        { label: 'Kuis/Test/Ujian', path: ROUTES.PARENT_QUIZZES, icon: 'quiz' },
         { label: 'Nilai', path: ROUTES.PARENT_GRADES, icon: 'grade' },
         { label: 'Forum', path: ROUTES.PARENT_FORUM, icon: 'forum' },
-        { label: 'Pesan', path: ROUTES.PARENT_MESSAGES, icon: 'message' },
         { label: 'Portofolio', path: ROUTES.PARENT_PORTFOLIO, icon: 'folder' },
         { label: 'Kalender', path: ROUTES.PARENT_CALENDAR, icon: 'calendar' },
       ];
@@ -103,6 +100,7 @@ const getMenuItems = (role: string): MenuItem[] => {
 export const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
   const { user } = useAuth();
   const location = useLocation();
+  const [menuBadges, setMenuBadges] = useState<Record<string, number>>({});
   
   // Auto-expand menus that have active sub-items
   const getInitialExpandedMenus = (items: MenuItem[]): string[] => {
@@ -129,9 +127,90 @@ export const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     return getInitialExpandedMenus(menuItems);
   });
 
+  // Fetch badge counts for student and teacher
+  useEffect(() => {
+    const fetchBadgeCounts = async () => {
+      if (!user) return;
+
+      try {
+        if (user.role === 'student') {
+          const [assignments, quizzes, payments] = await Promise.all([
+            assignmentService.getAssignments().catch(() => []),
+            quizService.getQuizzes().catch(() => []),
+            paymentService.getPayments().catch(() => []),
+          ]);
+
+          const now = new Date();
+          // Only count assignments that are:
+          // 1. Not yet submitted (status !== 'submitted')
+          // 2. Not yet graded (score === null)
+          // 3. Deadline hasn't passed
+          const pendingAssignments = assignments.filter(a => {
+            const dueDate = new Date(a.dueDate);
+            const notSubmitted = (a as any).status !== 'submitted';
+            const notGraded = (a as any).score === null || (a as any).score === undefined;
+            const notPastDue = dueDate >= now;
+            return notSubmitted && notGraded && notPastDue;
+          }).length;
+
+          // Only count quizzes that are active and not yet submitted
+          const activeQuizzes = quizzes.filter(q => {
+            const startDate = new Date(q.startDate);
+            const endDate = new Date(q.endDate);
+            const isActive = startDate <= now && endDate >= now;
+            const notSubmitted = (q as any).status !== 'submitted';
+            const notGraded = (q as any).score === null || (q as any).score === undefined;
+            return isActive && notSubmitted && notGraded;
+          }).length;
+
+          // Count unpaid payments (status = 'pending', 'overdue', or 'verifying')
+          const unpaidPayments = payments.filter(p => 
+            (p as any).status === 'pending' || 
+            (p as any).status === 'overdue' ||
+            (p as any).status === 'verifying'
+          ).length;
+
+          setMenuBadges({
+            [ROUTES.STUDENT_ASSIGNMENTS]: pendingAssignments,
+            [ROUTES.STUDENT_QUIZZES]: activeQuizzes,
+            [ROUTES.STUDENT_PAYMENT]: unpaidPayments,
+          });
+        } else if (user.role === 'teacher') {
+          // For teachers, count ungraded submissions
+          const assignments = await assignmentService.getAssignments().catch(() => []);
+          
+          let ungradedCount = 0;
+          for (const assignment of assignments) {
+            try {
+              const submissions = await assignmentService.getSubmissions(assignment.id).catch(() => []);
+              const ungraded = submissions.filter((s: any) => s.score === null || s.score === undefined);
+              ungradedCount += ungraded.length;
+            } catch (error) {
+              // Skip if error
+            }
+          }
+
+          setMenuBadges({
+            [ROUTES.TEACHER_GRADING]: ungradedCount,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching badge counts:', error);
+      }
+    };
+
+    fetchBadgeCounts();
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchBadgeCounts, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   if (!user) return null;
 
-  const menuItems = getMenuItems(user.role);
+  const menuItems = getMenuItems(user.role).map(item => ({
+    ...item,
+    badge: menuBadges[item.path] || undefined,
+  }));
 
   const handleLinkClick = () => {
     if (onClose) {
@@ -173,6 +252,17 @@ export const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     return location.pathname === path;
   };
 
+  const isMenuItemActive = (itemPath: string) => {
+    const [path, query] = itemPath.split('?');
+    if (query) {
+      const params = new URLSearchParams(query);
+      const role = params.get('role');
+      const currentParams = new URLSearchParams(location.search);
+      return location.pathname === path && currentParams.get('role') === role;
+    }
+    return location.pathname === path;
+  };
+
   return (
     <>
       <aside className={`sidebar ${isOpen ? 'sidebar--open' : ''}`}>
@@ -181,7 +271,7 @@ export const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
             {menuItems.map((item) => {
               const hasSubMenu = item.subMenu && item.subMenu.length > 0;
               const isExpanded = hasSubMenu && isMenuExpanded(item.path);
-              const isActive = hasSubMenu ? isSubMenuActive(item.subMenu!) : location.pathname === item.path;
+              const isActive = hasSubMenu ? isSubMenuActive(item.subMenu!) : isMenuItemActive(item.path);
 
               return (
                 <li key={item.path}>
@@ -223,7 +313,7 @@ export const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                     <Link
                       to={item.path}
                       className={`sidebar-menu-item ${
-                        location.pathname === item.path ? 'sidebar-menu-item--active' : ''
+                        isMenuItemActive(item.path) ? 'sidebar-menu-item--active' : ''
                       }`}
                       onClick={handleLinkClick}
                     >
@@ -233,6 +323,9 @@ export const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
                         </span>
                       )}
                       <span className="sidebar-menu-label">{item.label}</span>
+                      {item.badge !== undefined && item.badge > 0 && (
+                        <span className="sidebar-menu-badge">{item.badge}</span>
+                      )}
                     </Link>
                   )}
                 </li>

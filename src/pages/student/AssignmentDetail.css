@@ -21,6 +21,12 @@
   border-radius: 0.375rem;
 }
 
+.dark-mode .info-item {
+  background-color: #111827;
+  border: 1px solid #1f2937;
+  color: #f3f4f6;
+}
+
 .assignment-description,
 .assignment-attachments {
   margin-top: 1.5rem;
@@ -78,5 +84,24 @@
 
 .submission-info p {
   margin: 0;
+}
+
+/* Dark Mode Support */
+.dark-mode .assignment-description,
+.dark-mode .assignment-attachments {
+  border-top-color: #374151;
+}
+
+.dark-mode .assignment-description h3,
+.dark-mode .assignment-attachments h3 {
+  color: #ffffff;
+}
+
+.dark-mode .assignment-description p {
+  color: #ffffff;
+}
+
+.dark-mode .submission-info p {
+  color: #d1d5db;
 }
 

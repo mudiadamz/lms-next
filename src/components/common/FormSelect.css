@@ -12,6 +12,10 @@
   margin-bottom: 0.25rem;
 }
 
+.dark-mode .form-select-label {
+  color: #f3f4f6;
+}
+
 .form-select {
   width: 100%;
   padding: 0.5rem 0.75rem;

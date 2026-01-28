@@ -7,6 +7,8 @@
   max-height: calc(100vh - 200px);
   min-height: 200px;
   position: relative;
+  padding-bottom: 120px;
+  box-sizing: border-box;
 }
 
 /* Custom Scrollbar Styling untuk Table Wrapper */

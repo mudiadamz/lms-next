@@ -8,8 +8,20 @@ interface ApiResponse<T> {
 }
 
 export const assignmentService = {
-  async getAssignments(classId?: string): Promise<Assignment[]> {
-    const params = classId ? { classId } : undefined;
+  async getAssignments(filters?: string | { classId?: string; teacherId?: string; subjectId?: string }): Promise<Assignment[]> {
+    let params: Record<string, string> | undefined;
+    
+    if (typeof filters === 'string') {
+      // Legacy: classId as string
+      params = { classId: filters };
+    } else if (filters) {
+      // New: filters object
+      params = {};
+      if (filters.classId) params.classId = filters.classId;
+      if (filters.teacherId) params.teacherId = filters.teacherId;
+      if (filters.subjectId) params.subjectId = filters.subjectId;
+    }
+    
     const response = await apiClient.get<ApiResponse<Assignment[]>>('/assignments', params);
     
     if (!response.success || !response.data) {

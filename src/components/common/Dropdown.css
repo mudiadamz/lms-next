@@ -23,6 +23,13 @@
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
 
+.dropdown-menu--up {
+  top: auto;
+  bottom: 100%;
+  margin-top: 0;
+  margin-bottom: 0.25rem;
+}
+
 @keyframes slideDown {
   from {
     opacity: 0;
@@ -59,8 +66,16 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+.dark-mode .dropdown-item {
+  color: #f3f4f6;
+}
+
 .dropdown-item:active:not(.dropdown-item--disabled) {
   background-color: rgba(0, 0, 0, 0.05);
+}
+
+.dark-mode .dropdown-item:active:not(.dropdown-item--disabled) {
+  background-color: rgba(255, 255, 255, 0.08);
 }
 
 .dropdown-item--disabled {

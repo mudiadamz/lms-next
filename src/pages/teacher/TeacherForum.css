@@ -336,6 +336,63 @@
   justify-content: flex-end;
 }
 
+/* Dark Mode Support */
+.dark-mode .teacher-forum h1 {
+  color: #ffffff;
+}
+
+.dark-mode .filter-select {
+  color: #ffffff;
+}
+
+.dark-mode .post-title {
+  color: #ffffff;
+}
+
+.dark-mode .post-author {
+  color: #ffffff;
+}
+
+.dark-mode .post-content-preview {
+  color: #ffffff;
+}
+
+.dark-mode .form-checkbox label {
+  color: #ffffff;
+}
+
+.dark-mode .post-meta .author {
+  color: #ffffff;
+}
+
+.dark-mode .post-content {
+  color: #ffffff;
+}
+
+.dark-mode .post-content p {
+  color: #ffffff;
+}
+
+.dark-mode .comment-author {
+  color: #ffffff;
+}
+
+.dark-mode .comment-content {
+  color: #ffffff;
+}
+
+.dark-mode .comment-content p {
+  color: #ffffff;
+}
+
+.dark-mode .delete-dialog h3 {
+  color: #ffffff;
+}
+
+.dark-mode .post-header h1 {
+  color: #ffffff;
+}
+
 @media (max-width: 768px) {
   .page-header {
     flex-direction: column;

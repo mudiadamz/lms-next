@@ -41,6 +41,7 @@ export const AdminUsersCreate = () => {
   const [homeroomClassId, setHomeroomClassId] = useState('');
   const [teachingClassIds, setTeachingClassIds] = useState<string[]>([]);
   const [teachingSubjectIds, setTeachingSubjectIds] = useState<string[]>([]);
+  const [hasLoadedTeacherAssignments, setHasLoadedTeacherAssignments] = useState(!id);
   const [createParent, setCreateParent] = useState(true);
   const [parentData, setParentData] = useState({
     fullName: '',
@@ -76,13 +77,18 @@ export const AdminUsersCreate = () => {
           const homeroomClass = classesData.find((cls: any) => cls.homeroomTeacherId === user.id);
           setHomeroomClassId(homeroomClass?.id || '');
           if (user.role === 'teacher') {
-            const teacherSubjects = subjectsData.filter((subject) => subject.teacherId === user.id);
-            setTeachingSubjectIds(teacherSubjects.map((subject) => subject.id));
-            const classIds = new Set<string>();
-            teacherSubjects.forEach((subject) => {
-              (subject.classIds || []).forEach((classId: string) => classIds.add(classId));
-            });
-            setTeachingClassIds(Array.from(classIds));
+            setHasLoadedTeacherAssignments(false);
+            try {
+              const teacherSubjects = await subjectService.getSubjects(undefined, user.id);
+              setTeachingSubjectIds(teacherSubjects.map((subject) => subject.id));
+              const classIds = new Set<string>();
+              teacherSubjects.forEach((subject) => {
+                (subject.classIds || []).forEach((classId: string) => classIds.add(classId));
+              });
+              setTeachingClassIds(Array.from(classIds));
+            } finally {
+              setHasLoadedTeacherAssignments(true);
+            }
           }
           setFormData((prev) => ({
             ...prev,
@@ -170,10 +176,11 @@ export const AdminUsersCreate = () => {
 
       const updateTeacherAssignments = async (teacherId: string) => {
         if (selectedRole !== 'teacher') return;
+        if (isEditMode && !hasLoadedTeacherAssignments) return;
         const subjectsData = await subjectService.getSubjects(undefined, teacherId);
         const subjectsToRemove = subjectsData.filter((subject) => !teachingSubjectIds.includes(subject.id));
         await Promise.all([
-          ...subjectsToRemove.map((subject) => subjectService.updateSubject(subject.id, { teacherId: null as unknown as string })),
+          ...subjectsToRemove.map((subject) => subjectService.updateSubject(subject.id, { teacherId: null })),
           ...teachingSubjectIds.map((subjectId) =>
             subjectService.updateSubject(subjectId, {
               teacherId,
@@ -339,38 +346,56 @@ export const AdminUsersCreate = () => {
                     })),
                   ]}
                 />
-                <FormSelect
-                  label="Kelas yang Diajar"
-                  multiple
-                  value={teachingClassIds}
-                  onChange={(e) => {
-                    const values = Array.from(e.target.selectedOptions).map((option) => option.value);
-                    setTeachingClassIds(values);
-                  }}
-                  options={
-                    classes.length === 0
-                      ? [{ value: '', label: 'Tidak ada kelas tersedia' }]
-                      : classes
-                  }
-                  helperText="Gunakan Ctrl/Cmd untuk memilih banyak kelas"
-                  disabled={classes.length === 0}
-                />
-                <FormSelect
-                  label="Mata Pelajaran yang Diajar"
-                  multiple
-                  value={teachingSubjectIds}
-                  onChange={(e) => {
-                    const values = Array.from(e.target.selectedOptions).map((option) => option.value);
-                    setTeachingSubjectIds(values);
-                  }}
-                  options={
-                    subjects.length === 0
-                      ? [{ value: '', label: 'Tidak ada mata pelajaran tersedia' }]
-                      : subjects
-                  }
-                  helperText="Gunakan Ctrl/Cmd untuk memilih banyak mata pelajaran"
-                  disabled={subjects.length === 0}
-                />
+                <div className="checkbox-group">
+                  <label className="checkbox-group-label">Kelas yang Diajar</label>
+                  {classes.length === 0 ? (
+                    <div className="checkbox-empty">Tidak ada kelas tersedia</div>
+                  ) : (
+                    <div className="checkbox-grid">
+                      {classes.map((cls) => (
+                        <label key={cls.value} className="checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={teachingClassIds.includes(cls.value)}
+                            onChange={(e) => {
+                              setTeachingClassIds((prev) =>
+                                e.target.checked
+                                  ? [...prev, cls.value]
+                                  : prev.filter((id) => id !== cls.value),
+                              );
+                            }}
+                          />
+                          <span>{cls.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="checkbox-group">
+                  <label className="checkbox-group-label">Mata Pelajaran yang Diajar</label>
+                  {subjects.length === 0 ? (
+                    <div className="checkbox-empty">Tidak ada mata pelajaran tersedia</div>
+                  ) : (
+                    <div className="checkbox-grid">
+                      {subjects.map((subject) => (
+                        <label key={subject.value} className="checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={teachingSubjectIds.includes(subject.value)}
+                            onChange={(e) => {
+                              setTeachingSubjectIds((prev) =>
+                                e.target.checked
+                                  ? [...prev, subject.value]
+                                  : prev.filter((id) => id !== subject.value),
+                              );
+                            }}
+                          />
+                          <span>{subject.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
@@ -613,7 +638,10 @@ export const AdminUsersCreate = () => {
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => navigate(ROUTES.ADMIN_USERS)}
+                onClick={() => {
+                  const targetRole = (selectedRole || role || 'admin').toLowerCase();
+                  navigate(`${ROUTES.ADMIN_USERS}?role=${targetRole}`);
+                }}
                 disabled={isCreating}
               >
                 Batal

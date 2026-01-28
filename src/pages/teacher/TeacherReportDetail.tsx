@@ -11,7 +11,7 @@ import './TeacherReports.css';
 
 const GRADE_TYPE_LABELS: Record<string, string> = {
   assignment: 'Tugas',
-  quiz: 'Kuis',
+  quiz: 'Kuis/Test/Ujian',
   midterm: 'UTS',
   final: 'UAS',
   other: 'Lainnya',

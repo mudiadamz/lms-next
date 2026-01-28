@@ -5,7 +5,7 @@ import { Card } from '../../components/common/Card';
 import { Button, Badge, Icon, Modal, EmptyState, Loading } from '../../components/common';
 import { ROUTES } from '../../constants';
 import { formatDate, formatDateTime } from '../../utils';
-import { assignmentService, quizService, announcementService, scheduleService, userService } from '../../services';
+import { assignmentService, quizService, announcementService, scheduleService, subjectService } from '../../services';
 import { useAuth } from '../../contexts/AuthContext';
 import './StudentCalendar.css';
 
@@ -37,15 +37,19 @@ export const StudentCalendar = () => {
     const loadEvents = async () => {
       try {
         setIsLoading(true);
-        const studentData = user?.id ? await userService.getUserById(user.id) : null;
-        const classId = (studentData as any)?.classId;
+        const classId = (user as any)?.classId;
 
-        const [assignmentsData, quizzesData, announcementsData, schedulesData] = await Promise.all([
-          assignmentService.getAssignments(classId ? { classId } : {}),
-          quizService.getQuizzes(classId ? { classId } : {}),
+        const [assignmentsData, quizzesData, announcementsData, schedulesData, subjectsData] = await Promise.all([
+          assignmentService.getAssignments(classId ? String(classId) : undefined),
+          quizService.getQuizzes(classId ? { classId: String(classId) } : undefined),
           announcementService.getAnnouncements({ targetAudience: 'student' }),
-          scheduleService.getSchedules(classId ? { classId } : {}),
+          scheduleService.getSchedules(classId ? { classId: String(classId) } : {}),
+          subjectService.getSubjects(),
         ]);
+
+        // Create subject lookup map
+        const subjectMap: Record<string, string> = {};
+        subjectsData.forEach((s: any) => { subjectMap[s.id] = s.name; });
 
         const calendarEvents: CalendarEvent[] = [];
 
@@ -92,16 +96,19 @@ export const StudentCalendar = () => {
         });
 
         // Add schedules (convert to events for current month)
-        schedulesData.forEach(schedule => {
+        schedulesData.forEach((schedule: any) => {
           const today = new Date();
           const scheduleDate = new Date(today.getFullYear(), today.getMonth(), schedule.dayOfWeek === 0 ? 7 : schedule.dayOfWeek);
+          const subjectName = subjectMap[schedule.subjectId] || 'Mata Pelajaran';
+          const teacherName = schedule.teacherName || 'Guru';
+          
           calendarEvents.push({
             id: `schedule-${schedule.id}`,
             type: 'schedule',
-            title: `Jadwal - ${schedule.subjectId}`,
+            title: subjectName,
             date: scheduleDate,
-            subject: schedule.subjectId,
-            description: `${schedule.startTime} - ${schedule.endTime}`,
+            subject: subjectName,
+            description: `${schedule.startTime} - ${schedule.endTime} • ${teacherName}`,
             color: '#5856d6',
             route: ROUTES.STUDENT_SCHEDULE,
           });
@@ -122,7 +129,7 @@ export const StudentCalendar = () => {
 
   const TYPE_LABELS = {
   assignment: 'Tugas',
-  quiz: 'Kuis',
+  quiz: 'Kuis/Test/Ujian',
   announcement: 'Pengumuman',
   exam: 'Ujian',
   schedule: 'Jadwal',

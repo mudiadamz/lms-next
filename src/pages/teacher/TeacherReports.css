@@ -80,10 +80,18 @@
   line-height: 1.6;
 }
 
+.dark-mode .info-item {
+  color: #e5e7eb;
+}
+
 .info-item strong {
   display: inline-block;
   min-width: 120px;
   margin-right: 0.5rem;
+}
+
+.dark-mode .info-item strong {
+  color: #9ca3af;
 }
 
 .report-header-right {

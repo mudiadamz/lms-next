@@ -29,7 +29,7 @@ export const StudentAttendance = () => {
       try {
         setIsLoading(true);
         const [attendancesData, subjectsData] = await Promise.all([
-          attendanceService.getAttendance(user?.id ? { studentId: user.id } : {}),
+          attendanceService.getAttendance(user?.id),
           subjectService.getSubjects(),
         ]);
         setAttendances(attendancesData);

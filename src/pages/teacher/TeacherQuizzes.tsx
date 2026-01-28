@@ -21,12 +21,13 @@ export const TeacherQuizzes = () => {
       try {
         setIsLoading(true);
         const [quizzesData, classesData, subjectsData] = await Promise.all([
-          quizService.getQuizzes({ teacherId: user?.id }),
+          quizService.getQuizzes(),
           classService.getClasses(),
           subjectService.getSubjects(),
         ]);
 
-        setQuizzes(quizzesData);
+        const teacherQuizzes = quizzesData.filter((quiz) => quiz.teacherId === user?.id);
+        setQuizzes(teacherQuizzes);
         const classMap: Record<string, string> = {};
         classesData.forEach(c => { classMap[c.id] = c.name; });
         setClasses(classMap);
@@ -59,9 +60,9 @@ export const TeacherQuizzes = () => {
     <DashboardLayout>
       <div className="teacher-quizzes">
         <div className="page-header">
-          <h1>Kuis</h1>
+          <h1>Kuis/Test/Ujian</h1>
           <Link to={ROUTES.TEACHER_QUIZZES_CREATE}>
-            <Button>Buat Kuis Baru</Button>
+            <Button>Buat Kuis/Test/Ujian Baru</Button>
           </Link>
         </div>
 
@@ -70,10 +71,10 @@ export const TeacherQuizzes = () => {
         ) : quizzes.length === 0 ? (
           <EmptyState
             icon="quiz"
-            title="Tidak Ada Kuis"
-            message="Belum ada kuis yang dibuat. Buat kuis baru untuk memulai."
+            title="Tidak Ada Kuis/Test/Ujian"
+            message="Belum ada kuis/test/ujian yang dibuat. Buat kuis/test/ujian baru untuk memulai."
             action={{
-              label: 'Buat Kuis Baru',
+              label: 'Buat Kuis/Test/Ujian Baru',
               onClick: () => window.location.href = ROUTES.TEACHER_QUIZZES_CREATE,
             }}
           />
@@ -90,15 +91,17 @@ export const TeacherQuizzes = () => {
                     <p>Kelas: {classes[quiz.classId] || quiz.classId}</p>
                     <p>Mata Pelajaran: {subjects[quiz.subjectId] || quiz.subjectId}</p>
                     <p>Waktu: {quiz.timeLimit || quiz.duration || 0} menit</p>
-                    <p>Jumlah Soal: {quiz.questionCount || quiz.questions || 0}</p>
+                    <p>Jumlah Soal: {quiz.questionCount ?? (Array.isArray(quiz.questions) ? quiz.questions.length : quiz.questions || 0)}</p>
                     <p style={{ fontSize: '0.875rem', color: '#6b7280' }}>
                       Mulai: {formatDate(new Date(quiz.startDate || quiz.startTime || Date.now()))} - Selesai: {formatDate(new Date(quiz.endDate || quiz.endTime || Date.now()))}
                     </p>
                   </div>
                   <div className="quiz-actions">
-                    <Button variant="outline" size="small">
-                      Kelola
-                    </Button>
+                    <Link to={ROUTES.TEACHER_QUIZ_DETAIL.replace(':id', quiz.id)}>
+                      <Button variant="outline" size="small">
+                        Kelola
+                      </Button>
+                    </Link>
                   </div>
                 </Card>
               );

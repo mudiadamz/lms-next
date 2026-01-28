@@ -102,6 +102,10 @@
   font-size: 0.8rem;
 }
 
+.dark-mode .info-item {
+  color: #9ca3af;
+}
+
 .class-subjects {
   margin-bottom: 0.75rem;
   padding-top: 0.75rem;
@@ -113,6 +117,10 @@
   margin-bottom: 0.375rem;
   font-size: 0.8rem;
   color: #000000;
+}
+
+.dark-mode .class-subjects strong {
+  color: #f3f4f6;
 }
 
 .subjects-list {
@@ -201,6 +209,10 @@
   display: flex;
   align-items: center;
   font-size: 0.875rem;
+}
+
+.dark-mode .info-value {
+  color: #e5e7eb;
 }
 
 .subjects-list-detail {

@@ -449,3 +449,32 @@
     font-size: 0.85rem;
   }
 }
+
+/* Dark Mode Support */
+.dark-mode .student-calendar h1 {
+  color: #ffffff;
+}
+
+.dark-mode .current-month {
+  color: #ffffff;
+}
+
+.dark-mode .day-number {
+  color: #ffffff;
+}
+
+.dark-mode .filter-select {
+  color: #ffffff;
+}
+
+.dark-mode .event-title {
+  color: #ffffff;
+}
+
+.dark-mode .event-description {
+  color: #ffffff;
+}
+
+.dark-mode .info-row {
+  color: #ffffff;
+}

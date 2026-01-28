@@ -239,11 +239,19 @@
   color: #000000;
 }
 
+.dark-mode .info-item {
+  color: #e5e7eb;
+}
+
 .info-item strong {
   display: inline-block;
   min-width: 120px;
   color: var(--ios-gray);
   margin-right: 0.5rem;
+}
+
+.dark-mode .info-item strong {
+  color: #9ca3af;
 }
 
 .detail-description,

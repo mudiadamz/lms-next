@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
-import { Button, Badge, Icon, Table, Loading, EmptyState } from '../../components/common';
-import { ROUTES, SCHOOL_LEVELS } from '../../constants';
+import { Badge, Table, Loading, EmptyState } from '../../components/common';
+import { SCHOOL_LEVELS } from '../../constants';
 import { classService, subjectService, userService } from '../../services';
 import './TeacherClasses.css';
 
 export const TeacherClassDetail = () => {
-  const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const [classData, setClassData] = useState<any>(null);
   const [subjects, setSubjects] = useState<any[]>([]);
@@ -22,10 +21,11 @@ export const TeacherClassDetail = () => {
       
       try {
         setIsLoading(true);
-        const [classInfo, subjectsData, teachersData] = await Promise.all([
+        const [classInfo, subjectsData, teachersData, studentsData] = await Promise.all([
           classService.getClassById(id),
           subjectService.getSubjects(),
           userService.getUsers('teacher'),
+          userService.getUsers('student'),
         ]);
 
         setClassData(classInfo);
@@ -36,11 +36,8 @@ export const TeacherClassDetail = () => {
         setSubjects(classSubjects);
 
         // Get students for this class
-        const studentIds = (classInfo as any).studentIds || [];
-        const studentsData = await Promise.all(
-          studentIds.map((studentId: string) => userService.getUserById(studentId))
-        );
-        setStudents(studentsData);
+        const classStudents = studentsData.filter((student) => (student as any).classId === id);
+        setStudents(classStudents);
 
         // Create teacher map
         const teacherMap: Record<string, string> = {};
@@ -106,13 +103,6 @@ export const TeacherClassDetail = () => {
           <h1>Detail Kelas - {classData.name}</h1>
         </div>
 
-        <div className="detail-actions">
-          <Button onClick={() => navigate(`${ROUTES.TEACHER_CLASSES_MANAGE.replace(':id', id || '')}`)}>
-            <Icon name="settings" size={16} style={{ marginRight: '0.5rem' }} />
-            Kelola Kelas
-          </Button>
-        </div>
-
         <Card title="Informasi Kelas" variant="elevated">
           <div className="detail-info">
             <div className="info-row">
@@ -168,9 +158,6 @@ export const TeacherClassDetail = () => {
                       Guru: {teachers[subject.teacherId] || '-'}
                     </div>
                   </div>
-                  <Button variant="outline" size="small">
-                    Lihat Materi
-                  </Button>
                 </div>
               ))}
             </div>

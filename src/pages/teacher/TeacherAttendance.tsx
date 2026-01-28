@@ -24,14 +24,14 @@ export const TeacherAttendance = () => {
   const [selectedDate, setSelectedDate] = useState<string>(
     new Date().toISOString().split('T')[0]
   );
+  const [historyDate, setHistoryDate] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [showInputModal, setShowInputModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState<Attendance | null>(null);
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
   const [subjects, setSubjects] = useState<Array<{ value: string; label: string }>>([]);
-  const [students, setStudents] = useState<Array<{ id: string; studentNumber: string; fullName: string }>>([]);
+  const [students, setStudents] = useState<Array<{ id: string; studentNumber: string; fullName: string; classId?: string }>>([]);
   const [attendanceData, setAttendanceData] = useState<Record<string, AttendanceStatus>>({});
   const [attendanceNotes, setAttendanceNotes] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -57,12 +57,15 @@ export const TeacherAttendance = () => {
           return teacherIds.includes(user?.id);
         });
 
-        setClasses(teacherClasses.map(c => ({ value: c.id, label: c.name })));
+        // If no classes found (teacher not in schedules yet), show all classes as fallback
+        const classesToShow = teacherClasses.length > 0 ? teacherClasses : classesData;
+        setClasses(classesToShow.map(c => ({ value: c.id, label: c.name })));
         setSubjects(subjectsData.map(s => ({ value: s.id, label: s.name })));
         setStudents(studentsData.map(s => ({ 
           id: s.id, 
           studentNumber: (s as any).studentNumber || '', 
-          fullName: s.fullName 
+          fullName: s.fullName,
+          classId: (s as any).classId,
         })));
 
         // Filter attendances by teacher
@@ -100,9 +103,9 @@ export const TeacherAttendance = () => {
     });
 
   const filteredHistory = filteredAttendances.filter((att) => {
-    if (selectedDate) {
+    if (historyDate) {
       const dateStr = typeof att.date === 'string' ? att.date : att.date.toISOString().split('T')[0];
-      return dateStr === selectedDate;
+      return dateStr === historyDate;
     }
     return true;
   });
@@ -114,31 +117,58 @@ export const TeacherAttendance = () => {
     currentPage * itemsPerPage
   );
 
-  const handleOpenInputModal = () => {
+  useEffect(() => {
     if (!selectedClass || !selectedSubject) {
-      alert('Pilih kelas dan mata pelajaran terlebih dahulu');
+      setAttendanceData({});
+      setAttendanceNotes({});
       return;
     }
-    
-    // Get students for selected class (students already have classId from useEffect)
-    const classStudents = students.filter(s => (s as any).classId === selectedClass);
-
-    // Initialize attendance data for all students
+    const classStudents = students.filter(s => s.classId === selectedClass);
     const initialData: Record<string, AttendanceStatus> = {};
     classStudents.forEach((student) => {
-      initialData[student.id] = 'present'; // Default to present
+      initialData[student.id] = 'present';
     });
     setAttendanceData(initialData);
     setAttendanceNotes({});
-    setShowInputModal(true);
+  }, [selectedClass, selectedSubject, students]);
+
+  const setAllStatus = (status: AttendanceStatus) => {
+    const classStudents = students.filter(s => s.classId === selectedClass);
+    const nextData: Record<string, AttendanceStatus> = {};
+    classStudents.forEach((student) => {
+      nextData[student.id] = status;
+    });
+    setAttendanceData(nextData);
   };
 
   const handleSubmitAttendance = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setIsSubmitting(true);
+      
+      // Check if attendance already exists for this class, subject, and date
+      const existingAttendance = attendances.find((att) => {
+        const attDate = typeof att.date === 'string' ? att.date : att.date.toISOString().split('T')[0];
+        return (
+          att.classId === selectedClass &&
+          att.subjectId === selectedSubject &&
+          attDate === selectedDate
+        );
+      });
+
+      if (existingAttendance) {
+        const confirmOverwrite = window.confirm(
+          `Absensi untuk kelas ${getClassName(selectedClass)}, mata pelajaran ${getSubjectName(selectedSubject)}, tanggal ${selectedDate} sudah ada.\n\nApakah Anda ingin menimpa data yang sudah ada?`
+        );
+        
+        if (!confirmOverwrite) {
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
       // Get students for selected class (students already have classId from useEffect)
-      const classStudents = students.filter(s => (s as any).classId === selectedClass);
+      const classStudents = students.filter(s => s.classId === selectedClass);
 
       const attendancesToCreate = classStudents.map((student) => ({
         studentId: student.id,
@@ -148,6 +178,7 @@ export const TeacherAttendance = () => {
 
       await attendanceService.bulkCreateAttendance(
         selectedClass,
+        selectedSubject,
         new Date(selectedDate),
         attendancesToCreate.map(a => ({ studentId: a.studentId, status: a.status }))
       );
@@ -157,7 +188,6 @@ export const TeacherAttendance = () => {
       const teacherAttendances = updatedAttendances.filter(a => a.recordedBy === user?.id);
       setAttendances(teacherAttendances);
 
-      setShowInputModal(false);
       setAttendanceData({});
       setAttendanceNotes({});
       alert('Absensi berhasil disimpan');
@@ -231,26 +261,22 @@ export const TeacherAttendance = () => {
     {
       key: 'date',
       header: 'Tanggal',
-      render: (item: Attendance) => formatDate(new Date(item.date)),
-    },
-    {
-      key: 'class',
-      header: 'Kelas',
-      render: (item: Attendance) => getClassName(item.classId),
-    },
-    {
-      key: 'subject',
-      header: 'Mata Pelajaran',
-      render: (item: Attendance) => getSubjectName(item.subjectId),
+      render: (item: Attendance) => (
+        <div style={{ fontSize: '0.9rem' }}>
+          {formatDate(new Date(item.date))}
+        </div>
+      ),
     },
     {
       key: 'student',
       header: 'Siswa',
       render: (item: Attendance) => (
         <div>
-          <strong>{getStudentName(item.studentId)}</strong>
-          <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-            NIS: {getStudentNumber(item.studentId)}
+          <div style={{ fontWeight: '600', fontSize: '0.95rem' }}>
+            {getStudentName(item.studentId)}
+          </div>
+          <div style={{ fontSize: '0.8rem', color: 'var(--ios-gray)' }}>
+            {getClassName(item.classId)} • {getSubjectName(item.subjectId)}
           </div>
         </div>
       ),
@@ -265,13 +291,8 @@ export const TeacherAttendance = () => {
       ),
     },
     {
-      key: 'notes',
-      header: 'Catatan',
-      render: (item: Attendance) => item.notes || '-',
-    },
-    {
       key: 'actions',
-      header: 'Aksi',
+      header: '',
       render: (item: Attendance) => (
         <Button variant="outline" size="small" onClick={() => handleEditAttendance(item)}>
           Edit
@@ -289,13 +310,13 @@ export const TeacherAttendance = () => {
 
         <div className="attendance-tabs">
           <button
-            className={activeTab === 'input' ? 'active' : ''}
+            className={`attendance-tab ${activeTab === 'input' ? 'attendance-tab--active' : ''}`}
             onClick={() => setActiveTab('input')}
           >
             Input Absensi
           </button>
           <button
-            className={activeTab === 'history' ? 'active' : ''}
+            className={`attendance-tab ${activeTab === 'history' ? 'attendance-tab--active' : ''}`}
             onClick={() => setActiveTab('history')}
           >
             Riwayat Absensi
@@ -303,40 +324,136 @@ export const TeacherAttendance = () => {
         </div>
 
         {activeTab === 'input' ? (
-          <Card variant="elevated">
-            <div className="input-filters">
-              <FormSelect
-                label="Kelas"
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                options={[
-                  { value: '', label: 'Pilih kelas' },
-                  ...classes,
-                ]}
-                required
+          <>
+            <Card variant="elevated">
+              <div className="input-filters">
+                <FormSelect
+                  label="Kelas"
+                  value={selectedClass}
+                  onChange={(e) => setSelectedClass(e.target.value)}
+                  options={[
+                    { value: '', label: 'Pilih kelas' },
+                    ...classes,
+                  ]}
+                  required
+                />
+                <FormSelect
+                  label="Mata Pelajaran"
+                  value={selectedSubject}
+                  onChange={(e) => setSelectedSubject(e.target.value)}
+                  options={[
+                    { value: '', label: 'Pilih mata pelajaran' },
+                    ...subjects,
+                  ]}
+                  required
+                />
+                <FormInput
+                  label="Tanggal"
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  required
+                />
+              </div>
+            </Card>
+            {!selectedClass || !selectedSubject ? (
+              <EmptyState
+                icon="checkCircle"
+                title="Pilih Kelas & Mata Pelajaran"
+                message="Pilih kelas dan mata pelajaran untuk mulai input absensi."
               />
-              <FormSelect
-                label="Mata Pelajaran"
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                options={[
-                  { value: '', label: 'Pilih mata pelajaran' },
-                  ...subjects,
-                ]}
-                required
-              />
-              <FormInput
-                label="Tanggal"
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                required
-              />
-              <Button onClick={handleOpenInputModal} disabled={!selectedClass || !selectedSubject}>
-                Input Absensi
-              </Button>
-            </div>
-          </Card>
+            ) : (
+              <>
+                {(() => {
+                  const existingAttendance = attendances.find((att) => {
+                    const attDate = typeof att.date === 'string' ? att.date : att.date.toISOString().split('T')[0];
+                    return (
+                      att.classId === selectedClass &&
+                      att.subjectId === selectedSubject &&
+                      attDate === selectedDate
+                    );
+                  });
+                  
+                  if (existingAttendance) {
+                    return (
+                      <Card variant="elevated" style={{ 
+                        backgroundColor: 'var(--accent-orange)', 
+                        border: '1px solid var(--border-accent-purple)',
+                        marginBottom: '1rem'
+                      }}>
+                        <div style={{ 
+                          padding: '0.75rem', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0.5rem',
+                          fontSize: '0.9rem'
+                        }}>
+                          <span style={{ fontSize: '1.2rem' }}>⚠️</span>
+                          <span>
+                            <strong>Perhatian:</strong> Absensi untuk kombinasi ini sudah ada. 
+                            Submit ulang akan menimpa data yang sudah ada.
+                          </span>
+                        </div>
+                      </Card>
+                    );
+                  }
+                  return null;
+                })()}
+              <Card title="Input Absensi" variant="elevated">
+                <form onSubmit={handleSubmitAttendance}>
+                  <div className="attendance-bulk-actions">
+                    <Button type="button" variant="outline" onClick={() => setAllStatus('present')}>
+                      Hadir Semua
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setAllStatus('absent')}>
+                      Tidak Hadir Semua
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setAllStatus('late')}>
+                      Terlambat Semua
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => setAllStatus('excused')}>
+                      Izin Semua
+                    </Button>
+                  </div>
+                  <div className="attendance-input-list">
+                    {students.filter(s => s.classId === selectedClass).map((student) => (
+                      <div key={student.id} className="attendance-input-item">
+                        <div className="student-info">
+                          <strong>{student.fullName}</strong>
+                          <span>NIS: {student.studentNumber}</span>
+                        </div>
+                        <FormSelect
+                          value={attendanceData[student.id] || 'present'}
+                          onChange={(e) =>
+                            setAttendanceData({ ...attendanceData, [student.id]: e.target.value as AttendanceStatus })
+                          }
+                          options={[
+                            { value: 'present', label: 'Hadir' },
+                            { value: 'absent', label: 'Tidak Hadir' },
+                            { value: 'late', label: 'Terlambat' },
+                            { value: 'excused', label: 'Izin' },
+                          ]}
+                        />
+                        <FormInput
+                          placeholder="Catatan (opsional)"
+                          value={attendanceNotes[student.id] || ''}
+                          onChange={(e) =>
+                            setAttendanceNotes({ ...attendanceNotes, [student.id]: e.target.value })
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="modal-footer">
+                    <Button type="submit" isLoading={isSubmitting}>
+                      Simpan Absensi
+                    </Button>
+                  </div>
+                </form>
+              </Card>
+              </>
+            )}
+          </>
         ) : (
           <>
             <Card variant="elevated">
@@ -360,10 +477,11 @@ export const TeacherAttendance = () => {
                   ]}
                 />
                 <FormInput
-                  label="Tanggal"
+                  label="Tanggal (opsional)"
                   type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
+                  value={historyDate}
+                  onChange={(e) => setHistoryDate(e.target.value)}
+                  placeholder="Semua tanggal"
                 />
               </div>
             </Card>
@@ -390,54 +508,6 @@ export const TeacherAttendance = () => {
             )}
           </>
         )}
-
-        {/* Input Modal */}
-        <Modal
-          isOpen={showInputModal}
-          onClose={() => setShowInputModal(false)}
-          title="Input Absensi"
-          size="large"
-        >
-          <form onSubmit={handleSubmitAttendance}>
-            <div className="attendance-input-list">
-              {students.filter(s => (s as any).classId === selectedClass).map((student) => (
-                <div key={student.id} className="attendance-input-item">
-                  <div className="student-info">
-                    <strong>{student.fullName}</strong>
-                    <span>NIS: {student.studentNumber}</span>
-                  </div>
-                  <FormSelect
-                    value={attendanceData[student.id] || 'present'}
-                    onChange={(e) =>
-                      setAttendanceData({ ...attendanceData, [student.id]: e.target.value as AttendanceStatus })
-                    }
-                    options={[
-                      { value: 'present', label: 'Hadir' },
-                      { value: 'absent', label: 'Tidak Hadir' },
-                      { value: 'late', label: 'Terlambat' },
-                      { value: 'excused', label: 'Izin' },
-                    ]}
-                  />
-                  <FormInput
-                    placeholder="Catatan (opsional)"
-                    value={attendanceNotes[student.id] || ''}
-                    onChange={(e) =>
-                      setAttendanceNotes({ ...attendanceNotes, [student.id]: e.target.value })
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="modal-footer">
-              <Button variant="outline" type="button" onClick={() => setShowInputModal(false)}>
-                Batal
-              </Button>
-              <Button type="submit" isLoading={isSubmitting}>
-                Simpan Absensi
-              </Button>
-            </div>
-          </form>
-        </Modal>
 
         {/* Edit Modal */}
         <Modal

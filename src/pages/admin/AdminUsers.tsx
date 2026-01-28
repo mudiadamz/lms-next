@@ -4,22 +4,27 @@ import { DashboardLayout } from '../../components/layout/DashboardLayout';
 import { Card } from '../../components/common/Card';
 import { Button, Table, SearchBar, Badge, Dropdown, Pagination, ConfirmDialog, Icon, Modal, FileUpload, Loading, FormSelect } from '../../components/common';
 import { ROLE_LABELS, SCHOOL_LEVELS, ROUTES } from '../../constants';
-import { userService, excelService, academicYearService, classService } from '../../services';
+import { userService, excelService, academicYearService, classService, subjectService } from '../../services';
+import { formatDate } from '../../utils/dateUtils';
 import './AdminUsers.css';
 
 export const AdminUsers = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedSubMenu, setSelectedSubMenu] = useState<string>('admin');
   const [currentPage, setCurrentPage] = useState(1);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [detailUser, setDetailUser] = useState<any | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [detailTeacherSubjects, setDetailTeacherSubjects] = useState<string[]>([]);
+  const [detailTeacherClasses, setDetailTeacherClasses] = useState<string[]>([]);
+  const [isLoadingTeacherDetail, setIsLoadingTeacherDetail] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPreview, setImportPreview] = useState<any[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
+  const [usersByRole, setUsersByRole] = useState<Record<string, any[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [showResetDialog, setShowResetDialog] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -30,21 +35,32 @@ export const AdminUsers = () => {
   const [classInfoMap, setClassInfoMap] = useState<Record<string, { name: string; grade: number }>>({});
   const itemsPerPage = 10;
 
-  useEffect(() => {
-    const role = searchParams.get('role') || 'admin';
-    setSelectedSubMenu(role);
-  }, [searchParams]);
+  const roleParam = (searchParams.get('role') || 'admin').toLowerCase();
+  const selectedSubMenu = (['admin', 'teacher', 'student'].includes(roleParam) ? roleParam : 'admin') as 'admin' | 'teacher' | 'student';
 
   useEffect(() => {
     const loadUsers = async () => {
+      const currentRole = selectedSubMenu;
       try {
         setIsLoading(true);
-        const usersData = await userService.getUsers(selectedSubMenu as any);
-        setUsers(usersData);
+        const usersData = await userService.getUsers(currentRole as any);
+        if (currentRole !== selectedSubMenu) return;
+        const normalizedUsers = usersData.map((user: any) => ({
+          ...user,
+          role: user.role || currentRole,
+          fullName: user.fullName || '',
+          email: user.email || '',
+          studentNumber: user.studentNumber || '',
+          teacherNumber: user.teacherNumber || '',
+          adminNumber: user.adminNumber || '',
+        }));
+        setUsersByRole((prev) => ({ ...prev, [currentRole]: normalizedUsers }));
       } catch (error) {
         console.error('Error loading users:', error);
       } finally {
-        setIsLoading(false);
+        if (currentRole === selectedSubMenu) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -115,15 +131,16 @@ export const AdminUsers = () => {
     setCurrentPage(1);
   }, [selectedSubMenu]);
 
+  const users = usersByRole[selectedSubMenu] || [];
   const filteredUsers = users.filter((user) => {
+    const searchValue = searchTerm.toLowerCase();
     const matchesSearch =
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.studentNumber && user.studentNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.teacherNumber && user.teacherNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.adminNumber && user.adminNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesSubMenu = user.role === selectedSubMenu;
-    return matchesSearch && matchesSubMenu;
+      (user.fullName || '').toLowerCase().includes(searchValue) ||
+      (user.studentNumber || '').toLowerCase().includes(searchValue) ||
+      (user.teacherNumber || '').toLowerCase().includes(searchValue) ||
+      (user.adminNumber || '').toLowerCase().includes(searchValue) ||
+      (user.email || '').toLowerCase().includes(searchValue);
+    return matchesSearch;
   });
 
   const paginatedUsers = filteredUsers.slice(
@@ -142,7 +159,10 @@ export const AdminUsers = () => {
     if (!selectedUser) return;
     try {
       await userService.deleteUser(selectedUser.id);
-      setUsers(users.filter(u => u.id !== selectedUser.id));
+      setUsersByRole((prev) => ({
+        ...prev,
+        [selectedSubMenu]: (prev[selectedSubMenu] || []).filter((u) => u.id !== selectedUser.id),
+      }));
       setShowDeleteDialog(false);
       setSelectedUser(null);
     } catch (error) {
@@ -157,6 +177,32 @@ export const AdminUsers = () => {
 
   const handleEdit = (user: any) => {
     navigate(ROUTES.ADMIN_USERS_EDIT.replace(':id', user.id));
+  };
+
+  const handleDetail = (user: any) => {
+    setDetailUser(user);
+    setDetailTeacherSubjects([]);
+    setDetailTeacherClasses([]);
+    setShowDetailModal(true);
+    if (user.role === 'teacher') {
+      setIsLoadingTeacherDetail(true);
+      subjectService.getSubjects(undefined, user.id)
+        .then((subjectsData) => {
+          const subjectNames = subjectsData.map((subject) => subject.name);
+          const classIds = new Set<string>();
+          subjectsData.forEach((subject) => {
+            (subject.classIds || []).forEach((classId) => classIds.add(classId));
+          });
+          const classNames = Array.from(classIds)
+            .map((classId) => classInfoMap[classId]?.name || classId);
+          setDetailTeacherSubjects(subjectNames);
+          setDetailTeacherClasses(classNames);
+        })
+        .catch((error) => {
+          console.error('Error loading teacher detail:', error);
+        })
+        .finally(() => setIsLoadingTeacherDetail(false));
+    }
   };
 
   const handleResetPassword = (user: any) => {
@@ -304,7 +350,7 @@ export const AdminUsers = () => {
         
         // Reload users list
         const usersData = await userService.getUsers(selectedSubMenu as any);
-        setUsers(usersData);
+        setUsersByRole((prev) => ({ ...prev, [selectedSubMenu]: usersData }));
         
         setShowImportModal(false);
         setImportFile(null);
@@ -372,6 +418,7 @@ export const AdminUsers = () => {
         <Dropdown
           trigger={<Button variant="outline" size="small">⋯</Button>}
           items={[
+            { label: 'Detail', onClick: () => handleDetail(item) },
             { label: 'Edit', onClick: () => handleEdit(item) },
             { label: 'Reset Password', onClick: () => handleResetPassword(item) },
             { label: 'divider', onClick: () => {}, divider: true },
@@ -655,6 +702,103 @@ export const AdminUsers = () => {
           confirmLabel={isResettingPassword ? 'Mereset...' : 'Reset'}
           variant="warning"
         />
+
+        <Modal
+          isOpen={showDetailModal && !!detailUser}
+          onClose={() => {
+            setShowDetailModal(false);
+            setDetailUser(null);
+            setDetailTeacherSubjects([]);
+            setDetailTeacherClasses([]);
+          }}
+          title="Detail Pengguna"
+          size="medium"
+        >
+          {detailUser && (
+            <div className="user-detail">
+              <div className="user-detail-row">
+                <span className="user-detail-label">Nama</span>
+                <span className="user-detail-value">{detailUser.fullName || '-'}</span>
+              </div>
+              <div className="user-detail-row">
+                <span className="user-detail-label">Role</span>
+                <span className="user-detail-value">
+                  {ROLE_LABELS[detailUser.role as keyof typeof ROLE_LABELS] || detailUser.role}
+                </span>
+              </div>
+              <div className="user-detail-row">
+                <span className="user-detail-label">Nomor Induk</span>
+                <span className="user-detail-value">
+                  {detailUser.studentNumber || detailUser.teacherNumber || detailUser.adminNumber || '-'}
+                </span>
+              </div>
+              <div className="user-detail-row">
+                <span className="user-detail-label">Email</span>
+                <span className="user-detail-value">{detailUser.email || '-'}</span>
+              </div>
+              <div className="user-detail-row">
+                <span className="user-detail-label">No. HP</span>
+                <span className="user-detail-value">{detailUser.phoneNumber || '-'}</span>
+              </div>
+              <div className="user-detail-row">
+                <span className="user-detail-label">Kelas / Wali Kelas</span>
+                <span className="user-detail-value">
+                  {detailUser.role === 'student'
+                    ? (detailUser.classId && classInfoMap[detailUser.classId]
+                      ? `Kelas ${classInfoMap[detailUser.classId].grade}`
+                      : '-')
+                    : detailUser.role === 'teacher'
+                      ? (homeroomClassMap[detailUser.id] || '-')
+                      : '-'}
+                </span>
+              </div>
+              {detailUser.role === 'teacher' && (
+                <>
+                  <div className="user-detail-row">
+                    <span className="user-detail-label">Kelas yang Diajar</span>
+                    <span className="user-detail-value">
+                      {isLoadingTeacherDetail
+                        ? 'Memuat...'
+                        : detailTeacherClasses.length > 0
+                          ? detailTeacherClasses.join(', ')
+                          : '-'}
+                    </span>
+                  </div>
+                  <div className="user-detail-row">
+                    <span className="user-detail-label">Mata Pelajaran yang Diajar</span>
+                    <span className="user-detail-value">
+                      {isLoadingTeacherDetail
+                        ? 'Memuat...'
+                        : detailTeacherSubjects.length > 0
+                          ? detailTeacherSubjects.join(', ')
+                          : '-'}
+                    </span>
+                  </div>
+                </>
+              )}
+              <div className="user-detail-row">
+                <span className="user-detail-label">Jenis Kelamin</span>
+                <span className="user-detail-value">
+                  {detailUser.gender === 'male'
+                    ? 'Laki-laki'
+                    : detailUser.gender === 'female'
+                      ? 'Perempuan'
+                      : '-'}
+                </span>
+              </div>
+              <div className="user-detail-row">
+                <span className="user-detail-label">Tempat, Tanggal Lahir</span>
+                <span className="user-detail-value">
+                  {detailUser.birthPlace || '-'}{detailUser.birthDate ? `, ${formatDate(detailUser.birthDate)}` : ''}
+                </span>
+              </div>
+              <div className="user-detail-row">
+                <span className="user-detail-label">Alamat</span>
+                <span className="user-detail-value">{detailUser.address || '-'}</span>
+              </div>
+            </div>
+          )}
+        </Modal>
       </div>
     </DashboardLayout>
   );

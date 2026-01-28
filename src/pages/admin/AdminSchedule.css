@@ -201,21 +201,90 @@
   flex-shrink: 0;
 }
 
+.schedule-slot-cell {
+  padding: 0.5rem !important;
+  vertical-align: top !important;
+}
+
+.slot-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
 .schedule-slot-select {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.95rem;
-  border-radius: 8px;
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
   border: 1px solid var(--ios-separator);
   background-color: var(--ios-background);
   color: #000000;
-  min-height: 36px;
+  min-height: 32px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 10px;
+  padding-right: 1.75rem;
 }
 
 .schedule-slot-select:focus {
   outline: none;
   border-color: var(--ios-blue);
   box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.1);
+}
+
+.slot-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.btn-save-slot,
+.btn-delete-slot {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  min-width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-save-slot {
+  background-color: var(--ios-blue);
+  color: white;
+}
+
+.btn-save-slot:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn-save-slot:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-delete-slot {
+  background-color: #ff3b30;
+  color: white;
+}
+
+.btn-delete-slot:hover:not(:disabled) {
+  opacity: 0.8;
+}
+
+.btn-delete-slot:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .schedule-details {
@@ -310,4 +379,29 @@
   .inline-edit-actions button {
     width: 100%;
   }
+
+  .schedule-slot-select {
+    font-size: 0.8rem;
+    min-height: 36px;
+  }
+
+  .btn-save-slot,
+  .btn-delete-slot {
+    min-width: 36px;
+    height: 36px;
+  }
+}
+
+/* Dark Mode Support */
+.dark-mode .admin-schedule h1 {
+  color: #ffffff;
+}
+
+.dark-mode .filter-select,
+.dark-mode .schedule-slot-select {
+  color: #ffffff;
+}
+
+.dark-mode .schedule-day-title {
+  color: #ffffff;
 }

@@ -60,6 +60,7 @@ export interface Assignment {
   subjectId: string;
   classId: string;
   teacherId: string;
+  startDate: Date;
   dueDate: Date;
   attachments?: string[];
   maxScore: number;
@@ -82,11 +83,18 @@ export interface AssignmentSubmission {
 // Quiz Types
 export type QuestionType = 'multiple_choice' | 'essay' | 'true_false' | 'short_answer';
 
+export interface QuizOption {
+  value: string;
+  text?: string;
+  imageUrl?: string;
+}
+
 export interface QuizQuestion {
   id: string;
   question: string;
+  questionImage?: string;
   type: QuestionType;
-  options?: string[]; // For multiple choice
+  options?: Array<string | QuizOption>; // For multiple choice / true false
   correctAnswer: string | string[];
   points: number;
 }

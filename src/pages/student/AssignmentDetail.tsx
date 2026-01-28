@@ -47,14 +47,10 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
           setContent(studentSubmission.content || '');
         }
 
-        // Get subject and teacher names
-        const [subjectInfo, teacherInfo] = await Promise.all([
-          subjectService.getSubjectById(assignmentData.subjectId),
-          userService.getUserById(assignmentData.teacherId),
-        ]);
-
+        // Get subject name - teacher name already included in assignment data
+        const subjectInfo = await subjectService.getSubjectById(assignmentData.subjectId);
         setSubjectName(subjectInfo.name);
-        setTeacherName(teacherInfo.fullName);
+        setTeacherName((assignmentData as any).teacherName || 'Unknown');
       } catch (error) {
         console.error('Error loading assignment detail:', error);
       } finally {
@@ -72,16 +68,32 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
       return;
     }
 
+    // Confirm if resubmitting
+    if (isSubmitted && !isGraded) {
+      const confirm = window.confirm(
+        'Anda sudah mengumpulkan jawaban sebelumnya. Apakah Anda yakin ingin merevisi jawaban?\n\nJawaban lama akan diganti dengan jawaban baru.'
+      );
+      if (!confirm) return;
+    }
+
     setIsSubmitting(true);
     try {
       await assignmentService.submitAssignment(id, {
         content,
         attachments: [], // TODO: Handle file uploads
       });
+      
+      // Reload to get updated submission
+      const submissionsData = await assignmentService.getSubmissions(id).catch(() => []);
+      const studentSubmission = submissionsData.find(s => s.studentId === user?.id);
+      if (studentSubmission) {
+        setSubmission(studentSubmission);
+      }
+      
       setShowSuccessModal(true);
     } catch (error) {
       console.error('Error submitting assignment:', error);
-      alert('Gagal mengumpulkan tugas');
+      alert(error instanceof Error ? error.message : 'Gagal mengumpulkan tugas');
     } finally {
       setIsSubmitting(false);
     }
@@ -105,6 +117,8 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
 
   const isOverdue = isPast(new Date(assignment.dueDate));
   const isSubmitted = submission !== null;
+  const isGraded = submission?.score !== null && submission?.score !== undefined;
+  const canEdit = !readOnly && !isOverdue && !isGraded; // Can edit if not graded yet
 
   return (
     <DashboardLayout>
@@ -131,6 +145,9 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
             </div>
             <div className="info-item">
               <strong>Nilai Maksimal:</strong> {assignment.maxScore}
+            </div>
+            <div className="info-item">
+              <strong>Waktu Mulai:</strong> {formatDateTime(new Date(assignment.startDate || assignment.createdAt))}
             </div>
             {submission?.score !== null && submission?.score !== undefined && (
               <div className="info-item">
@@ -167,54 +184,157 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
               <p>Sebagai orang tua, Anda dapat melihat detail tugas ini tetapi tidak dapat mengerjakan tugas.</p>
             </div>
           </Card>
-        ) : !isSubmitted ? (
-          <Card title="Kerjakan Tugas">
-            <form onSubmit={handleSubmit} className="submission-form">
-              <FormTextarea
-                label="Jawaban"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                rows={10}
-                placeholder="Tulis jawaban Anda di sini..."
-              />
-
-              <FileUpload
-                label="Upload File Jawaban (Opsional)"
-                onFileSelect={setFiles}
-                multiple={false}
-                maxSize={10}
-                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-              />
-
-              <div className="form-actions">
-                <Button type="submit" isLoading={isSubmitting} disabled={isOverdue}>
-                  {isOverdue ? 'Deadline Sudah Lewat' : 'Kumpulkan Tugas'}
-                </Button>
-              </div>
-            </form>
-          </Card>
-        ) : (
-          <Card title="Tugas Anda">
-            <div className="submission-info">
-              <p>
-                <strong>Status:</strong> <Badge variant="success">Sudah Dikumpulkan</Badge>
-              </p>
-              <p>
-                <strong>Waktu Submit:</strong> {formatDateTime(new Date(submission.submittedAt))}
-              </p>
-              {submission.score !== null && submission.score !== undefined && (
-                <p>
-                  <strong>Nilai:</strong> {submission.score}/{assignment.maxScore}
-                </p>
-              )}
-              {submission.feedback && (
-                <div className="feedback-section">
-                  <h4>Feedback Guru:</h4>
-                  <p>{submission.feedback}</p>
+        ) : canEdit ? (
+          <>
+            {/* Show status if already submitted */}
+            {isSubmitted && (
+              <Card title="Status" variant="elevated">
+                <div style={{ padding: '0.5rem' }}>
+                  <Badge variant="warning">Menunggu Penilaian</Badge>
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--ios-gray)' }}>
+                    Waktu Submit: {formatDateTime(new Date(submission.submittedAt))}
+                  </p>
+                  <p style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--ios-blue)' }}>
+                    💡 Anda masih bisa merevisi jawaban sebelum guru memberikan nilai.
+                  </p>
                 </div>
-              )}
-            </div>
-          </Card>
+              </Card>
+            )}
+            
+            {/* Form - always show if can edit */}
+            <Card title={isSubmitted ? "Revisi Jawaban" : "Kerjakan Tugas"} variant="elevated">
+              <form onSubmit={handleSubmit} className="submission-form">
+                <FormTextarea
+                  label="Jawaban"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  rows={10}
+                  placeholder="Tulis jawaban Anda di sini..."
+                  required
+                />
+
+                <FileUpload
+                  label="Upload File Jawaban (Opsional)"
+                  onFileSelect={setFiles}
+                  multiple={false}
+                  maxSize={10}
+                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                />
+
+                <div className="form-actions">
+                  <Button type="submit" isLoading={isSubmitting}>
+                    {isSubmitted ? 'Update Jawaban' : 'Kumpulkan Tugas'}
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          </>
+        ) : (
+          <>
+            {/* Status Card */}
+            <Card title="Status Tugas" variant="elevated">
+              <div className="submission-info">
+                {isSubmitted ? (
+                  <>
+                    <p>
+                      <strong>Status:</strong>{' '}
+                      <Badge variant={isGraded ? 'success' : 'warning'}>
+                        {isGraded ? 'Sudah Dinilai' : 'Menunggu Penilaian'}
+                      </Badge>
+                    </p>
+                    <p>
+                      <strong>Waktu Submit:</strong> {formatDateTime(new Date(submission.submittedAt))}
+                    </p>
+                    {isGraded && (
+                      <>
+                        <p>
+                          <strong>Nilai:</strong>{' '}
+                          <Badge variant="success" style={{ fontSize: '1.1rem', padding: '0.5rem 1rem' }}>
+                            {submission.score}/{assignment.maxScore} ({Math.round((submission.score / assignment.maxScore) * 100)}%)
+                          </Badge>
+                        </p>
+                        {submission.feedback && (
+                          <div className="feedback-section" style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--accent-blue)', borderRadius: '8px', borderLeft: '3px solid var(--ios-blue)' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--ios-blue)' }}>Feedback Guru:</h4>
+                            <p style={{ margin: 0, lineHeight: '1.6' }}>{submission.feedback}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </>
+                ) : isOverdue ? (
+                  <div style={{ textAlign: 'center', padding: '1.5rem' }}>
+                    <Badge variant="danger" style={{ fontSize: '1rem', padding: '0.5rem 1rem' }}>
+                      Deadline Sudah Lewat
+                    </Badge>
+                    <p style={{ marginTop: '0.75rem', color: 'var(--ios-gray)' }}>
+                      Anda tidak dapat lagi mengumpulkan tugas ini.
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            </Card>
+
+            {/* Jawaban Siswa Card */}
+            {isSubmitted && (
+              <Card title="Jawaban Anda" variant="elevated">
+                <div className="submission-content">
+                  <div className="answer-text">
+                    <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: 'var(--ios-gray)' }}>Jawaban:</h4>
+                    <p style={{ 
+                      padding: '1rem', 
+                      backgroundColor: 'var(--ios-secondary-background)', 
+                      borderRadius: '8px',
+                      border: '0.5px solid var(--ios-separator)',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {submission.content || 'Tidak ada konten'}
+                    </p>
+                  </div>
+                  {submission.attachments && submission.attachments.length > 0 && (
+                    <div className="submission-attachments" style={{ marginTop: '1.5rem' }}>
+                      <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '0.95rem', color: 'var(--ios-gray)' }}>
+                        Lampiran ({submission.attachments.length}):
+                      </h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        {submission.attachments.map((file: string, index: number) => (
+                          <a 
+                            key={index}
+                            href={file} 
+                            download 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: '0.75rem',
+                              backgroundColor: 'var(--ios-secondary-background)',
+                              borderRadius: '8px',
+                              border: '0.5px solid var(--ios-separator)',
+                              textDecoration: 'none',
+                              color: 'var(--ios-blue)',
+                              transition: 'all 0.2s'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-blue)'}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--ios-secondary-background)'}
+                          >
+                            <span style={{ fontSize: '1.5rem' }}>📎</span>
+                            <span style={{ flex: 1, fontWeight: '500' }}>
+                              {file.split('/').pop() || file}
+                            </span>
+                            <span style={{ fontSize: '0.85rem', color: 'var(--ios-gray)' }}>
+                              Download →
+                            </span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Card>
+            )}
+          </>
         )}
 
         <Modal
@@ -226,7 +346,17 @@ export const StudentAssignmentDetail = ({ readOnly = false }: StudentAssignmentD
           title="Berhasil"
           size="small"
         >
-          <p>Tugas berhasil dikumpulkan!</p>
+          <div style={{ textAlign: 'center', padding: '1rem' }}>
+            <p style={{ marginBottom: '1rem' }}>
+              {isSubmitted ? 'Jawaban berhasil direvisi!' : 'Tugas berhasil dikumpulkan!'}
+            </p>
+            <Button onClick={() => {
+              setShowSuccessModal(false);
+              navigate(readOnly ? ROUTES.PARENT_ASSIGNMENTS : ROUTES.STUDENT_ASSIGNMENTS);
+            }}>
+              Kembali ke Tugas
+            </Button>
+          </div>
         </Modal>
       </div>
     </DashboardLayout>

@@ -21,18 +21,17 @@ export const TeacherForumDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [selectedComment, setSelectedComment] = useState<any | null>(null);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
       if (!id) return;
       try {
         setIsLoading(true);
-        const [postData, commentsData] = await Promise.all([
-          forumService.getPost(id),
-          forumService.getComments(id),
-        ]);
+        const postData = await forumService.getPostById(id);
         setPost(postData);
-        setComments(commentsData);
+        setComments(postData.comments || []);
       } catch (error) {
         console.error('Error loading forum post:', error);
       } finally {
@@ -49,9 +48,7 @@ export const TeacherForumDetail = () => {
 
     setIsSubmitting(true);
     try {
-      const comment = await forumService.addComment(id, {
-        content: newComment,
-      });
+      const comment = await forumService.addComment(id, newComment);
       setComments([...comments, comment]);
       setNewComment('');
     } catch (error) {
@@ -68,9 +65,9 @@ export const TeacherForumDetail = () => {
   };
 
   const confirmDeleteComment = async () => {
-    if (!selectedComment || !id) return;
+    if (!selectedComment) return;
     try {
-      await forumService.deleteComment(id, selectedComment.id);
+      await forumService.deleteComment(selectedComment.id);
       setComments(comments.filter((c) => c.id !== selectedComment.id));
       setShowDeleteDialog(false);
       setSelectedComment(null);
@@ -80,16 +77,30 @@ export const TeacherForumDetail = () => {
     }
   };
 
-  const handleTogglePin = async () => {
-    if (!post || !id) return;
+  const handleEditComment = (comment: any) => {
+    setEditingCommentId(comment.id);
+    setEditContent(comment.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditContent('');
+  };
+
+  const handleSaveEdit = async (commentId: string) => {
+    if (!editContent.trim()) return;
+    
     try {
-      const updated = await forumService.updatePost(id, {
-        isPinned: !post.isPinned,
-      });
-      setPost(updated);
+      setIsSubmitting(true);
+      const updatedComment = await forumService.updateComment(commentId, editContent);
+      setComments(comments.map((c) => (c.id === commentId ? updatedComment : c)));
+      setEditingCommentId(null);
+      setEditContent('');
     } catch (error) {
-      console.error('Error toggling pin:', error);
-      alert(error instanceof Error ? error.message : 'Gagal mengubah status pin');
+      console.error('Error updating comment:', error);
+      alert(error instanceof Error ? error.message : 'Gagal mengupdate komentar');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -116,19 +127,6 @@ export const TeacherForumDetail = () => {
   return (
     <DashboardLayout>
       <div className="forum-detail">
-        <div className="detail-header">
-          <Dropdown
-            trigger={<Button variant="outline">Kelola</Button>}
-            items={[
-              { label: post.isPinned ? 'Lepas Pin' : 'Pin', onClick: handleTogglePin },
-              { label: 'Edit Post', onClick: () => console.log('Edit post', post.id) },
-              { divider: true },
-              { label: 'Hapus Post', onClick: () => console.log('Delete post', post.id) },
-            ]}
-            align="right"
-          />
-        </div>
-
         <Card variant="elevated">
           <div className="post-header">
             <div>
@@ -185,11 +183,11 @@ export const TeacherForumDetail = () => {
                     </div>
                     <div className="comment-meta">
                       <span>{getRelativeTime(new Date(comment.createdAt || comment.date || Date.now()))}</span>
-                      {(comment.authorId === user?.id || user?.role === 'teacher') && (
+                      {(comment.authorId === user?.id || user?.role === 'teacher') && !editingCommentId && (
                         <Dropdown
                           trigger={<Button variant="outline" size="small">⋯</Button>}
                           items={[
-                            { label: 'Edit', onClick: () => console.log('Edit comment', comment.id) },
+                            { label: 'Edit', onClick: () => handleEditComment(comment) },
                             { divider: true },
                             { label: 'Hapus', onClick: () => handleDeleteComment(comment) },
                           ]}
@@ -198,9 +196,32 @@ export const TeacherForumDetail = () => {
                       )}
                     </div>
                   </div>
-                  <div className="comment-content">
-                    <p>{comment.content}</p>
-                  </div>
+                  {editingCommentId === comment.id ? (
+                    <div style={{ marginTop: '1rem' }}>
+                      <FormTextarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        rows={3}
+                        autoFocus
+                      />
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem', justifyContent: 'flex-end' }}>
+                        <Button variant="outline" size="small" onClick={handleCancelEdit}>
+                          Batal
+                        </Button>
+                        <Button 
+                          size="small" 
+                          onClick={() => handleSaveEdit(comment.id)}
+                          disabled={!editContent.trim() || isSubmitting}
+                        >
+                          Simpan
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="comment-content">
+                      <p>{comment.content}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

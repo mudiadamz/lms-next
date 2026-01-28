@@ -25,6 +25,14 @@
   color: #f9fafb;
 }
 
+.dark-mode .material-info p {
+  color: #ffffff;
+}
+
+.dark-mode .material-description {
+  color: #8e8e93 !important;
+}
+
 @media (max-width: 768px) {
   .student-materials h1 {
     font-size: 1.25rem;

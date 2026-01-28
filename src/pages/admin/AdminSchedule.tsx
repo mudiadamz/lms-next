@@ -4,7 +4,7 @@ import { Card } from '../../components/common/Card';
 import { EmptyState, Loading } from '../../components/common';
 import { DAYS_OF_WEEK } from '../../constants';
 import { Schedule } from '../../types';
-import { scheduleService, classService, subjectService, academicYearService } from '../../services';
+import { scheduleService, classService, subjectService, academicYearService, userService } from '../../services';
 import './AdminSchedule.css';
 
 // Mock data removed - now using API services
@@ -18,31 +18,44 @@ export const AdminSchedule = () => {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [classes, setClasses] = useState<Array<{ value: string; label: string }>>([]);
   const [subjects, setSubjects] = useState<Array<{ value: string; label: string }>>([]);
-  const [subjectsRaw, setSubjectsRaw] = useState<Array<{ id: string; name: string; teacherId: string | null }>>([]);
+  const [teachers, setTeachers] = useState<Array<{ value: string; label: string }>>([]);
   const [academicYears, setAcademicYears] = useState<Array<{ value: string; label: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedSemester, setSelectedSemester] = useState<string>('1');
   const [selectedClass, setSelectedClass] = useState<string>('all');
   const [savingSlots, setSavingSlots] = useState<Set<string>>(new Set());
+  const [slotData, setSlotData] = useState<Record<string, { subjectId: string; teacherId: string }>>({});
 
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [schedulesData, classesData, subjectsData, academicYearsData] = await Promise.all([
+        const [schedulesData, classesData, subjectsData, academicYearsData, teachersData] = await Promise.all([
           scheduleService.getSchedules(),
           classService.getClasses(),
           subjectService.getSubjects(),
           academicYearService.getAcademicYears(),
+          userService.getUsers('teacher'),
         ]);
 
         setSchedules(schedulesData);
         setClasses(classesData.map(c => ({ value: c.id, label: c.name })));
-        setSubjectsRaw(subjectsData.map(s => ({ id: s.id, name: s.name, teacherId: s.teacherId })));
         setSubjects(subjectsData.map(s => ({ value: s.id, label: s.name })));
+        setTeachers(teachersData.map(t => ({ value: t.id, label: t.fullName })));
         setAcademicYears(academicYearsData.map(ay => ({ value: ay.name, label: ay.name })));
+
+        // Initialize slotData from existing schedules
+        const initialSlotData: Record<string, { subjectId: string; teacherId: string }> = {};
+        schedulesData.forEach(schedule => {
+          const key = `${schedule.dayOfWeek}-${schedule.startTime}-${schedule.endTime}`;
+          initialSlotData[key] = {
+            subjectId: schedule.subjectId,
+            teacherId: schedule.teacherId
+          };
+        });
+        setSlotData(initialSlotData);
 
         // Set default selected year if available
         if (academicYearsData.length > 0 && !selectedYear) {
@@ -95,7 +108,18 @@ export const AdminSchedule = () => {
     [],
   );
 
-  const handleSlotSubjectChange = async (day: number, slot: { start: string; end: string }, subjectId: string) => {
+  const handleSlotChange = (day: number, slot: { start: string; end: string }, field: 'subjectId' | 'teacherId', value: string) => {
+    const slotKey = `${day}-${slot.start}-${slot.end}`;
+    setSlotData(prev => ({
+      ...prev,
+      [slotKey]: {
+        ...prev[slotKey],
+        [field]: value
+      }
+    }));
+  };
+
+  const handleSaveSlot = async (day: number, slot: { start: string; end: string }) => {
     if (selectedClass === 'all') {
       alert('Pilih kelas terlebih dahulu.');
       return;
@@ -104,6 +128,12 @@ export const AdminSchedule = () => {
     const slotKey = `${day}-${slot.start}-${slot.end}`;
     if (savingSlots.has(slotKey)) return;
 
+    const data = slotData[slotKey];
+    if (!data?.subjectId || !data?.teacherId) {
+      alert('Pilih mata pelajaran dan guru terlebih dahulu.');
+      return;
+    }
+
     const existingSchedule = (schedulesByDay[day] || []).find(
       (schedule) => schedule.startTime === slot.start && schedule.endTime === slot.end,
     );
@@ -111,34 +141,22 @@ export const AdminSchedule = () => {
     try {
       setSavingSlots(new Set([...savingSlots, slotKey]));
 
-      if (!subjectId) {
-        if (existingSchedule) {
-          await scheduleService.deleteSchedule(existingSchedule.id);
-        }
+      if (existingSchedule) {
+        await scheduleService.updateSchedule(existingSchedule.id, {
+          subjectId: data.subjectId,
+          teacherId: data.teacherId,
+        });
       } else {
-        const subject = subjectsRaw.find((item) => item.id === subjectId);
-        if (!subject?.teacherId) {
-          alert('Mata pelajaran belum memiliki guru.');
-          return;
-        }
-
-        if (existingSchedule) {
-          await scheduleService.updateSchedule(existingSchedule.id, {
-            subjectId,
-            teacherId: subject.teacherId,
-          });
-        } else {
-          await scheduleService.createSchedule({
-            classId: selectedClass,
-            subjectId,
-            teacherId: subject.teacherId,
-            dayOfWeek: day,
-            startTime: slot.start,
-            endTime: slot.end,
-            academicYear: selectedYear,
-            semester: parseInt(selectedSemester),
-          });
-        }
+        await scheduleService.createSchedule({
+          classId: selectedClass,
+          subjectId: data.subjectId,
+          teacherId: data.teacherId,
+          dayOfWeek: day,
+          startTime: slot.start,
+          endTime: slot.end,
+          academicYear: selectedYear,
+          semester: parseInt(selectedSemester),
+        });
       }
 
       const filters: any = { academicYear: selectedYear, semester: parseInt(selectedSemester) };
@@ -148,6 +166,39 @@ export const AdminSchedule = () => {
     } catch (error) {
       console.error('Error saving schedule:', error);
       alert(error instanceof Error ? error.message : 'Gagal menyimpan jadwal');
+    } finally {
+      const nextSaving = new Set(savingSlots);
+      nextSaving.delete(slotKey);
+      setSavingSlots(nextSaving);
+    }
+  };
+
+  const handleDeleteSlot = async (day: number, slot: { start: string; end: string }) => {
+    const slotKey = `${day}-${slot.start}-${slot.end}`;
+    const existingSchedule = (schedulesByDay[day] || []).find(
+      (schedule) => schedule.startTime === slot.start && schedule.endTime === slot.end,
+    );
+
+    if (!existingSchedule) return;
+
+    try {
+      setSavingSlots(new Set([...savingSlots, slotKey]));
+      await scheduleService.deleteSchedule(existingSchedule.id);
+      
+      // Clear slot data
+      setSlotData(prev => {
+        const next = { ...prev };
+        delete next[slotKey];
+        return next;
+      });
+
+      const filters: any = { academicYear: selectedYear, semester: parseInt(selectedSemester) };
+      if (selectedClass !== 'all') filters.classId = selectedClass;
+      const updatedSchedules = await scheduleService.getSchedules(filters);
+      setSchedules(updatedSchedules);
+    } catch (error) {
+      console.error('Error deleting schedule:', error);
+      alert('Gagal menghapus jadwal');
     } finally {
       const nextSaving = new Set(savingSlots);
       nextSaving.delete(slotKey);
@@ -234,21 +285,59 @@ export const AdminSchedule = () => {
                           (schedule) => schedule.startTime === slot.start && schedule.endTime === slot.end,
                         );
                         const slotKey = `${day}-${slot.start}-${slot.end}`;
+                        const currentData = slotData[slotKey] || { subjectId: slotSchedule?.subjectId || '', teacherId: slotSchedule?.teacherId || '' };
+                        const isDisabled = savingSlots.has(slotKey);
+                        
                         return (
-                          <td key={slotKey}>
-                            <select
-                              className="schedule-slot-select"
-                              value={slotSchedule?.subjectId || ''}
-                              onChange={(e) => handleSlotSubjectChange(day, slot, e.target.value)}
-                              disabled={savingSlots.has(slotKey)}
-                            >
-                              <option value="">Pilih mata pelajaran</option>
-                              {subjects.map((subject) => (
-                                <option key={subject.value} value={subject.value}>
-                                  {subject.label}
-                                </option>
-                              ))}
-                            </select>
+                          <td key={slotKey} className="schedule-slot-cell">
+                            <div className="slot-controls">
+                              <select
+                                className="schedule-slot-select"
+                                value={currentData.subjectId}
+                                onChange={(e) => handleSlotChange(day, slot, 'subjectId', e.target.value)}
+                                disabled={isDisabled}
+                              >
+                                <option value="">Pilih mapel</option>
+                                {subjects.map((subject) => (
+                                  <option key={subject.value} value={subject.value}>
+                                    {subject.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <select
+                                className="schedule-slot-select"
+                                value={currentData.teacherId}
+                                onChange={(e) => handleSlotChange(day, slot, 'teacherId', e.target.value)}
+                                disabled={isDisabled}
+                              >
+                                <option value="">Pilih guru</option>
+                                {teachers.map((teacher) => (
+                                  <option key={teacher.value} value={teacher.value}>
+                                    {teacher.label}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="slot-actions">
+                                <button
+                                  className="btn-save-slot"
+                                  onClick={() => handleSaveSlot(day, slot)}
+                                  disabled={isDisabled || !currentData.subjectId || !currentData.teacherId}
+                                  title="Simpan"
+                                >
+                                  ✓
+                                </button>
+                                {slotSchedule && (
+                                  <button
+                                    className="btn-delete-slot"
+                                    onClick={() => handleDeleteSlot(day, slot)}
+                                    disabled={isDisabled}
+                                    title="Hapus"
+                                  >
+                                    ✕
+                                  </button>
+                                )}
+                              </div>
+                            </div>
                           </td>
                         );
                       })}

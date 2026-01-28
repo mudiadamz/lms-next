@@ -80,6 +80,26 @@
   min-width: 0;
 }
 
+.sidebar-menu-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  background-color: #ff3b30;
+  color: #ffffff;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-menu-item--active .sidebar-menu-badge {
+  background-color: var(--ios-blue);
+}
+
 .sidebar-menu-arrow {
   display: flex;
   align-items: center;

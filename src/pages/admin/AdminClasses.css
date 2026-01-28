@@ -130,6 +130,10 @@
   align-items: center;
 }
 
+.dark-mode .info-value {
+  color: #e5e7eb;
+}
+
 /* Styles for AdminClassesStudents page */
 .admin-classes-students .page-header {
   display: flex;

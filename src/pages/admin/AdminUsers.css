@@ -116,6 +116,72 @@
   gap: 1.5rem;
 }
 
+.user-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.user-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 0.5px solid var(--ios-separator);
+  padding-bottom: 0.5rem;
+}
+
+.user-detail-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.user-detail-label {
+  font-size: 0.85rem;
+  color: var(--ios-gray);
+}
+
+.user-detail-value {
+  font-size: 0.9rem;
+  color: #111827;
+  text-align: right;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.checkbox-group-label {
+  font-weight: 500;
+  color: #111827;
+}
+
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.5rem 1rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #111827;
+}
+
+.checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ios-blue);
+}
+
+.checkbox-empty {
+  color: var(--ios-gray);
+  font-size: 0.9rem;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

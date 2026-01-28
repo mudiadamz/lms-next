@@ -5,7 +5,7 @@ import { Card } from '../../components/common/Card';
 import { useAuth } from '../../contexts/AuthContext';
 import { ROUTES } from '../../constants';
 import { Icon, Loading } from '../../components/common';
-import { classService, assignmentService, attendanceService, materialService } from '../../services';
+import { classService, assignmentService, attendanceService, materialService, subjectService } from '../../services';
 import './TeacherDashboard.css';
 
 export const TeacherDashboard = () => {
@@ -23,32 +23,42 @@ export const TeacherDashboard = () => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        const [classesData, assignmentsData, attendanceData, materialsData] = await Promise.all([
+        const [classesData, subjectsData, assignmentsData, attendanceData, materialsData] = await Promise.all([
           classService.getClasses(),
-          assignmentService.getAssignments({ teacherId: user?.id }),
-          attendanceService.getAttendance({ teacherId: user?.id }),
+          subjectService.getSubjects(undefined, user?.id),
+          assignmentService.getAssignments(),
+          attendanceService.getAttendance(),
           materialService.getMaterials(),
         ]);
 
-        // Filter classes taught by this teacher
-        const teacherClasses = classesData.filter(c => (c as any).teacherIds?.includes(user?.id));
+        const teacherSubjectIds = new Set(subjectsData.map((subject) => subject.id));
+        const teacherClassIds = new Set<string>();
+        subjectsData.forEach((subject) => {
+          (subject.classIds || []).forEach((classId) => teacherClassIds.add(classId));
+        });
+        const teacherClasses = classesData.filter((cls) => teacherClassIds.has(cls.id));
         
         // Count pending grading (assignments with submissions not graded)
-        const pendingGrading = assignmentsData.length; // TODO: Filter by submissions that need grading
+        const teacherAssignments = assignmentsData.filter((assignment) =>
+          assignment.teacherId === user?.id || teacherSubjectIds.has(assignment.subjectId)
+        );
+        const pendingGrading = teacherAssignments.length; // TODO: Filter by submissions that need grading
 
         // Check today's attendance
         const today = new Date().toISOString().split('T')[0];
         const todayAttendanceRecords = attendanceData.filter(a => {
           const recordDate = new Date(a.date).toISOString().split('T')[0];
-          return recordDate === today;
+          return recordDate === today && a.recordedBy === user?.id;
         });
         const todayAttendanceStatus = todayAttendanceRecords.length > 0 ? `${todayAttendanceRecords.length} siswa` : 'Belum diinput';
+
+        const teacherMaterials = materialsData.filter((material) => material.teacherId === user?.id);
 
         setStats({
           classesCount: teacherClasses.length,
           pendingGrading,
           todayAttendance: todayAttendanceStatus,
-          materialsCount: materialsData.length,
+          materialsCount: teacherMaterials.length,
         });
       } catch (error) {
         console.error('Error loading dashboard data:', error);

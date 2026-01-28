@@ -125,6 +125,10 @@
   justify-content: center;
 }
 
+.dark-mode .header-notification-button {
+  color: #f3f4f6;
+}
+
 .header-notification-button:active {
   transform: scale(0.97);
 }
@@ -177,6 +181,10 @@
   padding: 0 0.25rem 0.25rem;
 }
 
+.dark-mode .header-notification-title {
+  color: #f3f4f6;
+}
+
 .header-notification-item {
   text-align: left;
   border: 1px solid var(--ios-separator);
@@ -195,6 +203,10 @@
   font-size: 0.9rem;
 }
 
+.dark-mode .header-notification-item-title {
+  color: #f3f4f6;
+}
+
 .header-notification-item-time {
   font-size: 0.75rem;
   color: var(--ios-gray);
@@ -203,6 +215,10 @@
 .header-notification-item-message {
   font-size: 0.85rem;
   color: #374151;
+}
+
+.dark-mode .header-notification-item-message {
+  color: #d1d5db;
 }
 
 .header-user {

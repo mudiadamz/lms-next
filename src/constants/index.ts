@@ -39,6 +39,7 @@ export const ROUTES = {
   TEACHER_ASSIGNMENT_GRADE: '/teacher/assignments/:assignmentId/submissions/:submissionId/grade',
   TEACHER_QUIZZES: '/teacher/quizzes',
   TEACHER_QUIZZES_CREATE: '/teacher/quizzes/create',
+  TEACHER_QUIZ_DETAIL: '/teacher/quizzes/:id',
   TEACHER_GRADING: '/teacher/grading',
   TEACHER_ATTENDANCE: '/teacher/attendance',
   TEACHER_FORUM: '/teacher/forum',

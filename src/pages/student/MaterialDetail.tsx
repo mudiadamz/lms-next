@@ -33,14 +33,11 @@ export const StudentMaterialDetail = () => {
       try {
         setIsLoading(true);
         const materialData = await materialService.getMaterialById(id);
-        const [subjectInfo, teacherInfo] = await Promise.all([
-          subjectService.getSubjectById(materialData.subjectId),
-          userService.getUserById(materialData.teacherId),
-        ]);
+        const subjectInfo = await subjectService.getSubjectById(materialData.subjectId);
 
         setMaterial(materialData);
         setSubjectName(subjectInfo.name);
-        setTeacherName(teacherInfo.fullName);
+        setTeacherName((materialData as any).teacherName || 'Unknown');
       } catch (error) {
         console.error('Error loading material detail:', error);
       } finally {
@@ -114,16 +111,26 @@ export const StudentMaterialDetail = () => {
               </div>
             ) : (
               <div className="document-container">
-                <div className="document-preview">
-                  <iframe
-                    src={material.fileUrl}
-                    title={material.title}
-                    className="document-iframe"
-                  />
-                </div>
-                <div className="document-actions">
-                  <a href={material.fileUrl} download>
-                    <Button variant="primary">📥 Download</Button>
+                <div style={{ 
+                  padding: '2rem', 
+                  textAlign: 'center',
+                  backgroundColor: 'var(--ios-secondary-background)',
+                  borderRadius: '12px',
+                  border: '0.5px solid var(--ios-separator)'
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                    {typeInfo.icon}
+                  </div>
+                  <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1.1rem' }}>
+                    {material.title}
+                  </h3>
+                  <p style={{ color: 'var(--ios-gray)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+                    File siap untuk diunduh
+                  </p>
+                  <a href={material.fileUrl} download target="_blank" rel="noopener noreferrer">
+                    <Button variant="primary" size="large">
+                      📥 Download Materi
+                    </Button>
                   </a>
                 </div>
               </div>

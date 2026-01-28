@@ -17,7 +17,7 @@ interface Payment {
   year: number;
   amount: number;
   dueDate: Date | string;
-  status: 'paid' | 'pending' | 'overdue';
+  status: 'paid' | 'pending' | 'overdue' | 'verifying';
   paymentMethod?: string;
   receiptNumber?: string;
   receiptFileUrl?: string;
@@ -35,6 +35,8 @@ const getStatusBadge = (status: Payment['status']) => {
   switch (status) {
     case 'paid':
       return <Badge variant="success">Sudah Dibayar</Badge>;
+    case 'verifying':
+      return <Badge variant="info">Menunggu Verifikasi</Badge>;
     case 'pending':
       return <Badge variant="warning">Belum Dibayar</Badge>;
     case 'overdue':
@@ -49,7 +51,6 @@ export const StudentPayment = () => {
   const { settings } = useSettings();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'all' | 'paid' | 'pending'>('all');
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -83,13 +84,7 @@ export const StudentPayment = () => {
   
   const paidPayments = studentPayments.filter((p) => p.status === 'paid');
   const pendingPayments = studentPayments.filter((p) => p.status === 'pending' || p.status === 'overdue');
-
-  const displayedPayments =
-    activeTab === 'paid'
-      ? paidPayments
-      : activeTab === 'pending'
-      ? pendingPayments
-      : studentPayments;
+  const verifyingPayments = studentPayments.filter((p) => p.status === 'verifying');
 
   const totalPaid = paidPayments.reduce((sum, p) => sum + p.amount, 0);
   const totalPending = pendingPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -363,46 +358,29 @@ export const StudentPayment = () => {
           </Card>
         )}
 
-        {/* Tabs */}
-        <div className="payment-tabs">
-          <button
-            className={`tab-button ${activeTab === 'all' ? 'tab-button--active' : ''}`}
-            onClick={() => setActiveTab('all')}
-          >
-            Semua ({studentPayments.length})
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'paid' ? 'tab-button--active' : ''}`}
-            onClick={() => setActiveTab('paid')}
-          >
-            Sudah Dibayar ({paidPayments.length})
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'pending' ? 'tab-button--active' : ''}`}
-            onClick={() => setActiveTab('pending')}
-          >
-            Belum Dibayar ({pendingPayments.length})
-          </button>
-        </div>
+        {/* Verifying Payments */}
+        {verifyingPayments.length > 0 && (
+          <Card variant="elevated" className="payment-summary-table">
+            <h3 className="summary-table-title" style={{ color: 'var(--ios-blue)' }}>
+              <Icon name="clock" size={18} style={{ marginRight: '0.5rem' }} />
+              Menunggu Verifikasi Admin ({verifyingPayments.length})
+            </h3>
+            <Table columns={columns} data={verifyingPayments} />
+          </Card>
+        )}
 
-        {/* Payment Table */}
+        {/* Payment History Table - Only Paid */}
         {isLoading ? (
           <Loading />
-        ) : displayedPayments.length === 0 ? (
+        ) : paidPayments.length === 0 ? (
           <EmptyState
             icon="analytics"
-            title="Tidak Ada Data Pembayaran"
-            message={
-              activeTab === 'paid'
-                ? 'Belum ada pembayaran yang telah dilakukan.'
-                : activeTab === 'pending'
-                ? 'Tidak ada pembayaran yang belum dibayar.'
-                : 'Belum ada data pembayaran SPP.'
-            }
+            title="Belum Ada Riwayat Pembayaran"
+            message="Belum ada pembayaran yang telah dilakukan."
           />
         ) : (
-          <Card title="Riwayat Pembayaran" variant="elevated">
-            <Table columns={columns} data={displayedPayments} />
+          <Card title={`Riwayat Pembayaran (${paidPayments.length})`} variant="elevated">
+            <Table columns={columns} data={paidPayments} />
           </Card>
         )}
 

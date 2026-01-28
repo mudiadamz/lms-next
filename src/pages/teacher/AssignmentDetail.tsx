@@ -155,6 +155,9 @@ export const AssignmentDetail = () => {
               <strong>Kelas:</strong> {className}
             </div>
             <div className="info-item">
+              <strong>Waktu Mulai:</strong> {formatDateTime(new Date(assignment.startDate || assignment.createdAt))}
+            </div>
+            <div className="info-item">
               <strong>Deadline:</strong>{' '}
               <Badge variant={new Date() > new Date(assignment.dueDate) ? 'danger' : 'warning'}>
                 {formatDateTime(new Date(assignment.dueDate))}

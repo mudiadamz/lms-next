@@ -118,6 +118,13 @@ export const TeacherReports = () => {
     loadReportCards();
   }, [selectedClass, selectedAcademicYear, selectedSemester, students]);
 
+  const filteredReports = reportCards.filter((report) => {
+    const term = searchTerm.toLowerCase();
+    return (
+      report.studentName.toLowerCase().includes(term) ||
+      report.studentNumber.toLowerCase().includes(term)
+    );
+  });
 
   const totalPages = Math.ceil(filteredReports.length / itemsPerPage);
   const paginatedReports = filteredReports.slice(

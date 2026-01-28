@@ -22,9 +22,26 @@ export const Dropdown = ({
   className = '',
 }: DropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [openDirection, setOpenDirection] = useState<'down' | 'up'>('down');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const updatePosition = () => {
+      const menuEl = menuRef.current;
+      const container = dropdownRef.current;
+      if (!menuEl || !container) return;
+      const triggerRect = container.getBoundingClientRect();
+      const menuRect = menuEl.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - triggerRect.bottom;
+      const spaceAbove = triggerRect.top;
+      if (spaceBelow < menuRect.height && spaceAbove > spaceBelow) {
+        setOpenDirection('up');
+      } else {
+        setOpenDirection('down');
+      }
+    };
+
     const handleClickOutside = (event: MouseEvent) => {
       if (
         dropdownRef.current &&
@@ -36,10 +53,15 @@ export const Dropdown = ({
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
+      requestAnimationFrame(updatePosition);
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition, true);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
     };
   }, [isOpen]);
 
@@ -53,7 +75,10 @@ export const Dropdown = ({
       </div>
 
       {isOpen && (
-        <div className={`dropdown-menu dropdown-menu--${align}`}>
+        <div
+          ref={menuRef}
+          className={`dropdown-menu dropdown-menu--${align} dropdown-menu--${openDirection}`}
+        >
           {items.map((item, index) => {
             if (item.divider) {
               return <div key={index} className="dropdown-divider" />;

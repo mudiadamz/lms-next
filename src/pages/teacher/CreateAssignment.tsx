@@ -21,8 +21,8 @@ export const CreateAssignment = () => {
     description: '',
     subjectId: '',
     classId: '',
+    startDate: '',
     dueDate: '',
-    maxScore: '',
   });
   const [files, setFiles] = useState<File[]>([]);
 
@@ -58,8 +58,9 @@ export const CreateAssignment = () => {
         subjectId: formData.subjectId,
         classId: formData.classId,
         teacherId: user?.id || '',
+        startDate: new Date(formData.startDate).toISOString(),
         dueDate: new Date(formData.dueDate).toISOString(),
-        maxScore: parseInt(formData.maxScore),
+        maxScore: 100,
         attachments: [], // TODO: Handle file uploads
       });
       setShowSuccessModal(true);
@@ -134,21 +135,18 @@ export const CreateAssignment = () => {
 
             <div className="form-row">
               <FormInput
+                label="Waktu Mulai"
+                type="datetime-local"
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                required
+              />
+              <FormInput
                 label="Deadline"
                 type="datetime-local"
                 value={formData.dueDate}
                 onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                 required
-              />
-
-              <FormInput
-                label="Nilai Maksimal"
-                type="number"
-                value={formData.maxScore}
-                onChange={(e) => setFormData({ ...formData, maxScore: e.target.value })}
-                required
-                min="1"
-                placeholder="100"
               />
             </div>
 

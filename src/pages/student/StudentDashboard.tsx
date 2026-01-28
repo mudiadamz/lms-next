@@ -154,7 +154,7 @@ export const StudentDashboard = () => {
               </Card>
               <Card variant="elevated" className="stat-card">
                 <div className="stat-value">{stats.upcomingQuizzes}</div>
-                <div className="stat-label">Kuis Mendatang</div>
+                <div className="stat-label">Kuis/Test/Ujian Mendatang</div>
               </Card>
               <Card variant="elevated" className="stat-card">
                 <div className="stat-value">{stats.averageGrade}</div>
